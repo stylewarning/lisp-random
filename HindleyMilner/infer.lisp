@@ -4,7 +4,7 @@
 ;;;; This is an implementation of Robin Milner's "Algorithm J" from
 ;;;; his 1978 paper `A Theory of Type Polymorphism in Programming'
 ;;;; from the Journal of Computer and System Sciences, Volume 17,
-;;;; pages 348--375. It is available (as on December 17, 2010) from
+;;;; pages 348--375. It is available (as of December 17, 2010) from
 ;;;; <http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.67.5276>
 ;;;; for free.
 
