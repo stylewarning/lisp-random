@@ -26,8 +26,7 @@ lists, and print them as vertical columns, possibly with HEADER
 strings and a special DIRECTIVE for printing all values."
   (let* ((columns (length (car data)))
          (fmt (apply #'string-concatenate
-                     (append
-                             '("~:{~&")
+                     (append '("~:{~&")
                              (make-list columns :initial-element directive)
                              '("~}")))))
     (format stream fmt (append (list header) data))))
