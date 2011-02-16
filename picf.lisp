@@ -11,10 +11,9 @@
 
 (defun pi-cf (file &optional (precision nil))
   (let* ((pi-digits-string
-          (subseq (with-open-file (s file)
-                    (read-line s))
+          (subseq (with-open-file (s file) (read-line s))
                   0 precision))
-         (pi-prec (or precision (length pi-digits-string)))
          (pi-digits (/ (parse-integer pi-digits-string)
-                       (expt 10 (1- pi-prec)))))
+                       (expt 10 (1- (or precision
+                                        (length pi-digits-string)))))))
     (rational->cf pi-digits)))
