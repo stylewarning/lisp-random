@@ -27,6 +27,7 @@
 
 
 ;;; Environment routines.
+;;; An environment is just an association list.
 
 (defun env-empty ()
   "Return an empty environment."
@@ -98,6 +99,7 @@ and Y so that they unify."
 (defun substitute-values (x env)
   "Return X but with each variable in X substituted for the values
 defined in ENV."
+  ;; Maybe just use SUBLIS?
   (cond ((variablep x) (let ((y (variable-val x env)))
                          (if (variablep y) y (substitute-values y env))))
         ((consp x) (cons (substitute-values (car x) env)
@@ -127,7 +129,12 @@ INSTANCE."
 (defun instance (x prefix)
   "Generate an instance of X with fresh variables in place of the
 generic variables defined in PREFIX."
-  (instance-aux x prefix (env-empty) #'(lambda (a env) a)))
+  (instance-aux x
+                prefix
+                (env-empty)
+                #'(lambda (a env)
+                    (declare (ignore env))
+                    a)))
 
 (defun genericp (var prefix)
   "Is VAR a generic variable in PREFIX?"
