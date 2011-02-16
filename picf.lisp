@@ -7,10 +7,9 @@
 (defun rational->cf (r)
   (loop
      :for proper := (rational-split r)
-     :collect (first proper) :into cf
+     :collect (first proper)
      :until (zerop (second proper))
-     :do (setf r (/ (second proper)))
-     :finally (return cf)))
+     :do (setf r (/ (second proper)))))
 
 (defun pi-cf (file &optional (precision nil))
   (let* ((pi-digits-string
