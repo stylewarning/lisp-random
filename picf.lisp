@@ -1,3 +1,6 @@
+;; Copyright (c) 2011 Robert Smith
+;; Inspired by Neil Bickford's <http://neilbickford.com/picf.htm>
+
 (defun rational-split (r)
   (multiple-value-list (truncate r)))
 
