@@ -1,4 +1,4 @@
-;; Dispatch on the `[' character to LAMBDA-BRACKET
+;; Dispatch on the `[' character to AREF-BRACKET
 (set-macro-character
  #\[
  (lambda (stream char)
