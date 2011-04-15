@@ -13,33 +13,41 @@
   (reduce #'append lst))
 
 (defstruct (sbpstate (:conc-name sbp.))
-  x
-  y
-  boards
-  last-boards
-  new-boards
-  num-pieces
-  pieces
-  piece-nums
-  is-a
-  a-is
-  piece-positions
+  x           ; Int                                -- width
+  y           ; Int                                -- height
+  depth       ; Int                                -- depth in BFS
+  boards      ; Dictionary(PackedBoard, Move)      -- all boards at depth 0
+              ;                                      to depth-2
+  last-boards ; Dictionary(PackedBoard, Move)      -- boards at depth-1
+  new-boards  ; Dictionary(PackedBoard, Move)      -- boards at depth
+  num-pieces  ; Int                                -- total pieces
+  pieces      ; UnpackedNumber -> PieceDescription --
+  piece-nums  ; Shape -> Int                       -- number of pieces
+              ;                                      of each shape
+  is-a        ; UnpackedNumber -> Ordinal * Shape  --
+  a-is        ; Ordinal * Shape -> UnpackedNumber
+  shape-positions ; Shape * Ordinal -> Int         -- Gives location of the
+                  ;                                  Nth piece w/certain shape
   )
 
-(defparameter *global* nil)
+(defun positions (val lst)
+  (loop
+     :for i := 0 :then (+ i p 1)
+     :and p := (position val lst) :then (position val lst :start i)
+     :while p :collect p :into tot
+     :finally (return (cdr tot))))
 
-(defun main ()
-  (prog (testboard)
-     (setf *global* (make-sbpstate))
-     (setf testboard (2D-list->array *example*))
+(defun find-pieces (brd)
+  (let* ((b (flatten brd))
+         (num-ids (apply #'max b)))
+    (loop
+       :for i :from 1 :to num-ids
+       :collect (positions i b))))
 
-     (let ((dims (array-dimensions testboard)))
-       (setf (sbp.x *global*) (first dims))
-       (setf (sbp.y *globals* (second dims))))
+(defun same-shape (s1 s2)
+  (and (= (length s1) (length s2))
+       (apply #'= (mapcar #'- s1 s2))))
 
-     (setf (sbp.num-pieces *global*) (length (remove 0 (remove-duplicates (flatten *example*)))))
-     )
-  )
 
 (defun can-move-up-p (board piece x y)
   (not (or (zerop y)
