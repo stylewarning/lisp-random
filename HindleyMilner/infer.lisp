@@ -34,7 +34,8 @@
   (not (null (assoc var env))))
 
 (defun env-value (var env)
-  "Get the value of VAR in ENV. This function assumes it exists."
+  "Get the value of VAR in ENV."
+  (assert (env-bound-p var env))
   (cdr (assoc var env)))
 
 
@@ -43,11 +44,15 @@
 
 (defparameter *variable-count* 0 "A counter for generating type variables.")
 
+(defun reset-variable-count ()
+  "Reset the variable count to zero."
+  (setf *variable-count* 0))
+
 (defun new-variable ()
   "Generate a new generic type variable. A type variable will start
 with a capitalized letter T followed by an integer."
   (incf *variable-count*)
-  (intern (concatenate 'string "T" (write-to-string *variable-count*))))
+  (intern (format nil "T~A" *variable-count*)))
 
 (defun variablep (x)
   "Check if X is a type variable."
@@ -201,17 +206,17 @@ Algorithm W."
                   (let* ((x (env-value f p))
                          (kind (car x))
                          (derive-type (cadr x)))
-                    (if (equalp kind 'let)
+                    (if (equalp kind 'LET)
                         (instance derive-type p)
                         derive-type))
                   (instance (find-type f) (env-empty))))
              ((not (consp f))
               ;; j(constant) => constant-type
               (instance (constant-type f) (env-empty)))
-             ((equalp (car f) 'quote)
+             ((equalp (car f) 'QUOTE)
               ;; j('constant) => j(constant)
               (instance (constant-type (cadr f)) (env-empty)))
-             ((equalp (car f) 'if)
+             ((equalp (car f) 'IF)
               ;; j( if(p, x, y) ) =>
               ;;   unify(j(p), bool),
               ;;   unify(j(x), j(y))
@@ -220,20 +225,20 @@ Algorithm W."
                     (alt (algorithm-j p (fourth f))))
                 (setf e (unify con alt (unify pre 'bool e)))
                 con))
-             ((equalp (car f) 'lambda)
+             ((equalp (car f) 'LAMBDA)
               ;; j(lambda(vars, body)) => (vars -> j(body))
               (let* ((parms (mapcar (lambda (x)
                                       (declare (ignore x))
                                       (new-variable)) (cadr f)))
                      (body (algorithm-j
                             (env-join
-                             (mapcar (lambda (x y) (list x 'lambda y))
+                             (mapcar (lambda (x y) (list x 'LAMBDA y))
                                      (cadr f)
                                      parms)
                              p)
                             (caddr f))))
                 (cons '-> (append parms (list body)))))
-             ((equalp (car f) 'let)
+             ((equalp (car f) 'LET)
               ;; j(let([[x1,y1], [x2, y2],...], body)) =>
               ;; with j(x1) := j(y1)
               ;;      j(x2) := j(y2)
@@ -243,11 +248,11 @@ Algorithm W."
               (algorithm-j
                (env-join
                 (mapcar
-                 (lambda (x) (list (car x) 'let (algorithm-j p (cadr x))))
+                 (lambda (x) (list (car x) 'LET (algorithm-j p (cadr x))))
                  (cadr f))
                 p)
                (caddr f)))
-             ((equalp (car f) 'letrec)
+             ((equalp (car f) 'LETREC)
               ;; j(letrec([[x1,y1], [x2, y2],...], body)) =>
               ;; with j(x1) := T1
               ;;      j(x2) := T2
@@ -257,7 +262,7 @@ Algorithm W."
               ;;  j(body)
               (let ((p* (env-join
                          (mapcar (lambda (x)
-                                   (list (car x) 'letrec (new-variable)))
+                                   (list (car x) 'LETREC (new-variable)))
                                  (cadr f))
                          p)))
                 (mapcar
@@ -266,13 +271,13 @@ Algorithm W."
                      (setf e (unify (cadr (env-value (car x) p*)) val e))))
                  (cadr f))
                 (algorithm-j p* (caddr f))))
-             ((and (consp (car f)) (equalp (caar f) 'lambda))
+             ((and (consp (car f)) (equalp (caar f) 'LAMBDA))
               ;; j( (lambda([v1, v2, ..., vn], body))(a1, a2, ..., an) ) =>
               ;; j( let([[v1, a1],
               ;;         [v2, a2],
               ;;         ...,
               ;;         [vn, an]], body))
-              (algorithm-j p (list 'let
+              (algorithm-j p (list 'LET
                                    (mapcar #'list (cadar f) (cdr f))
                                    (caddar f))))
              (t
@@ -285,5 +290,6 @@ Algorithm W."
                 result)))))
       ;; Compute the type of F, and then substitute all type-variables
       ;; in.
+      (reset-variable-count)
       (let ((tt (algorithm-j (env-empty) f)))
         (sublis e tt)))))
