@@ -14,18 +14,6 @@
 ;;;; Also, this needs some cleaning up.
 
 
-;;; Some error conditions used in the inference.
-
-(define-condition :cannot-unify-structures-error (error)
-  ())
-
-(define-condition :unknown-constant-type-error (error)
-  ())
-
-(define-condition :list-not-homogeneous-error (error)
-  ())
-
-
 ;;; Environment routines.
 ;;; An environment is just an association list.
 
@@ -64,7 +52,7 @@ with a capitalized letter T followed by an integer."
 (defun variablep (x)
   "Check if X is a type variable."
   (and (symbolp x)
-       (char= (aref (symbol-name x) 0) #\T)))
+       (char= #\T (aref (symbol-name x) 0))))
 
 (defun variable< (x y)
   "Check if variable X was generated before Y."
@@ -94,12 +82,13 @@ and Y so that they unify."
       ((and (consp xv) (consp yv))
        (unify (cdr xv) (cdr yv) (unify (car xv) (car yv) env)))
       (t
-       (error :cannot-unify-structures-error)))))
+       (error "Cannot unify structures.")))))
 
 (defun substitute-values (x env)
   "Return X but with each variable in X substituted for the values
 defined in ENV."
-  ;; Maybe just use SUBLIS?
+  ;; Maybe just use SUBLIS? Probably not, since we need special
+  ;; handling of variables.
   (cond ((variablep x) (let ((y (variable-val x env)))
                          (if (variablep y) y (substitute-values y env))))
         ((consp x) (cons (substitute-values (car x) env)
@@ -140,61 +129,74 @@ generic variables defined in PREFIX."
   "Is VAR a generic variable in PREFIX?"
   (cond
     ((null prefix) t)
-    ((and (equalp (cadar prefix) var) (not (equalp (caar prefix) 'let))) nil)
+    ((and (equalp (cadar prefix) var)
+          (not (equalp (caar prefix) 'let))) nil)
     (t (genericp var (cdr prefix)))))
 
 
 ;;; Inference.
 
-(defvar global-var-types
-  '(
-    (+        . (-> num num num))
-    (-        . (-> num num num))
-    (*        . (-> num num num))
-    (/        . (-> num num num))
-    (<        . (-> num num bool))
-    (<=       . (-> num num bool))
-    (=        . (-> num num bool))
-    (>=       . (-> num num bool))
-    (char>?   . (-> char char bool))
-    (char<?   . (-> char char bool))
-    (char<=?  . (-> char char bool))
-    (char=?   . (-> char char bool))
-    (char>=?  . (-> char char bool))
-    (char>?   . (-> char char bool))
-    (cons     . (-> Ta (list Ta) (list Ta)))
-    (car      . (-> (list Ta) Ta))
-    (cdr      . (-> (list Ta) (list Ta)))
-    (set-car! . (-> (list Ta) Ta ()))
-    (set-cdr! . (-> (list Ta) (list Ta) ()))
-    (null?    . (-> (list Ta) bool))
-    (length   . (-> (list Ta) num))
-    (append   . (-> (list Ta) (list Ta) (list Ta)))
-    (reverse  . (-> (list Ta) (list Ta)))
-    (map      . (-> (-> Ta Tb) (list Ta) (list Tb)))
-    (not      . (-> bool bool))
-    (call/cc  . (-> (-> (-> Ta Tb) Tc) Ta))
-    (apply    . (-> (-> Ta Tb) (list Ta) Tb))
-    (write    . (-> Ta ()))
-    )
-  "A list of types for some common Scheme procedures."
-  )
+(defparameter *global-var-types* (make-hash-table :test 'equal))
+
+(defmacro declare-type (var type &rest var-type-pairs)
+  "Declare the type of a variable."  
+  `(progn
+     (setf (gethash ',var *global-var-types*) ',type)
+     ,(when var-type-pairs
+            `(declare-type ,(car var-type-pairs)
+                           ,(cadr var-type-pairs)
+                           ,@(cddr var-type-pairs)))))
+
+(defun find-type (prim)
+  "Find the type of PRIM. This will not compute the type, it will look
+to see if he type of the symbol PRIM is registered."
+  (gethash prim *global-var-types*))
+
+(declare-type +         (-> num num num)
+              -         (-> num num num)
+              *         (-> num num num)
+              /         (-> num num num)
+              <         (-> num num bool)
+              <=        (-> num num bool)
+              =         (-> num num bool)
+              >=        (-> num num bool)
+              char>?    (-> char char bool)
+              char<?    (-> char char bool)
+              char<=?   (-> char char bool)
+              char=?    (-> char char bool)
+              char>=?   (-> char char bool)
+              char>?    (-> char char bool)
+              cons      (-> Ta (list Ta) (list Ta))
+              car       (-> (list Ta) Ta)
+              cdr       (-> (list Ta) (list Ta))
+              set-car!  (-> (list Ta) Ta ())
+              set-cdr!  (-> (list Ta) (list Ta) ())
+              null?     (-> (list Ta) bool)
+              length    (-> (list Ta) num)
+              append    (-> (list Ta) (list Ta) (list Ta))
+              reverse   (-> (list Ta) (list Ta))
+              map       (-> (-> Ta Tb) (list Ta) (list Tb))
+              not       (-> bool bool)
+              call/cc   (-> (-> (-> Ta Tb) Tc) Ta)
+              apply     (-> (-> Ta Tb) (list Ta) Tb)
+              write     (-> Ta ()))
 
 (defun constant-type (x)
   "Determine the type of a constant X."
   (cond
-    ((numberp x)                     'num)
-    ((characterp x)                  'char)
-    ((or (equalp x 'true) (equalp x 'false)) 'bool)
-    ((null x)                        '(list Ta))
+    ((numberp x)            'num)
+    ((characterp x)         'char)
+    ((or (equalp x 'true)
+         (equalp x 'false)) 'bool)
+    ((null x)               '(list Ta))
     ((consp x)
      (let ((element-type (constant-type (car x))))
        (mapcar #'(lambda (y)
                    (if (not (equal (constant-type y) element-type))
-                       (error :list-not-homogeneous-error)))
+                       (error "List is not homogeneous.")))
                (cdr x))
        (list 'list element-type)))
-    (t (error :unknown-constant-type-error))))
+    (t (error "Unknown constant type."))))
 
 (defun derive-type (f)
   "Derive the type of expression F and return it using Milner's Algorithm J."
@@ -213,7 +215,7 @@ Algorithm W."
                     (if (equalp kind 'let)
                         (instance derive-type p)
                         derive-type))
-                  (instance (cdr (assoc f global-var-types)) (env-empty))))
+                  (instance (find-type f) (env-empty))))
              ((not (consp f))
               ;; j(constant) => constant-type
               (instance (constant-type f) (env-empty)))
@@ -224,14 +226,16 @@ Algorithm W."
               ;; j( if(p, x, y) ) =>
               ;;   unify(j(p), bool),
               ;;   unify(j(x), j(y))
-              (let ((pre (algorithm-j p (cadr f)))
-                    (con (algorithm-j p (caddr f)))
-                    (alt (algorithm-j p (cadddr f))))
+              (let ((pre (algorithm-j p (second f)))
+                    (con (algorithm-j p (third f)))
+                    (alt (algorithm-j p (fourth f))))
                 (setf e (unify con alt (unify pre 'bool e)))
                 con))
              ((equalp (car f) 'lambda)
               ;; j(lambda(vars, body)) => (vars -> j(body))
-              (let* ((parms (mapcar (lambda (x) (new-variable)) (cadr f)))
+              (let* ((parms (mapcar (lambda (x)
+                                      (declare (ignore x))
+                                      (new-variable)) (cadr f)))
                      (body (algorithm-j
                             (env-join
                              (mapcar (lambda (x y) (list x 'lambda y))
@@ -290,7 +294,7 @@ Algorithm W."
                     (args (mapcar (lambda (x) (algorithm-j p x)) (cdr f))))
                 (setf e (unify oper (cons '-> (append args (list result))) e))
                 result)))))
-      ;; Compute the type of f, and then substitute all
-      ;; type-variables in.
+      ;; Compute the type of F, and then substitute all type-variables
+      ;; in.
       (let ((tt (algorithm-j (env-empty) f)))
         (substitute-values tt e)))))
