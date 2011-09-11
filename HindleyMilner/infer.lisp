@@ -84,17 +84,6 @@ and Y so that they unify."
       (t
        (error "Cannot unify structures.")))))
 
-(defun substitute-values (x env)
-  "Return X but with each variable in X substituted for the values
-defined in ENV."
-  ;; Maybe just use SUBLIS? Probably not, since we need special
-  ;; handling of variables.
-  (cond ((variablep x) (let ((y (variable-val x env)))
-                         (if (variablep y) y (substitute-values y env))))
-        ((consp x) (cons (substitute-values (car x) env)
-                         (substitute-values (cdr x) env)))
-        (t x)))
-
 (defun instance-aux (x prefix env success)
     "Generate an instance of X with fresh variables in place of the
 generic variables defined in PREFIX. Finally, call SUCCESS on the
@@ -297,4 +286,4 @@ Algorithm W."
       ;; Compute the type of F, and then substitute all type-variables
       ;; in.
       (let ((tt (algorithm-j (env-empty) f)))
-        (substitute-values tt e)))))
+        (sublis e tt)))))
