@@ -1,3 +1,7 @@
+(declaim (optimize speed
+                   (safety 0)
+                   (debug 0)))
+
 (defstruct (ternary-node (:conc-name ternary-node.)
                          (:print-function ternary-node-printer))
   (char   #\nul :type base-char :read-only t)
@@ -8,6 +12,7 @@
 
 (defun ternary-node-printer (obj stream depth)
   "Le printer for ternary nodes."
+  (declare (type (unsigned-byte 25) depth))
   (let ((indent (make-string (* 2 depth) :initial-element #\space)))
     (when obj
       (format stream "~C~:[~;*~]"
@@ -36,6 +41,7 @@
 
 (defun ternary-tree-printer (obj stream depth)
   "Le printer for ternary trees."
+  (declare (type (unsigned-byte 25) depth))
   (when (ternary-tree.root obj)
     (ternary-node-printer (ternary-tree.root obj)
                           stream
@@ -44,6 +50,7 @@
 (defun ternary-tree-add (tree str)
   "Add a string STR to the ternary tree TREE."
   (labels ((ternary-tree-add-node (pos node)
+             (declare (type (unsigned-byte 25) pos))
              (cond 
                ((char< (aref str pos)
                        (ternary-node.char node))
@@ -76,44 +83,62 @@
     tree))
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Auxiliary Functions ;;;;;;;;;;;;;;;;;;;;;;;;;
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun random-between (a b)
+    "Generate a random integer between A and B, inclusive."
+    (assert (>= b a))
+    (if (= a b)
+        a
+        (+ a (random (- (1+ b) a)))))
 
-(defun random-between (a b)
-  "Generate a random integer between A and B, inclusive."
-  (assert (>= b a))
-  (if (= a b)
-      a
-      (+ a (random (- (1+ b) a)))))
-
-(defun shuffle (list &optional (parity :any))
-  "Shuffle the permutation vector VECTOR with specified parity
+  (defun shuffle (list &optional (parity :any))
+    "Shuffle the permutation vector VECTOR with specified parity
   PARITY. PARITY may be
 
     * :ANY  for any permutation
     * :EVEN for only even permutations
     * :ODD  for only odd permutations"
-  
-  (assert (member parity '(:any :even :odd)))
-  (let ((vector (make-array (length list)
-                            :initial-contents list)))
-    (let ((n (length vector))
-          (any? (eql parity :any)))
-      (loop :for i :below (if any? n (1- n))
-            :for r := (random-between i (1- n))
-            :when (/= i r)
-            :do (progn
-                  (rotatef (svref vector i)
-                           (svref vector r))
-                  (unless any?
-                    (rotatef (svref vector (- n 1))
-                             (svref vector (- n 2)))))
-            :finally (progn
-                       (when (eql parity :odd)
-                         (rotatef (svref vector 0)
-                                  (svref vector 1)))
-                       (return (concatenate 'list vector)))))))
+    
+    (assert (member parity '(:any :even :odd)))
+    (let ((vector (make-array (length list)
+                              :initial-contents list)))
+      (let ((n (length vector))
+            (any? (eql parity :any)))
+        (loop :for i :below (if any? n (1- n))
+              :for r := (random-between i (1- n))
+              :when (/= i r)
+              :do (progn
+                    (rotatef (svref vector i)
+                             (svref vector r))
+                    (unless any?
+                      (rotatef (svref vector (- n 1))
+                               (svref vector (- n 2)))))
+              :finally (progn
+                         (when (eql parity :odd)
+                           (rotatef (svref vector 0)
+                                    (svref vector 1)))
+                         (return (concatenate 'list vector))))))))
 
 (defun ternary-tree-add* (tree &rest strings)
   "Add a list of strings to TREE. The strings are suffled to help
 balance the tree."
   (dolist (s (shuffle strings) tree)
     (ternary-tree-add tree s)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Testing ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defconstant +word-list+
+  (shuffle (with-open-file (s "/Users/quad/words")
+             (loop :for word := (read-line s nil nil)
+                   :while word
+                   :collect word))))
+
+(defparameter *tree* nil)
+
+(defun test-ternary-tree (&optional (word-list +word-list+))
+  (declare (optimize speed))
+  (let ((tree (make-ternary-tree)))
+    (dolist (w word-list nil)
+      (ternary-tree-add tree w))
+    (setf *tree* tree)
+    nil))
