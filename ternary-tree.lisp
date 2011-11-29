@@ -1,7 +1,3 @@
-(declaim (optimize speed
-                   (safety 0)
-                   (debug 0)))
-
 (defstruct (ternary-node (:conc-name ternary-node.)
                          (:print-function ternary-node-printer))
   (char   #\nul :type base-char :read-only t)
@@ -25,7 +21,7 @@
       (when (ternary-node.middle obj)
         (format stream "~&~A| " indent)
         (ternary-node-printer (ternary-node.middle obj) stream (1+ depth)))
-      
+
       (when (ternary-node.right obj)
         (format stream "~&~A> " indent)
         (ternary-node-printer (ternary-node.right obj) stream (1+ depth))))))
@@ -82,7 +78,6 @@
     
     tree))
 
-;;;;;;;;;;;;;;;;;;;;;;;; Auxiliary Functions ;;;;;;;;;;;;;;;;;;;;;;;;;
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun random-between (a b)
     "Generate a random integer between A and B, inclusive."
@@ -127,18 +122,14 @@ balance the tree."
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Testing ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defconstant +word-list+
-  (shuffle (with-open-file (s "/Users/quad/words")
-             (loop :for word := (read-line s nil nil)
-                   :while word
-                   :collect word))))
+(defun get-word-list ()
+  (with-open-file (s "/Users/quad/words")
+    (loop :for word := (read-line s nil nil)
+          :while word
+          :collect word)))
 
-(defparameter *tree* nil)
-
-(defun test-ternary-tree (&optional (word-list +word-list+))
+(defun test-ternary-tree ()
   (declare (optimize speed))
   (let ((tree (make-ternary-tree)))
-    (dolist (w word-list nil)
-      (ternary-tree-add tree w))
-    (setf *tree* tree)
-    nil))
+    (dolist (w (get-word-list) nil)
+      (ternary-tree-add tree w))))
