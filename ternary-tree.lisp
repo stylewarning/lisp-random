@@ -1,4 +1,5 @@
 (defstruct (ternary-node (:conc-name ternary-node.)
+                         #+#:ig
                          (:print-function ternary-node-printer))
   (char   #\nul :type base-char :read-only t)
   (end-p  nil   :type boolean)
@@ -15,7 +16,7 @@
               (ternary-node.char obj)
               (ternary-node.end-p obj))
       (when (ternary-node.left obj)
-        (format stream "~&~A< " indent)
+        (format stream "~&~A> " indent)
         (ternary-node-printer (ternary-node.left obj) stream (1+ depth)))
       
       (when (ternary-node.middle obj)
@@ -23,7 +24,7 @@
         (ternary-node-printer (ternary-node.middle obj) stream (1+ depth)))
 
       (when (ternary-node.right obj)
-        (format stream "~&~A> " indent)
+        (format stream "~&~A< " indent)
         (ternary-node-printer (ternary-node.right obj) stream (1+ depth))))))
 
 (defun ternary-node (char &optional end-p)
@@ -32,6 +33,7 @@
                      :char char))
 
 (defstruct (ternary-tree (:conc-name ternary-tree.)
+                         #+#:ig
                          (:print-function ternary-tree-printer))
   (root nil :type (or null ternary-node)))
 
@@ -99,6 +101,62 @@
            (setf node (ternary-node.middle node))))))
   
   nil)                               ; Return NIL otherwise...
+
+(defun ternary-node-completions (node)
+  (labels ((strcat (x y)
+             (concatenate 'string
+                          (string x)
+                          (string y)))
+           
+           (compute-completions (node prefix)
+             (when node
+               (let* ((cstr   (string (ternary-node.char node)))
+                      (end?   (ternary-node.end-p node))
+                      (left   (ternary-node.left node))
+                      (middle (ternary-node.middle node))
+                      (right  (ternary-node.right node)))
+                 
+                 (append (and end? (list (strcat prefix cstr)))
+                         (compute-completions middle (strcat prefix cstr))
+                         (compute-completions left prefix)
+                         (compute-completions right prefix))))))
+   
+    (compute-completions node "")))
+
+(defun travel-node (node char)
+  (assert (characterp char))
+  
+  (cond
+    ((null node) nil)
+    
+    ((char< char (ternary-node.char node))
+     (travel-node (ternary-node.left node) char))
+    
+    ((char> char (ternary-node.char node))
+     (travel-node (ternary-node.right node) char))
+    
+    (t (ternary-node.middle node))))
+
+(defun travel-node-by-string (node string)
+  (labels ((string-to-list (string)
+             (concatenate 'list string))
+           
+           (travel-node-by-list (node list)
+             (cond
+               ((null list) node)
+               ((null node) nil)
+               (t (travel-node-by-list (travel-node node (car list))
+                                       (cdr list))))))
+    (travel-node-by-list node (string-to-list string))))
+
+(defun travel-and-complete (node char)
+  (ternary-node-completions (travel-node node char)))
+
+(defun completions (tree string)
+  (ternary-node-completions
+   (travel-node-by-string
+    (ternary-tree.root tree)
+    string)))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun random-between (a b)
