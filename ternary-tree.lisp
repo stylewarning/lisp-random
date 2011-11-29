@@ -78,6 +78,28 @@
     
     tree))
 
+(defun ternary-tree-contains-p (tree str)
+  (do ((pos 0)
+       (node (ternary-tree.root tree)))  
+      ((null node))                       ; While NODE is not null...
+
+    (cond
+      ((char< (aref str pos)
+              (ternary-node.char node))
+       (setf node (ternary-node.left node)))
+      
+      ((char> (aref str pos)
+              (ternary-node.char node))
+       (setf node (ternary-node.right node)))
+      
+      (t (progn
+           (incf pos)
+           (when (= pos (length str))
+             (return-from ternary-tree-contains-p (ternary-node.end-p node)))
+           (setf node (ternary-node.middle node))))))
+  
+  nil)                               ; Return NIL otherwise...
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun random-between (a b)
     "Generate a random integer between A and B, inclusive."
