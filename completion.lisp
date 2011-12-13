@@ -3,11 +3,12 @@
 
 ;;;; String completions and stuff
 
+(ql:quickload #:qtility)
+
 ;;;;;;;;;;;;;;;;;;;;;; Completion node datatype ;;;;;;;;;;;;;;;;;;;;;;
 
 (defstruct (completion-node (:conc-name completion-node.)
-                         #+#:ignore
-                         (:print-function completion-node-printer))
+                            (:print-function completion-node-printer))
   (char   #\nul :type base-char :read-only t)
   (endp   nil   :type boolean)
   (left   nil   :type (or null completion-node))
@@ -16,22 +17,12 @@
 
 (defun completion-node-printer (obj stream depth)
   "Printer for ternary nodes."
-  (let ((indent (make-string (* 2 depth) :initial-element #\space)))
-    (when obj
-      (format stream "~C~:[~;*~]"
-              (completion-node.char obj)
-              (completion-node.endp obj))
-      (when (completion-node.left obj)
-        (format stream "~&~A> " indent)
-        (completion-node-printer (completion-node.left obj) stream (1+ depth)))
-      
-      (when (completion-node.middle obj)
-        (format stream "~&~A| " indent)
-        (completion-node-printer (completion-node.middle obj) stream (1+ depth)))
-
-      (when (completion-node.right obj)
-        (format stream "~&~A< " indent)
-        (completion-node-printer (completion-node.right obj) stream (1+ depth))))))
+  (declare (ignore depth))
+  (print-unreadable-object (obj stream :type t :identity t)
+    (princ "CHAR=" stream)
+    (print (completion-node.char obj) stream)
+    (princ " ENDP=" stream)
+    (princ (completion-node.endp obj) stream)))
 
 (defun completion-node (char)
   "Make a fresh ternary node. with character CHAR."
@@ -41,16 +32,14 @@
 ;;;;;;;;;;;;;;;;;;;;;; Completion tree datatype ;;;;;;;;;;;;;;;;;;;;;;
 
 (defstruct (completion-tree (:conc-name completion-tree.)
-                         #+#:ignore
-                         (:print-function completion-tree-printer))
+                            #+#:ignore
+                            (:print-function completion-tree-printer))
   (root nil :type (or null completion-node)))
 
 (defun completion-tree-printer (obj stream depth)
   "Printer for ternary trees."
-  (when (completion-tree.root obj)
-    (completion-node-printer (completion-tree.root obj)
-                          stream
-                          depth)))
+  (declare (ignore depth))
+  (print-unreadable-object (obj stream :type t :identity t)))
 
 
 ;;;;;;;;;;;;;;;;;;;; Completion tree modification ;;;;;;;;;;;;;;;;;;;;
@@ -80,7 +69,7 @@
                           (setf (completion-node.middle node)
                                 (completion-node (aref str (1+ pos)))))
                         (completion-tree-add-node (1+ pos)
-                                               (completion-node.middle node))))))))
+                                                  (completion-node.middle node))))))))
     (unless (completion-tree.root tree)
       (setf (completion-tree.root tree)
             (completion-node (aref str 0))))
@@ -99,7 +88,7 @@ balance the tree."
   "Check if TREE contains the word STR."
   (do ((pos 0)
        (node (completion-tree.root tree)))  
-      ((null node))                       ; While NODE is not null...
+      ((null node))                     ; While NODE is not null...
 
     (cond
       ((char< (aref str pos)
@@ -114,7 +103,7 @@ balance the tree."
              (return-from completion-tree-contains-p (completion-node.endp node))
              (setf node (completion-node.middle node))))))
   
-  nil)                               ; Return NIL otherwise...
+  nil)                                  ; Return NIL otherwise...
 
 (defun completion-node-completions (node)
   "Walk the children of NODE to find all completions."
@@ -164,7 +153,7 @@ balance the tree."
                                (cdr item)))))
 
 (defmethod completion-node-travel ((node completion-node) (item string))
-  (completion-node-travel node (explode item)))
+  (completion-node-travel node (qtl:explode item)))
 
 ;;;;;;;;;;;;;;;;;;;;;;; Completion computation ;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -179,9 +168,3 @@ balance the tree."
   (completion-node-completions
    (completion-node-travel (completion-tree.root tree) item)))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Testing ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defun test-completion-tree ()
-  (let ((tree (make-completion-tree)))
-    (dolist (w (get-word-list "/usr/share/dict/words") nil)
-      (completion-tree-add tree w))))
