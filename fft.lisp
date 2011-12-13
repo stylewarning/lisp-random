@@ -13,6 +13,26 @@
     :collect (aref v i) :into s
     :finally (return (coerce s 'vector))))
 
+
+(defmacro mapvec (f &rest vecs)
+  `(map 'vector ,f ,@vecs))
+
+(defmacro catvec (&rest vecs)
+  `(concatenate 'vector ,@vecs))
+
+(defun .+ (v1 v2)
+  (mapvec #'+ v1 v2))
+
+(defun .- (v1 v2)
+  (mapvec #'+ v1 v2))
+
+(defun .* (v1 v2)
+  (mapvec #'* v1 v2))
+
+(defun .^ (v1 v2)
+  (mapvec #'expt v1 v2))
+
+
 (defun dft (x &key (normalization-factor (/ (sqrt (length x))))
                    inversep)
   (let ((N (length x)))
@@ -31,14 +51,10 @@
   (let ((N (length x)))
     (if (= 1 N)
         x
-        (let* ((m (floor n 2))
-               (top (fft (slice x (qtl:range 0 N 2))))
-               (bot (fft (slice x (qtl:range 1 N 2))))
-               (d (map 'vector
-                       (lambda (k) (primitive-nth-root N (- k)))
-                       (qtl:iota m)))
-               (z (map 'vector #'* d bot)))
-          (concatenate 'vector
-                       (map 'vector (lambda (vi zi) (+ vi zi)) top z)
-                       (map 'vector (lambda (vi zi) (- vi zi)) top z))))))
+        (let* ((top   (fft (slice x (qtl:range 0 N 2))))
+               (bot   (fft (slice x (qtl:range 1 N 2))))
+               (roots (qtl:tabulate (lambda (k) (primitive-nth-root N (- k)))
+                                    (floor n 2)))
+               (z     (.* roots bot)))
+          (catvec (.+ top z) (.- top z))))))
 
