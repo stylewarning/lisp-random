@@ -1,5 +1,4 @@
 (defconstant ii #C(0 1))
-
 (defconstant 2*pi*i (* 2 pi ii))
 
 (defun primitive-nth-root (n &optional (k 1))
