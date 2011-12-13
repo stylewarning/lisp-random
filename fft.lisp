@@ -16,18 +16,17 @@
 (defun catvec (v1 v2)
   (concatenate 'vector v1 v2))
 
-(defun .+ (v1 v2)
-  (map 'vector #'+ v1 v2))
+(defmacro define-pointwise-operation (name function)
+  (let ((v1 (gensym "V1-"))
+        (v2 (gensym "V2-")))
+    `(defun ,name (,v1 ,v2)
+       (map 'vector ,function ,v1 ,v2))))
 
-(defun .- (v1 v2)
-  (map 'vector #'+ v1 v2))
-
-(defun .* (v1 v2)
-  (map 'vector #'* v1 v2))
-
-(defun .^ (v1 v2)
-  (map 'vector #'expt v1 v2))
-
+(define-pointwise-operation .+ #'+)
+(define-pointwise-operation .- #'-)
+(define-pointwise-operation .* #'*)
+(define-pointwise-operation ./ #'/)
+(define-pointwise-operation .^ #'expt)
 
 (defun dft (x &key (normalization-factor (/ (sqrt (length x))))
                    inversep)
