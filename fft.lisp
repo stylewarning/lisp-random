@@ -54,7 +54,7 @@
         (let* ((top   (fft (slice x (qtl:range 0 N 2))))
                (bot   (fft (slice x (qtl:range 1 N 2))))
                (roots (qtl:tabulate (lambda (k) (primitive-nth-root N (- k)))
-                                    (floor n 2)))
+                                    (floor N 2)))
                (z     (.* roots bot)))
           (catvec (.+ top z) (.- top z))))))
 
