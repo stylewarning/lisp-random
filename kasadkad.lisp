@@ -1,11 +1,12 @@
+;;;; Kasadkad's avoiding stuff
+;;;; Copyright (c) 2012 Robert Smith
+
+;;; UTILITY FUNCTIONS
+
 (defun xor (a b)
   "Exclusive or on A and B."
   (and (or a b)
        (not (and a b))))
-
-(defun non-positive-p (n)
-  "Is N non-positive?"
-  (not (plusp n)))
 
 (defun list-to-vector (list)
   "Convert LIST into a vector."
@@ -22,20 +23,22 @@ n = START + k*STEP."
   (assert (non-negative-p n))
   (range 0 n))
 
+;;; PERMUTATIONS
+
 (defun order-isomorphic-p (a b)
   "Are A and B order-isomorphic?"
   (let ((n (length a)))
     (when (= n (length b))
       (loop :for i :below n
             :always (loop :for j :from i :below n
-                          :always (not (qtl:xor (<= (elt a i) (elt a j))
-                                                (<= (elt b i) (elt b j)))))))))
+                          :always (not (xor (<= (elt a i) (elt a j))
+                                            (<= (elt b i) (elt b j)))))))))
 (defun subsequences (x n)
   "Get all of the subsequences of X of length N."
   (let ((lenx (length x)))
     (cond
       ((or (> n lenx)
-           (qtl:non-positive-p n)) nil)
+           (not (plusp n))) nil)
       ((= n lenx) (list x))
       (t (let ((total (1+ (- lenx n))))
            (loop :for i :below total
@@ -60,7 +63,7 @@ pattern PATTERN?"
                  (mapcan #'(lambda (x)
                              (mapcar #'(lambda (y) (cons x y))
                                      (perms (remove x l :count 1)))) l))))
-    (mapcar #'qtl:list-to-vector (perms (qtl:iota n)))))
+    (mapcar #'list-to-vector (perms (iota n)))))
 
 (defun avoiding-patterns (permutation pattern-size)
   "Compute a list of all of the patterns of size PATTERN-SIZE that
