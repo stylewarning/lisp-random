@@ -13,7 +13,7 @@
         nil
         (case op
           ((val) (lookup (first args)))
-          ((vals) (transform-vals (first args)))
+;;          ((vals) (transform-vals (first args)))
           ((set) (bind (first args) (second args)))
           (t (cons op (mapcar #'evaluate args)))
           ;; ...
@@ -31,13 +31,17 @@
         (push (cons var val) *env*)))
   (values))
 
-(defun transform-vals (expr)
+(defun transform-vals (expr var)
   (cond
-    ((numberp expr) expr)
+    ((eql expr var) `(val ,var))
     ((null expr) expr)
-    ((symbolp expr) `(val ,expr))
-    ((consp expr) (cons (transform-vals (car expr))
-                        (transform-vals (cdr expr))))))
+    ((listp expr) (case (first expr)
+                    ((val) expr)
+                    ((quote) (if (eql (second expr) var)
+                                 var
+                                 expr))
+                    (t (mapcar (lambda (e) (transform-vals e var)) expr))))
+    (t expr)))
 
 (defun repl ()
   (setf *env* nil)
