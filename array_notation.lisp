@@ -20,7 +20,9 @@
 
 ;; CL-USER> (defparameter x (make-array 5 :initial-contents '(zero one two three four)))
 ;; X
-;; CL-USER> (defparameter y (make-array '(3 3) :initial-contents '((aa ab ac) (ba bb bc) (ca cb cc))))
+;; CL-USER> (defparameter y (make-array '(3 3) :initial-contents '((aa ab ac)
+;;                                                                 (ba bb bc)
+;;                                                                 (ca cb cc))))
 ;; Y
 ;; CL-USER> [x 0]
 ;; ZERO
