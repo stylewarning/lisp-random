@@ -69,22 +69,11 @@
 (defun rationalise (n)
   (/ (floor (* n 10000)) 10000))
 
-(defvar *example-matrix* (lla:dense 'lla:lla-double
-                           (0 -1 1)
-                           (-1 0 1)
-                           (-1 1 0)))
-
-(defparameter *matrices* (let ((vec (make-array +matrix-count+)))
-                           (loop :for i :below +matrix-count+
-                                 :do (setf (aref vec i)
-                                           (integer-to-matrix i)))
-                           vec))
-
 (defparameter *kernels* (make-array +matrix-count+))
 
 (defun compute-null-spaces ()
-  (loop :for i :from 0
-        :for m :across *matrices*
+  (loop :for i :below +matrix-count+
+        :for m := (integer-to-matrix i)
         :do (setf (aref *kernels* i)
                   (null-space m))))
 
