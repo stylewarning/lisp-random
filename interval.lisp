@@ -60,3 +60,14 @@
                 (b/d (/ b d)))
             (interval (min a/c a/d b/c b/d)
                       (max a/c a/d b/c b/d)))))))
+
+(defun iv-pow (x n)
+  (assert (and (integerp n)
+               (plusp n)))
+  (with-iv x (a b)
+    (cond
+      ((oddp n) (interval (expt a n) (expt b n)))
+      ((evenp n) (cond
+                   ((>= a 0) (interval (expt a n) (expt b n)))
+                   ((minusp b) (interval (expt b n) (expt a n)))
+                   (otherwise (interval 0 (max (expt a n) (expt b n)))))))))
