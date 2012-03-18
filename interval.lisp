@@ -2,9 +2,14 @@
 ;;;; Copyright (c) 2012 Robert Smith
 
 (defstruct (interval (:conc-name)
-                     (:constructor interval (left right)))
+                     (:constructor interval (left right))
+                     (:print-function interval-printer))
   left
   right)
+
+(defun interval-printer (x stream depth)
+  (declare (ignore depth))
+  (format stream "[~A, ~A]" (left x) (right x)))
 
 (defmacro with-iv (iv (a b) &body body)
   "Destructuring mechanism for intervals."
@@ -14,9 +19,15 @@
              (,b (right ,iv-once)))
          ,@body))))
 
+(defconstant +unit-interval+ (interval 0 1))
+
 (defun zero-in (iv)
   "Is zero in IV?"
   (<= (left iv) 0 (right iv)))
+
+(defun number-to-interval (n)
+  (assert (rationalp n))
+  (interval n n))
 
 (defmacro define-binary-interval-function (fn-name regular-fn)
   `(defun ,fn-name (x y)
