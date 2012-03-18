@@ -68,4 +68,4 @@
       ((evenp n) (cond
                    ((>= a 0) (interval (expt a n) (expt b n)))
                    ((minusp b) (interval (expt b n) (expt a n)))
-                   (otherwise (interval 0 (max (expt a n) (expt b n)))))))))
+                   (t (interval 0 (max (expt a n) (expt b n)))))))))
