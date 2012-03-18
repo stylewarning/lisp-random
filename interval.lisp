@@ -18,36 +18,22 @@
   "Is zero in IV?"
   (<= (left iv) 0 (right iv)))
 
-(defun iv+ (x y)
-  (with-iv x (a b)
-    (with-iv y (c d)
-      (let ((a+c (+ a c))
-            (a+d (+ a d))
-            (b+c (+ b c))
-            (b+d (+ b d)))
-        (interval (min a+c a+d b+c b+d)
-                  (max a+c a+d b+c b+d))))))
+(defmacro define-binary-interval-function (fn-name regular-fn)
+  `(defun ,fn-name (x y)
+     (with-iv x (a b)
+       (with-iv y (c d)
+         (let ((a@c (funcall ,regular-fn a c))
+               (a@d (funcall ,regular-fn a d))
+               (b@c (funcall ,regular-fn b c))
+               (b@d (funcall ,regular-fn b d)))
+           (interval (min a@c a@d b@c b@d)
+                     (max a@c a@d b@c b@d)))))))
 
-(defun iv- (x y)
-  (with-iv x (a b)
-    (with-iv y (c d)
-      (let ((a-c (- a c))
-            (a-d (- a d))
-            (b-c (- b c))
-            (b-d (- b d)))
-        (interval (min a-c a-d b-c b-d)
-                  (max a-c a-d b-c b-d))))))
+(define-binary-interval-function iv+ '+)
+(define-binary-interval-function iv- '-)
+(define-binary-interval-function iv* '*)
 
-(defun iv* (x y)
-  (with-iv x (a b)
-    (with-iv y (c d)
-      (let ((a*c (* a c))
-            (a*d (* a d))
-            (b*c (* b c))
-            (b*d (* b d)))
-        (interval (min a*c a*d b*c b*d)
-                  (max a*c a*d b*c b*d))))))
-
+;;; We need to specially handle division by zero.
 (defun iv/ (x y)
   (if (zero-in y)
       (error (make-condition 'division-by-zero :operation 'iv/
@@ -61,6 +47,7 @@
             (interval (min a/c a/d b/c b/d)
                       (max a/c a/d b/c b/d)))))))
 
+;;; Only works for integral powers, for now...
 (defun iv-pow (x n)
   (assert (and (integerp n)
                (plusp n)))
