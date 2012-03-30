@@ -47,7 +47,7 @@ n = START + k*STEP."
             :always (loop :for j :from i :below n
                           :always (not (xor (<= (elt a i) (elt a j))
                                             (<= (elt b i) (elt b j)))))))))
-(defun subsequences (x n)
+(defun consecutive-subsequences (x n)
   "Get all of the subsequences of X of length N."
   (declare (type fixnum n)
            (type vector x))
@@ -62,6 +62,17 @@ n = START + k*STEP."
       (t (let ((total (1+ (- lenx n))))
            (loop :for i :below total
                  :collect (subseq x i (+ i n))))))))
+
+(defun subsequences (x m)
+  (let ((combs nil))
+    (labels ((comb1 (l c m)
+               (when (>= (length l) m)
+                 (if (zerop m) (return-from comb1 (push (coerce (reverse c) 'vector)
+                                                        combs)))
+                 (comb1 (cdr l) c m)
+                 (comb1 (cdr l) (cons (first l) c) (1- m)))))
+      (comb1 (coerce x 'list) nil m)
+      combs)))
 
 (defun permutation-matches-p (perm pattern)
   "Does the permutation PERM have a subsequence which matches the
@@ -99,5 +110,5 @@ pattern PATTERN?"
   
   (let ((perms (permutations pattern-size)))
     (delete-if (lambda (pattern)
-                 (permutation-matches-p permutation pattern))
+                 (permutation-matches-p pattern permutation))
                perms)))

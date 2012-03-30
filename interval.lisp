@@ -52,6 +52,8 @@
 (define-binary-interval-function iv- '-)
 (define-binary-interval-function iv* '*)
 
+(define-monotonic-unary-interval-function iv-neg '-)
+
 ;;; We need to specially handle division by zero.
 (defun iv/ (x y)
   (if (zero-in y)
