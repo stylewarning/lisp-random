@@ -11,18 +11,19 @@
    (let ((lst (read-delimited-list #\} stream t)))
      (alist-to-hash-table lst))))
 
-
-;;; CL-USER> {(:x 1) (:y 2) (:z (+ 1 1))}
-;;; #<HASH-TABLE :TEST EQL :COUNT 3 {128A8141}>
-;;; CL-USER> '{(:x 1) (:y 2) (:z (+ 1 1))}
-;;; #<HASH-TABLE :TEST EQL :COUNT 3 {128B0641}>
-;;; CL-USER> (gethash :z {(:x 1) (:y 2) (:z (+ 1 1))})
-;;; 2
-;;; T
-
 ;;; This does not implement the things the spec requires.
 (defmethod print-object ((x hash-table) stream)
   (princ #\{ stream)
   (princ #\Space stream)
   (maphash (lambda (k v) (format stream "(~S ~S) " k v)) x)
-  (princ #\} stream))
+  (princ #\} stream)
+  nil)
+
+;;; CL-USER> {(:x 1) (:y 2) (:z (+ 1 1))}
+;;; { (:X 1) (:Y 2) (:Z 2) }
+;;; CL-USER> '{(:x 1) (:y 2) (:z (+ 1 1))}
+;;; { (:X 1) (:Y 2) (:Z 2) }
+;;; CL-USER> (gethash :z {(:x 1) (:y 2) (:z (+ 1 1))})
+;;; 2
+;;; T
+
