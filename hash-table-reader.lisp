@@ -19,3 +19,10 @@
 ;;; CL-USER> (gethash :z {(:x 1) (:y 2) (:z (+ 1 1))})
 ;;; 2
 ;;; T
+
+;;; This does not implement the things the spec requires.
+(defmethod print-object ((x hash-table) stream)
+  (princ #\{ stream)
+  (princ #\Space stream)
+  (maphash (lambda (k v) (format stream "(~S ~S) " k v)) x)
+  (princ #\} stream))
