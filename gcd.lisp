@@ -6,7 +6,8 @@
   (:shadow #:gcd)
   (:export #:gcd
            #:iter-gcd
-           #:binary-gcd))
+           #:binary-gcd
+           #:iter-binary-gcd))
 
 (in-package #:gcd)
 
@@ -34,3 +35,37 @@
     ((> u v) (binary-gcd (ash (- u v) -1) v))
     (t (binary-gcd (ash (- v u) -1) u))))
 
+(defun iter-binary-gcd (u v)
+  (let ((shift 0))
+    (cond
+      ((zerop u) v)
+      ((zerop v) u)
+      (t (progn
+           (while (evenp (logior u v))
+             (setf u (ash u -1)
+                   v (ash v -1))
+             (incf shift))
+           
+           (while (evenp u)
+             (setf u (ash u -1)))
+           
+           ;; Do one round of the loop that follows.
+           (while (evenp v)
+             (setf v (ash v -1)))
+           
+           (when (> u v)
+             (rotatef u v))
+           
+           (decf v u)
+           
+           ;; Proceed with loop if necessary
+           (until (zerop v)
+             (while (evenp v)
+               (setf v (ash v -1)))
+             
+             (when (> u v)
+               (rotatef u v))
+             
+             (decf v u))
+           
+           (ash u shift))))))
