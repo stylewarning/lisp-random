@@ -3,15 +3,14 @@
 
 (defpackage #:gcd
   (:use #:cl #:qtility)
-  (:shadow #:gcd)
-  (:export #:gcd
+  (:export #:rec-gcd
            #:iter-gcd
            #:binary-gcd
            #:iter-binary-gcd))
 
 (in-package #:gcd)
 
-(defun gcd (u v)
+(defun rec-gcd (u v)
   (if (zerop v)
       u
       (gcd v (mod u v))))
@@ -36,6 +35,7 @@
     (t (binary-gcd (ash (- v u) -1) u))))
 
 (defun iter-binary-gcd (u v)
+  (declare (type (integer 0) u v))
   (let ((shift 0))
     (cond
       ((zerop u) v)
