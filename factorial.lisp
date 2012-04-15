@@ -39,6 +39,7 @@ factorization of (FACTORIAL N)."
   "Compute the number of trailing zeroes to (FACTORIAL N)."
   (count-factor n 5))
 
+;;; This is also known as "de Polignac's formula".
 (defun factorial-factorization (n)
   "Compute the prime factorization of (FACTORIAL N)."
   ;; Compute the primes up to N.
