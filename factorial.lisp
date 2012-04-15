@@ -4,6 +4,7 @@
 ;;; Prime Numbers
 
 (defun primes (limit)
+  "Compute a list of primes less than or equal to LIMIT."
   (if (< limit 2)
       nil
       (let* ((len (+ (floor limit 2)
@@ -14,12 +15,51 @@
                                 :initial-element 1)))
         (loop :for i :below (floor (floor (sqrt limit)) 2)
               :unless (zerop (aref sieve i))
-                :do (loop :for j
-                            :from (+ 3 (* 2 i (+ 3 i))) :below len
-                              :by (+ 3 (* 2 i))
+                :do (loop :for j :from (+ 3 (* 2 i (+ 3 i))) :below len
+                            :by (+ 3 (* 2 i))
                           :do (setf (aref sieve j) 0))
               :finally (return
                          (cons 2
                                (loop :for i :below len
                                      :unless (zerop (aref sieve i))
                                        :collect (+ 3 (* 2 i)))))))))
+
+(defun count-factor (n factor)
+  "Count the number of times FACTOR appears in the prime factorization
+of (FACTORIAL N)."
+  (labels ((rec (dividend divisor count)
+             (if (> factor dividend)
+                 count
+                 (let ((delta (floor dividend factor)))
+                   (rec delta (+ count delta))))))
+    (rec n 0)))
+
+(defun factorial-factorization (n)
+  "Compute the prime factorization of (FACTORIAL N)."
+  ;; Compute the primes up to N.
+  (let ((primes (primes n)))
+    (loop :for prime :in primes
+          :collect (cons prime
+                         (count-factor n prime)))))
+
+(defun multiply-factorization (factorization)
+  "Compute the product of FACTORIZATION."
+  (let ((product 1))
+    (loop :for (prime . exponent) :in factorization
+          :do (setf product (* product (expt prime exponent)))
+          :finally (return product))))
+
+(defun factorial (n)
+  "Compute the factorial of N."
+  (multiply-factorization (factorial-factorization n)))
+
+(defun factorial-fusion (n)
+  "Compute the factorial of N using a fusion of the functions
+  FACTORIAL-FACTORIZATION and MULTIPLY-FACTORIZATION."
+  ;; This code duplicates the fused functions.
+  (let ((primes (primes n))
+        (product 1))
+    (loop :for prime :in primes
+          :do (setf product (* product
+                               (expt prime (count-factor n prime))))
+          :finally (return product))))
