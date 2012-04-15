@@ -25,8 +25,8 @@
                                        :collect (+ 3 (* 2 i)))))))))
 
 (defun count-factor (n factor)
-  "Count the number of times FACTOR appears in the prime factorization
-of (FACTORIAL N)."
+  "Count the number of times a prime FACTOR appears in the prime
+factorization of (FACTORIAL N)."
   (labels ((rec (dividend divisor count)
              (if (> factor dividend)
                  count
@@ -34,20 +34,29 @@ of (FACTORIAL N)."
                    (rec delta (+ count delta))))))
     (rec n 0)))
 
+;;; We can compute the number of trailing zeroes by counting the
+;;; number of times 5 appears in the factorization of (FACTORIAL N).
+(defun trailing-zeroes (n)
+  "Compute the number of trailing zeroes to (FACTORIAL N)."
+  (count-factor n 5))
+
 (defun factorial-factorization (n)
   "Compute the prime factorization of (FACTORIAL N)."
   ;; Compute the primes up to N.
   (let ((primes (primes n)))
     (loop :for prime :in primes
-          :collect (cons prime
+          :collect (list prime
                          (count-factor n prime)))))
 
 (defun multiply-factorization (factorization)
   "Compute the product of FACTORIZATION."
   (let ((product 1))
-    (loop :for (prime . exponent) :in factorization
+    (loop :for (prime exponent) :in factorization
           :do (setf product (* product (expt prime exponent)))
           :finally (return product))))
+
+;;; This could be made faster by caching the primes, and doing some
+;;; divide-and-conquer work on the products.
 
 (defun factorial (n)
   "Compute the factorial of N."
@@ -63,7 +72,3 @@ of (FACTORIAL N)."
           :do (setf product (* product
                                (expt prime (count-factor n prime))))
           :finally (return product))))
-
-(defun trailing-zeroes (n)
-  "Compute the number of trailing zeroes to (FACTORIAL N)."
-  (count-factor n 5))
