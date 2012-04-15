@@ -10,10 +10,12 @@
 
 (in-package #:gcd)
 
+(declaim (optimize speed (safety 0) (debug 0)))
+
 (defun rec-gcd (u v)
   (if (zerop v)
       u
-      (gcd v (mod u v))))
+      (rec-gcd v (mod u v))))
 
 (defun iter-gcd (u v)
   (until (zerop v)
@@ -69,3 +71,20 @@
              (decf v u))
            
            (ash u shift))))))
+
+(defun test (a b)
+  (format t "CL GCD~%")
+  (time (cl:gcd a b))
+
+  (format t "REC GCD~%")
+  (time (rec-gcd a b))
+
+  (format t "ITER GCD~%")
+  (time (iter-gcd a b))
+
+  (format t "BINARY GCD~%")
+  (time (binary-gcd a b))
+
+  (format t "ITER BINARY GCD~%")
+  (time (iter-binary-gcd a b))
+  nil)
