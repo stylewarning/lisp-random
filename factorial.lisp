@@ -1,7 +1,7 @@
 ;;;; factorial.lisp
 ;;;; Copyright (c) 2012 Robert Smith
 
-;;; Sieve of Atkin. Not optimized.
+;;; Sieve of Eratosthenes. Not optimized.
 (defun primes (limit)
   "Compute a list of primes less than or equal to LIMIT."
   (if (< limit 2)
