@@ -63,3 +63,7 @@ of (FACTORIAL N)."
           :do (setf product (* product
                                (expt prime (count-factor n prime))))
           :finally (return product))))
+
+(defun trailing-zeroes (n)
+  "Compute the number of trailing zeroes to (FACTORIAL N)."
+  (count-factor n 5))
