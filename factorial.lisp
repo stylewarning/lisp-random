@@ -26,7 +26,7 @@
 (defun count-factor (n factor)
   "Count the number of times a prime FACTOR appears in the prime
 factorization of (FACTORIAL N)."
-  (labels ((rec (dividend divisor count)
+  (labels ((rec (dividend count)
              (if (> factor dividend)
                  count
                  (let ((delta (floor dividend factor)))
