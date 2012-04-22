@@ -30,6 +30,7 @@ inputs. Fail as soon as we reach fewer inputs than M."
                ((> m len) nil)
                ((car inputs) (any (1- m) (1- len) (cdr inputs)))
                (t (any m (1- len) (cdr inputs))))))
+    
     (any m (length inputs) inputs)))
 
 (defun build-circuit (m inputs)
@@ -111,7 +112,7 @@ inputs. Fail as soon as we reach fewer inputs than M."
   (multiple-value-bind (scrubbed-inputs truths)
       (remove-true-like-forms (remove-if #'null inputs) env)
     (cond ((integerp m) (build-circuit (- m truths) scrubbed-inputs))
-          ((plusp truths) `(any-m-of-n (- m ,truths) ,@scrubbed-inputs))
+          ((plusp truths) `(any-m-of-n (- ,m ,truths) ,@scrubbed-inputs))
           (t form))))
 
 ;; CL-USER> (funcall (compiler-macro-function 'any-m-of-n)
@@ -135,4 +136,4 @@ inputs. Fail as soon as we reach fewer inputs than M."
 ;; CL-USER> (funcall (compiler-macro-function 'any-m-of-n)
 ;;                   '(any-m-of-n n 'a 'b 'c d nil c d e f g)
 ;;                   nil)
-;; (ANY-M-OF-N (- M 3) D C D E F G)
+;; (ANY-M-OF-N (- N 3) D C D E F G)
