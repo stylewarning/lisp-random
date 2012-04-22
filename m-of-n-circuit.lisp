@@ -24,13 +24,14 @@ inputs."
 (defun any-m-of-n (m &rest inputs)
     "Check that any M of the INPUTS is T, eagerly evaluating the
 inputs. Fail as soon as we reach fewer inputs than M."
+  (check-type m integer)
+
   (labels ((any (m len inputs)
              (cond
-               ((zerop m) t)
+               ((not (plusp m)) t)
                ((> m len) nil)
                ((car inputs) (any (1- m) (1- len) (cdr inputs)))
                (t (any m (1- len) (cdr inputs))))))
-    
     (any m (length inputs) inputs)))
 
 (defun build-circuit (m inputs)
