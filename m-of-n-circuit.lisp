@@ -11,7 +11,7 @@
   (and a b c))
 
 ;;; We could optimalize to check that there are >= M inputs.
-(defun any-m-of-n (m inputs)
+(defun any-m-of-n-slow (m inputs)
   "Check that any M of the INPUTS is T, eagerly evaluating the
 inputs."
   (cond
@@ -21,7 +21,7 @@ inputs."
     (t (any-m-of-n m (cdr inputs)))))
 
 ;;; Here we keep track of the number of inputs so we can fail quickly.
-(defun any-m-of-n-quickfail (m inputs)
+(defun any-m-of-n (m &rest inputs)
     "Check that any M of the INPUTS is T, eagerly evaluating the
 inputs. Fail as soon as we reach fewer inputs than M."
   (labels ((any (m len inputs)
@@ -92,3 +92,20 @@ inputs. Fail as soon as we reach fewer inputs than M."
 ;;
 ;; CL-USER> (build-circuit 6 '(a b c d e))
 ;; NIL
+
+(defun list-like-p (form)
+  (and (listp form)
+       (or (eq 'list (car form))
+           (eq 'quote (car form)))))
+
+(defun true-like (thing &optional environment)
+  (and (constantp thing environment)
+       (not (null thing))))
+
+(define-compiler-macro any-m-of-n (&whole form m &rest inputs &environment env)
+  (cond
+    ((integerp m) (build-circuit m inputs))
+    #+#:ignore
+    ((list-like-p inputs)
+     (let ((known-truths (count-if (lambda (x) (constantp x env)) inputs)))))
+    (t form)))
