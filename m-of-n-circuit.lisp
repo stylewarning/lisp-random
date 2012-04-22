@@ -50,13 +50,13 @@ inputs. Fail as soon as we reach fewer inputs than M."
             ((> m len) nil)
             (t         (any m len inputs))))))
 
-;; CL-USER> (build-circuit 0 '(a b c d e))
+;; CL-USER> (build-circuit 0 'a 'b 'c 'd 'e)
 ;; T
 ;;
-;; CL-USER> (build-circuit 1 '(a b c d e))
+;; CL-USER> (build-circuit 1 'a 'b 'c 'd 'e)
 ;; (OR A B C D E)
 ;;
-;; CL-USER> (build-circuit 2 '(a b c d e))
+;; CL-USER> (build-circuit 2 'a 'b 'c 'd 'e)
 ;; (IF A
 ;;     (OR B C D E)
 ;;     (IF B
@@ -65,7 +65,7 @@ inputs. Fail as soon as we reach fewer inputs than M."
 ;;             (OR D E)
 ;;             (AND D E))))
 ;;
-;; CL-USER> (build-circuit 3 '(a b c d e))
+;; CL-USER> (build-circuit 3 'a 'b 'c 'd 'e)
 ;; (IF A
 ;;     (IF B
 ;;         (OR C D E)
@@ -78,7 +78,7 @@ inputs. Fail as soon as we reach fewer inputs than M."
 ;;             (AND D E))
 ;;         (AND C D E)))
 ;;
-;; CL-USER> (build-circuit 4 '(a b c d e))
+;; CL-USER> (build-circuit 4 'a 'b 'c 'd 'e)
 ;; (IF A
 ;;     (IF B
 ;;         (IF C
@@ -87,10 +87,10 @@ inputs. Fail as soon as we reach fewer inputs than M."
 ;;         (AND C D E))
 ;;     (AND B C D E))
 ;;
-;; CL-USER> (build-circuit 5 '(a b c d e))
+;; CL-USER> (build-circuit 5 'a 'b 'c 'd 'e)
 ;; (AND A B C D E)
 ;;
-;; CL-USER> (build-circuit 6 '(a b c d e))
+;; CL-USER> (build-circuit 6 'a 'b 'c 'd 'e)
 ;; NIL
 
 (defun true-like (thing &optional environment)
