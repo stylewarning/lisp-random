@@ -28,7 +28,6 @@
                (t (any m (1- len) (cdr inputs))))))
     (any m (length inputs) inputs)))
 
-#+#:ignore
 (defun build-circuit (m inputs)
   (labels ((any (m len inputs)
              (cond
@@ -36,14 +35,9 @@
                ((> m len) nil)
                ((and (= 1 m)
                      (< 1 len)) `(or ,@inputs))
-               ((= m len))
-               (t
-                `(if ,(car inputs)
-                     ,(any (1- m) (1-))
-                     
-                     )
-                )
-               ((car inputs) (any (1- m) (1- len) (cdr inputs)))
-               (t (any m (1- len) (cdr inputs))))))
-    (any m (length inputs) inputs))
-  )
+               ((= 1 m len) (car inputs))
+               ((= m len) `(and ,@inputs))
+               (t `(if ,(car inputs)
+                       ,(any (1- m) (1- len) (cdr inputs))
+                       ,(any m (1- len) (cdr inputs)))))))
+    (any m (length inputs) inputs)))
