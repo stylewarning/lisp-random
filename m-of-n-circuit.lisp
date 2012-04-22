@@ -154,6 +154,6 @@ inputs. Fail as soon as we reach fewer inputs than M."
 ;;                 (AND F G)))))
 ;;
 ;; CL-USER> (funcall (compiler-macro-function 'any-m-of-n)
-;;                   '(any-m-of-n n 'a 'b 'c d nil c d e f g)
+;;                   '(any-m-of-n n 'a 'b 'c nil c d e f g)
 ;;                   nil)
-;; (ANY-M-OF-N (- N 3) D C D E F G)
+;; (ANY-M-OF-N (- N 3) C D E F G)
