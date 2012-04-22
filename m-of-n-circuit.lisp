@@ -34,7 +34,7 @@ inputs. Fail as soon as we reach fewer inputs than M."
 
 (defun build-circuit (m inputs)
   "Build a boolean circuit which checks if M of the INPUTS are T."
-  (check-type m (integer 0))
+  (check-type m integer)
   (check-type inputs list)
   
   (labels ((any (m len inputs)
@@ -46,7 +46,7 @@ inputs. Fail as soon as we reach fewer inputs than M."
                                   ,(any (1- m) (1- len) (cdr inputs))
                                   ,(any m (1- len) (cdr inputs)))))))
     (let ((len (length inputs)))
-      (cond ((zerop m) t)
+      (cond ((not (plusp m)) t)
             ((> m len) nil)
             (t         (any m len inputs))))))
 
@@ -93,19 +93,45 @@ inputs. Fail as soon as we reach fewer inputs than M."
 ;; CL-USER> (build-circuit 6 '(a b c d e))
 ;; NIL
 
-(defun list-like-p (form)
-  (and (listp form)
-       (or (eq 'list (car form))
-           (eq 'quote (car form)))))
-
 (defun true-like (thing &optional environment)
   (and (constantp thing environment)
        (not (null thing))))
 
+(defun remove-true-like-forms (things &optional environment)
+  (values (remove-if (lambda (x) (true-like x environment)) things)
+          (count-if (lambda (x) (true-like x environment)) things)))
+
 (define-compiler-macro any-m-of-n (&whole form m &rest inputs &environment env)
-  (cond
-    ((integerp m) (build-circuit m inputs))
-    #+#:ignore
-    ((list-like-p inputs)
-     (let ((known-truths (count-if (lambda (x) (constantp x env)) inputs)))))
-    (t form)))
+  ;; First, delete any known null inputs. They decrease the circuit
+  ;; size. This optimization might also get done by the compiler after
+  ;; a circuit is computed.
+  ;; 
+  ;; Additionally, we remove any values which are "known truths", and
+  ;; record the number of them, so we can decrease M.
+  (multiple-value-bind (scrubbed-inputs truths)
+      (remove-true-like-forms (remove-if #'null inputs) env)
+    (cond ((integerp m) (build-circuit (- m truths) scrubbed-inputs))
+          ((plusp truths) `(any-m-of-n (- m ,truths) ,@scrubbed-inputs))
+          (t form))))
+
+;; CL-USER> (funcall (compiler-macro-function 'any-m-of-n)
+;;                   '(any-m-of-n 4 'a 'b 'c d nil c d e f g)
+;;                   nil)
+;; (OR D C D E F G)
+;; CL-USER> (funcall (compiler-macro-function 'any-m-of-n)
+;;                   '(any-m-of-n 5 'a 'b 'c d nil c d e f g)
+;;                   nil)
+;; (IF D
+;;     (OR C D E F G)
+;;     (IF C
+;;         (OR D E F G)
+;;         (IF D
+;;             (OR E F G)
+;;             (IF E
+;;                 (OR F G)
+;;                 (AND F G)))))
+;;
+;; CL-USER> (funcall (compiler-macro-function 'any-m-of-n)
+;;                   '(any-m-of-n n 'a 'b 'c d nil c d e f g)
+;;                   nil)
+;; (ANY-M-OF-N (- M 3) D C D E F G)
