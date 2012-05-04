@@ -7,7 +7,7 @@
 (defparameter *mutation-rate* 1/4)
 (defparameter *maximum-number-of-iterations* 16500)
 
-(defparameter *target* "Kasadkad WOW.")
+(defparameter *target* "The target string goes HERE!")
 
 (defstruct (citizen (:conc-name citizen.))
   (str "")
@@ -98,23 +98,22 @@
                                (make-citizen))
                       buffer))))
 
-(defun run-simulation ()
+(defun run-simulation (&optional (iterations *maximum-number-of-iterations*))
   (multiple-value-bind (population buffer) (initialize-populations)
-    (loop :for i :below *maximum-number-of-iterations*
-          :do (progn
-                (update-population-fitness population)
+    (dotimes (i iterations)
+      (update-population-fitness population)
 
-                (sort-population population)
+      (sort-population population)
 
-                (let ((leader (aref population 0)))
-                  (format t "Generation ~D: ~S ==> ~D~%"
-                          i
-                          (citizen.str leader)
-                          (citizen.fitness leader))
-                  
-                  (when (zerop (citizen.fitness leader))
-                    (return nil)))
-                
-                (mate population buffer)
-                
-                (rotatef population buffer)))))
+      (let ((leader (aref population 0)))
+        (format t "Generation ~D: ~S ==> ~D~%"
+                i
+                (citizen.str leader)
+                (citizen.fitness leader))
+        
+        (when (zerop (citizen.fitness leader))
+          (return leader)))
+      
+      (mate population buffer)
+      
+      (rotatef population buffer))))
