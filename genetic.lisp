@@ -79,17 +79,17 @@
           (random-char)))
   citizen)
 
-(defun mate-citizens (mom dad &optional percent)
-  "Mate citizens MOM and DAD to produce a new citizen. Copy PERCENT
-percent of the MOM chromosome to the child. PERCENT is randomized by
+(defun mate-citizens (mum dad &optional percent)
+  "Mate citizens MUM and DAD to produce a new citizen. Copy PERCENT
+percent of the MUM chromosome to the child. PERCENT is randomized by
 default."
-  (let ((len (length (citizen.chromosome mom))))
+  (let ((len (length (citizen.chromosome mum))))
     (unless percent
       (setf percent (/ (random len) len)))
     
-    (let ((moms-genes (subseq (citizen.chromosome mom) 0 (floor (* len percent))))
+    (let ((mums-genes (subseq (citizen.chromosome mum) 0 (floor (* len percent))))
           (dads-genes (subseq (citizen.chromosome dad) (floor (* len percent)))))
-      (make-citizen :chromosome (concatenate 'string moms-genes dads-genes)))))
+      (make-citizen :chromosome (concatenate 'string mums-genes dads-genes)))))
 
 (defun mate (population next-generation)
   "Produce the next generation of citizens. Perform mating in
@@ -99,11 +99,11 @@ POPULATION to produce NEXT-GENERATION."
   
   (loop :for i :from (elite-count) :below *population-size*
         :do (progn
-              (let ((mom (aref population (random (floor *population-size* 2))))
+              (let ((mum (aref population (random (floor *population-size* 2))))
                     (dad (aref population (random (floor *population-size* 2)))))
                 
                 ;; Mate
-                (setf (aref next-generation i) (mate-citizens mom dad))
+                (setf (aref next-generation i) (mate-citizens mum dad))
                 
                 ;; Mutate
                 (when (< (random 100) (floor (* 100 *mutation-rate*)))
