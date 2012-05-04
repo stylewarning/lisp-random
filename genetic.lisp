@@ -10,19 +10,22 @@
 (defparameter *target* "The target string goes HERE!")
 
 (defstruct (citizen (:conc-name citizen.))
-  (str "")
+  (chromosome "")
   (fitness 0))
 
 (defun random-char ()
+  "Generate a random character."
   (code-char (+ 32 (random 90))))
 
 (defun random-string (length)
+  "Generate a random string of length LENGTH."
   (map-into (make-array length :element-type 'character
                                :initial-element #\nul)
             'random-char))
 
 (defun random-citizen ()
-  (make-citizen :str (random-string (length *target*))
+  "Create a random citizen."
+  (make-citizen :chromosome (random-string (length *target*))
                 :fitness 0))
 
 (defun citizen< (a b)
@@ -30,7 +33,7 @@
      (citizen.fitness b)))
 
 (defun calculate-citizen-fitness (citizen)
-  (loop :for citizen-char :across (citizen.str citizen)
+  (loop :for citizen-char :across (citizen.chromosome citizen)
         :for target-char  :across *target*
         :sum (abs (- (char-code citizen-char)
                      (char-code target-char)))))
@@ -55,20 +58,20 @@
   (setf (subseq next-generation 0 size)
         (subseq population 0 size)))
 
-(defun mutate (citizen)
-  (let ((unlucky-character-pos (random (length (citizen.str citizen)))))
-    (setf (aref (citizen.str citizen) unlucky-character-pos)
+(defun mutate-citizen (citizen)
+  (let ((unlucky-character-pos (random (length (citizen.chromosome citizen)))))
+    (setf (aref (citizen.chromosome citizen) unlucky-character-pos)
           (random-char)))
   citizen)
 
 (defun mate-citizens (mom dad &optional percent)
-  (let ((len (length (citizen.str mom))))
+  (let ((len (length (citizen.chromosome mom))))
     (unless percent
       (setf percent (/ (random len) len)))
     
-    (let ((moms-genes (subseq (citizen.str mom) 0 (floor (* len percent))))
-          (dads-genes (subseq (citizen.str dad) (floor (* len percent)))))
-      (make-citizen :str (concatenate 'string moms-genes dads-genes)))))
+    (let ((moms-genes (subseq (citizen.chromosome mom) 0 (floor (* len percent))))
+          (dads-genes (subseq (citizen.chromosome dad) (floor (* len percent)))))
+      (make-citizen :chromosome (concatenate 'string moms-genes dads-genes)))))
 
 (defun mate (population next-generation)
   ;; Keep the elite
@@ -84,7 +87,7 @@
                 
                 ;; Mutate
                 (when (< (random 100) (floor (* 100 *mutation-rate*)))
-                  (mutate (aref next-generation i)))))))
+                  (mutate-citizen (aref next-generation i)))))))
 
 (defun initialize-populations ()
   (let ((population (make-array *population-size* :element-type 'citizen))
@@ -108,7 +111,7 @@
       (let ((leader (aref population 0)))
         (format t "Generation ~D: ~S ==> ~D~%"
                 i
-                (citizen.str leader)
+                (citizen.chromosome leader)
                 (citizen.fitness leader))
         
         (when (zerop (citizen.fitness leader))
