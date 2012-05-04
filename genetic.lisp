@@ -1,6 +1,6 @@
-;;;; genetic-optimizer.lisp
+;;;; genetic.lisp
+;;;; Copyright (c) 2012 Robert Smith
 
-(in-package #:genetic-optimizer)
 
 (defparameter *population-size* 2048)
 (defparameter *elite-rate* 1/10)
