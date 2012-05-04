@@ -2,12 +2,20 @@
 ;;;; Copyright (c) 2012 Robert Smith
 
 
-(defparameter *population-size* 2048)
-(defparameter *elite-rate* 1/10)
-(defparameter *mutation-rate* 1/4)
-(defparameter *maximum-number-of-iterations* 16500)
+(defparameter *population-size* 1024
+  "The size of a population.")
 
-(defparameter *target* "The target string goes HERE!")
+(defparameter *elite-rate* 1/10
+  "The percentage of the top members that continue living.")
+
+(defparameter *mutation-rate* 1/4
+  "The rate at which offspring get mutated.")
+
+(defparameter *maximum-number-of-iterations* 16500
+  "The default maximum number of iterations before aborting the simulation.")
+
+(defparameter *target* "The target string goes HERE!"
+  "The target string to be generated.")
 
 (defstruct (citizen (:conc-name citizen.))
   (chromosome "")
@@ -29,42 +37,52 @@
                 :fitness 0))
 
 (defun citizen< (a b)
+  "Check if citizen A is less fit than citizen B."
   (< (citizen.fitness a)
      (citizen.fitness b)))
 
 (defun calculate-citizen-fitness (citizen)
+  "Calculate the fitness of a citizen CITIZEN."
   (loop :for citizen-char :across (citizen.chromosome citizen)
         :for target-char  :across *target*
         :sum (abs (- (char-code citizen-char)
                      (char-code target-char)))))
 
 (defun update-citizen-fitness (citizen)
+  "Update the fitness of CITIZEN."
   (setf (citizen.fitness citizen) (calculate-citizen-fitness citizen))
   
   ;; Return the citizen
   citizen)
 
 (defun update-population-fitness (population)
+  "Calculate the fitness of all citizens in POPULATION."
   (map-into population 'update-citizen-fitness population))
 
 (defun sort-population (population)
-  ;; SORT is destructive
+  "Sort POPULATION based off of fitness destructively."
   (sort population 'citizen<))
 
 (defun elite-count ()
+  "Count the number of elite citizens to keep."
   (floor (* *population-size* *elite-rate*)))
 
 (defun pass-elite-to-next-generation (population next-generation &optional (size (elite-count)))
+  "Pass of SIZE elite from POPULATION to NEXT-GENERATION."
   (setf (subseq next-generation 0 size)
         (subseq population 0 size)))
 
 (defun mutate-citizen (citizen)
+  "Cause a random mutation in the chromosome of CITIZEN."
   (let ((unlucky-character-pos (random (length (citizen.chromosome citizen)))))
     (setf (aref (citizen.chromosome citizen) unlucky-character-pos)
           (random-char)))
   citizen)
 
 (defun mate-citizens (mom dad &optional percent)
+  "Mate citizens MOM and DAD to produce a new citizen. Copy PERCENT
+percent of the MOM chromosome to the child. PERCENT is randomized by
+default."
   (let ((len (length (citizen.chromosome mom))))
     (unless percent
       (setf percent (/ (random len) len)))
@@ -74,6 +92,8 @@
       (make-citizen :chromosome (concatenate 'string moms-genes dads-genes)))))
 
 (defun mate (population next-generation)
+  "Produce the next generation of citizens. Perform mating in
+POPULATION to produce NEXT-GENERATION."
   ;; Keep the elite
   (pass-elite-to-next-generation population next-generation)
   
@@ -90,6 +110,8 @@
                   (mutate-citizen (aref next-generation i)))))))
 
 (defun initialize-populations ()
+  "Create new generations. Returns a random population and a buffer
+generation."
   (let ((population (make-array *population-size* :element-type 'citizen))
         (next-generation (make-array *population-size* :element-type 'citizen)))
     (values (map-into population (lambda (x)
@@ -102,6 +124,7 @@
                       next-generation))))
 
 (defun run-simulation (&optional (iterations *maximum-number-of-iterations*))
+  "Run the genetic algorithm, with a maximum of ITERATIONS iterations."
   (multiple-value-bind (population next-generation) (initialize-populations)
     (dotimes (i iterations)
       (update-population-fitness population)
