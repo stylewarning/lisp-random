@@ -119,8 +119,8 @@ generation."
                                    (random-citizen))
                       population)
             (map-into next-generation (lambda (x)
-                               (declare (ignore x))
-                               (make-citizen))
+                                        (declare (ignore x))
+                                        (make-citizen))
                       next-generation))))
 
 (defun run-simulation (&optional (iterations *maximum-number-of-iterations*))
