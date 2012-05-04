@@ -51,9 +51,9 @@
 (defun elite-count ()
   (floor (* *population-size* *elite-rate*)))
 
-(defun elitism (population buffer &optional (esize (elite-count)))
-  (setf (subseq buffer 0 esize)
-        (subseq population 0 esize)))
+(defun pass-elite-to-next-generation (population next-generation &optional (size (elite-count)))
+  (setf (subseq next-generation 0 size)
+        (subseq population 0 size)))
 
 (defun mutate (citizen)
   (let ((unlucky-character-pos (random (length (citizen.str citizen)))))
@@ -70,9 +70,9 @@
           (dads-genes (subseq (citizen.str dad) (floor (* len percent)))))
       (make-citizen :str (concatenate 'string moms-genes dads-genes)))))
 
-(defun mate (population buffer)
+(defun mate (population next-generation)
   ;; Keep the elite
-  (elitism population buffer)
+  (pass-elite-to-next-generation population next-generation)
   
   (loop :for i :from (elite-count) :below *population-size*
         :do (progn
@@ -80,26 +80,26 @@
                     (dad (aref population (random (floor *population-size* 2)))))
                 
                 ;; Mate
-                (setf (aref buffer i) (mate-citizens mom dad))
+                (setf (aref next-generation i) (mate-citizens mom dad))
                 
                 ;; Mutate
                 (when (< (random 100) (floor (* 100 *mutation-rate*)))
-                  (mutate (aref buffer i)))))))
+                  (mutate (aref next-generation i)))))))
 
 (defun initialize-populations ()
   (let ((population (make-array *population-size* :element-type 'citizen))
-        (buffer (make-array *population-size* :element-type 'citizen)))
+        (next-generation (make-array *population-size* :element-type 'citizen)))
     (values (map-into population (lambda (x)
                                    (declare (ignore x))
                                    (random-citizen))
                       population)
-            (map-into buffer (lambda (x)
+            (map-into next-generation (lambda (x)
                                (declare (ignore x))
                                (make-citizen))
-                      buffer))))
+                      next-generation))))
 
 (defun run-simulation (&optional (iterations *maximum-number-of-iterations*))
-  (multiple-value-bind (population buffer) (initialize-populations)
+  (multiple-value-bind (population next-generation) (initialize-populations)
     (dotimes (i iterations)
       (update-population-fitness population)
 
@@ -114,6 +114,6 @@
         (when (zerop (citizen.fitness leader))
           (return leader)))
       
-      (mate population buffer)
+      (mate population next-generation)
       
-      (rotatef population buffer))))
+      (rotatef population next-generation))))
