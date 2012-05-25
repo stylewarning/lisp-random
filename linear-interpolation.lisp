@@ -68,8 +68,8 @@ and
                     (setf (aref dst (+ 1 i offset))
                           (funcall lerp
                                    (+ n
-                                      (/ (+ 1 i)
-                                         (+ 1 gap-width))))))
+                                      (/ (1+ i)
+                                         (1+ gap-width))))))
                   
                   ;; Increment the offset.
                   (incf offset (1+ gap-width))))
