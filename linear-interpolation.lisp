@@ -1,7 +1,7 @@
 (defun linear-interpolator (p1 p2)
   "Construct a linear interpolator for the points
 
-     P1=(X1 . Y1)
+     P1 = (X1 . Y1)
 
 and
 
@@ -14,7 +14,7 @@ and
         (+ y1 (* m (- x x1)))))))
 
 (defun make-linear-interpolators (src)
-  "Make a list of linear interpolators based on SRC."
+  "Make a list of linear interpolators between each adjacent index in SRC."
   (loop :for i :from 0 :below (1- (length src))
         :collect (linear-interpolator (cons i (aref src i))
                                       (cons (1+ i) (aref src (1+ i))))))
