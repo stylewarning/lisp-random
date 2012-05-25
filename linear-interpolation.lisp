@@ -47,14 +47,12 @@ and
       ;; Make an array of initial gap widths.
       (setf gap-widths (make-array gap-count :initial-element base-gap-size))
       
-      ;; Add the slack spaces to the gap sizes until we run out.
+      ;; Distribute the slack spaces to the gap sizes until we run
+      ;; out. Since we will have less slack than the total number of
+      ;; gaps, we can just add 1 to the first few gaps.
       (dotimes (i extra-spaces)
         (incf (aref gap-widths i)))
 
-      ;; Fill in end-points
-      (setf (aref dst 0)        (aref src 0)
-            (aref dst (1- w_d)) (aref src (1- w_s)))
-      
       ;; Interpolate the gaps.
       (loop :with offset := 0
             :for n :from 0
@@ -75,6 +73,9 @@ and
                   
                   ;; Increment the offset.
                   (incf offset (1+ gap-width))))
+      
+      ;; Fill in the end point.
+      (setf (aref dst (1- w_d)) (aref src (1- w_s)))
 
       ;; Return the destination array.
       dst)))
