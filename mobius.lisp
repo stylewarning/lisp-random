@@ -3,7 +3,6 @@
 ;;;;
 ;;;; Marginally improved by Robert Smith
 
-
 ;;; change UNLESS ==> IF (NULL P)
 ;;; remove RETURN-FROM
 ;;; (append (list x) y) ==> (cons x y)
@@ -80,6 +79,7 @@
   
 ;;; Change (reduce f (mapcar g L)) ==> (reduce f L :key g)
 (defun mobius-value (P n)
+  (declare (special *mu*))
   (if (> (tableau-size P) n)
       1
       (- (reduce #'+
