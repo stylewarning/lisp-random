@@ -1,7 +1,7 @@
 ;;;; mobius.lisp
 ;;;; All of this written by and copyright (c) 2012 Kasadkad (Brendan Pawlowski)
 ;;;;
-;;;; Marginally improved by Robert Smith
+;;;; Improved efficiency by Robert Smith
 
 (declaim (optimize speed (safety 0) (debug 0) (space 0)))
 
