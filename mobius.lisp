@@ -8,14 +8,20 @@
       (list (list i))
       (if (<= (car (last (first P))) i)
           (cons (append (first P) (list i)) (rest P))
-          (let ((first-row (copy-list (first P))) j)
-            (dotimes (k (length first-row))
-              (when (> (nth k first-row) i)
-                (setf j k)
-                (return)))
+          (let* ((first-row (copy-list (first P)))
+                 (j (position-if (lambda (x) (> x i)) first-row)))
             (setf (nth j first-row) i)
             (cons first-row (bump (rest P) (nth j (first P))))))))
-  
+
+;; This seems about 1 second faster for mobius 9 instead of
+;; POSITION-IF.
+;;
+;; (loop :for k :below (length first-row)
+;;       :for x :in first-row
+;;       :while (<= x i)
+;;       :finally (setf j k))
+
+
 (defun RSK (word)
   (let (P)
     (dolist (i word P)
