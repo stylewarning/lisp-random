@@ -13,12 +13,11 @@
         :when (null deps)
           :collect node))
 
-(defun tsort (graph)
-  "Topologically sort GRAPH. An error is signalled if it is not a
-directed acyclic graph."
+(defun tsort (dag)
+  "Find the topological sort of GRAPH destructively. An error is
+signalled if it is not a directed acyclic graph."
   (let* ((sorted nil)                   ; Final sorted list.
-         (sinks  (list-sinks graph))    ; Sinks in the graph.
-         (dag    (copy-tree graph)))    ; Copy of the graph that we will mutate.
+         (sinks  (list-sinks dag)))     ; Sinks in the graph.
     (loop :while (not (null sinks))
           :do (progn
                 ;; Remove the sinks.
@@ -50,9 +49,16 @@ directed acyclic graph."
                                (error "Cannot sort a cyclic graph. ~
                                        The cycles are ~S." dag))))))
 
+(defun tsort-copy (graph)
+  "Topologically sort GRAPH. An error is signalled if it is not a
+directed acyclic graph."
+  (tsort (copy-tree graph)))
+
 
 ;;; Much of the functions in LABELS are taken from QTILITY.
 (defun random-dag (size)
+  "Generate a random directed acyclic graph with SIZE number of
+nodes."
   (labels ((random-between (a b)
              "Generate a random integer between A and B, inclusive."
              (assert (>= b a))
@@ -84,3 +90,8 @@ directed acyclic graph."
     (loop :for n :below size
           :collect (cons n (nshuffle (random-deps n))) :into nodes
           :finally (return (nshuffle nodes)))))
+
+(defun test-timing (size)
+  (let ((dag (random-dag size)))
+    (time (tsort dag))
+    (values)))
