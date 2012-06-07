@@ -87,8 +87,6 @@ and Y so that they unify."
 (defun substitute-values (x env)
   "Return X but with each variable in X substituted for the values
 defined in ENV."
-  ;; Maybe just use SUBLIS? Probably not, since we need special
-  ;; handling of variables.
   (cond ((variablep x) (let ((y (variable-val x env)))
                          (if (variablep y) y (substitute-values y env))))
         ((consp x) (cons (substitute-values (car x) env)
