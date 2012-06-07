@@ -41,6 +41,13 @@
 ;;; Some variable routines for generating unique variables. These are
 ;;; used to construct type variables in the inference.
 
+(defun make-variable-counter ()
+  "Create a new variable counter."
+  (let ((variable-count 0))
+    (lambda ()
+      (incf variable-count)
+      (intern (format nil "T~A" variable-count)))))
+
 (defparameter *variable-count* 0 "A counter for generating type variables.")
 
 (defun new-variable ()
@@ -93,35 +100,34 @@ defined in ENV."
                          (substitute-values (cdr x) env)))
         (t x)))
 
-(defun instance-aux (x prefix env success)
-    "Generate an instance of X with fresh variables in place of the
+(defun instance (x prefix counter)
+  "Generate an instance of X with fresh variables in place of the
+generic variables defined in PREFIX."
+  (labels ((instance-aux (x prefix env success)
+             "Generate an instance of X with fresh variables in place of the
 generic variables defined in PREFIX. Finally, call SUCCESS on the
 generated instance. This is used as an auxiliary routine for
 INSTANCE."
-  (cond
-    ((and (variablep x) (genericp x prefix))
-     (if (env-bound-p x env)
-         (funcall success (env-value x env) env)
-         (let ((var (new-variable)))
-           (funcall success var (env-update x var env)))))
-    ((consp x)
-     (instance-aux (car x) prefix env
-          #'(lambda (a env)
-              (instance-aux (cdr x) prefix env
-                   #'(lambda (b env)
-                       (funcall success (cons a b) env))))))
-    (t
-     (funcall success x env))))
-
-(defun instance (x prefix)
-  "Generate an instance of X with fresh variables in place of the
-generic variables defined in PREFIX."
-  (instance-aux x
-                prefix
-                (env-empty)
-                #'(lambda (a env)
-                    (declare (ignore env))
-                    a)))
+             (cond
+               ((and (variablep x) (genericp x prefix))
+                (if (env-bound-p x env)
+                    (funcall success (env-value x env) env)
+                    (let ((var (funcall counter)))
+                      (funcall success var (env-update x var env)))))
+               ((consp x)
+                (instance-aux (car x) prefix env
+                              #'(lambda (a env)
+                                  (instance-aux (cdr x) prefix env
+                                                #'(lambda (b env)
+                                                    (funcall success (cons a b) env))))))
+               (t
+                (funcall success x env)))))
+    (instance-aux x
+                  prefix
+                  (env-empty)
+                  #'(lambda (a env)
+                      (declare (ignore env))
+                      a))))
 
 (defun genericp (var prefix)
   "Is VAR a generic variable in PREFIX?"
@@ -198,7 +204,8 @@ to see if he type of the symbol PRIM is registered."
 
 (defun derive-type (f)
   "Derive the type of expression F and return it using Milner's Algorithm J."
-  (let ((e (env-empty)))
+  (let ((e (env-empty))
+        (ctr (make-variable-counter)))
     (labels
         ((algorithm-j (p f)
            "Robin Milner's type inference algorithm, simulating his
@@ -211,15 +218,15 @@ Algorithm W."
                          (kind (car x))
                          (derive-type (cadr x)))
                     (if (equalp kind 'let)
-                        (instance derive-type p)
+                        (instance derive-type p ctr)
                         derive-type))
-                  (instance (find-type f) (env-empty))))
+                  (instance (find-type f) (env-empty) ctr)))
              ((not (consp f))
               ;; j(constant) => constant-type
-              (instance (constant-type f) (env-empty)))
+              (instance (constant-type f) (env-empty) ctr))
              ((equalp (car f) 'quote)
               ;; j('constant) => j(constant)
-              (instance (constant-type (cadr f)) (env-empty)))
+              (instance (constant-type (cadr f)) (env-empty) ctr))
              ((equalp (car f) 'if)
               ;; j( if(p, x, y) ) =>
               ;;   unify(j(p), bool),
@@ -233,7 +240,8 @@ Algorithm W."
               ;; j(lambda(vars, body)) => (vars -> j(body))
               (let* ((parms (mapcar (lambda (x)
                                       (declare (ignore x))
-                                      (new-variable)) (cadr f)))
+                                      (funcall ctr)
+                                      ) (cadr f)))
                      (body (algorithm-j
                             (env-join
                              (mapcar (lambda (x y) (list x 'lambda y))
@@ -266,7 +274,7 @@ Algorithm W."
               ;;  j(body)
               (let ((p* (env-join
                          (mapcar (lambda (x)
-                                   (list (car x) 'letrec (new-variable)))
+                                   (list (car x) 'letrec (funcall ctr)))
                                  (cadr f))
                          p)))
                 (mapcar
@@ -287,7 +295,7 @@ Algorithm W."
              (t
               ;; j( g(x1, x2, ..., xn) ) =>
               ;; unify( j(g), (j(x1), j(x2), ..., j(xn)) -> Ta)
-              (let ((result (new-variable))
+              (let ((result (funcall ctr))
                     (oper (algorithm-j p (car f)))
                     (args (mapcar (lambda (x) (algorithm-j p x)) (cdr f))))
                 (setf e (unify oper (cons '-> (append args (list result))) e))
