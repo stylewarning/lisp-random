@@ -205,8 +205,8 @@ defined in ENV."
            "Robin Milner's type inference algorithm, simulating his
 Algorithm W."
            (cond
+             ;; j(Sym) => j(val(Sym))
              ((symbolp f)
-              ;; j(Sym) => j(val(Sym))
               (if (env-bound-p f p)
                   (let* ((x (env-value f p))
                          (kind (car x))
@@ -215,23 +215,27 @@ Algorithm W."
                         (instance derive-type p ctr)
                         derive-type))
                   (instance (find-type f) (env-empty) ctr)))
+
+             ;; j(constant) => constant-type
              ((not (consp f))
-              ;; j(constant) => constant-type
               (instance (constant-type f) (env-empty) ctr))
+
+             ;; j('constant) => j(constant)
              ((eql (car f) 'quote)
-              ;; j('constant) => j(constant)
               (instance (constant-type (cadr f)) (env-empty) ctr))
+
+             ;; j( if(p, x, y) ) =>
+             ;;   unify(j(p), bool),
+             ;;   unify(j(x), j(y))
              ((eql (car f) 'if)
-              ;; j( if(p, x, y) ) =>
-              ;;   unify(j(p), bool),
-              ;;   unify(j(x), j(y))
               (let ((pre (algorithm-j p (second f)))
                     (con (algorithm-j p (third f)))
                     (alt (algorithm-j p (fourth f))))
                 (setf e (unify con alt (unify pre 'bool e)))
                 con))
+
+             ;; j(lambda(vars, body)) => (vars -> j(body))
              ((eql (car f) 'lambda)
-              ;; j(lambda(vars, body)) => (vars -> j(body))
               (let* ((parms (mapcar (lambda (x)
                                       (declare (ignore x))
                                       (funcall ctr)
@@ -244,13 +248,14 @@ Algorithm W."
                              p)
                             (caddr f))))
                 (cons '-> (append parms (list body)))))
+             
+             ;; j(let([[x1,y1], [x2, y2],...], body)) =>
+             ;; with j(x1) := j(y1)
+             ;;      j(x2) := j(y2)
+             ;;      ...
+             ;;      j(xn) := j(yn)
+             ;;  j(body)             
              ((eql (car f) 'let)
-              ;; j(let([[x1,y1], [x2, y2],...], body)) =>
-              ;; with j(x1) := j(y1)
-              ;;      j(x2) := j(y2)
-              ;;      ...
-              ;;      j(xn) := j(yn)
-              ;;  j(body)
               (algorithm-j
                (env-join
                 (mapcar
@@ -258,14 +263,15 @@ Algorithm W."
                  (cadr f))
                 p)
                (caddr f)))
-             ((eql (car f) 'letrec)
+
               ;; j(letrec([[x1,y1], [x2, y2],...], body)) =>
               ;; with j(x1) := T1
               ;;      j(x2) := T2
               ;;      ...
               ;;      j(xn) := Tn
               ;;  unify( j(y1), j(y2), ..., j(yn)),
-              ;;  j(body)
+              ;;  j(body)             
+             ((eql (car f) 'letrec)
               (let ((p* (env-join
                          (mapcar (lambda (x)
                                    (list (car x) 'letrec (funcall ctr)))
@@ -277,24 +283,27 @@ Algorithm W."
                      (setf e (unify (cadr (env-value (car x) p*)) val e))))
                  (cadr f))
                 (algorithm-j p* (caddr f))))
+
+             ;; j( (lambda([v1, v2, ..., vn], body))(a1, a2, ..., an) ) =>
+             ;; j( let([[v1, a1],
+             ;;         [v2, a2],
+             ;;         ...,
+             ;;         [vn, an]], body))
              ((and (consp (car f))
                    (eql (caar f) 'lambda))
-              ;; j( (lambda([v1, v2, ..., vn], body))(a1, a2, ..., an) ) =>
-              ;; j( let([[v1, a1],
-              ;;         [v2, a2],
-              ;;         ...,
-              ;;         [vn, an]], body))
               (algorithm-j p (list 'let
                                    (mapcar #'list (cadar f) (cdr f))
                                    (caddar f))))
+
+             ;; j( g(x1, x2, ..., xn) ) =>
+             ;; unify( j(g), (j(x1), j(x2), ..., j(xn)) -> Ta)             
              (t
-              ;; j( g(x1, x2, ..., xn) ) =>
-              ;; unify( j(g), (j(x1), j(x2), ..., j(xn)) -> Ta)
               (let ((result (funcall ctr))
                     (oper (algorithm-j p (car f)))
                     (args (mapcar (lambda (x) (algorithm-j p x)) (cdr f))))
                 (setf e (unify oper (cons '-> (append args (list result))) e))
                 result)))))
+
       ;; Compute the type of F, and then substitute all type-variables
       ;; in.
       (let ((tt (algorithm-j (env-empty) f)))
