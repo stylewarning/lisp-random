@@ -117,7 +117,7 @@ INSTANCE."
   (cond
     ((null prefix) t)
     ((and (equalp (cadar prefix) var)
-          (not (equalp (caar prefix) 'let))) nil)
+          (not (eql (caar prefix) 'let))) nil)
     (t (genericp var (cdr prefix)))))
 
 
@@ -211,7 +211,7 @@ Algorithm W."
                   (let* ((x (env-value f p))
                          (kind (car x))
                          (derive-type (cadr x)))
-                    (if (equalp kind 'let)
+                    (if (eql kind 'let)
                         (instance derive-type p ctr)
                         derive-type))
                   (instance (find-type f) (env-empty) ctr)))
@@ -238,8 +238,8 @@ Algorithm W."
              ((eql (car f) 'lambda)
               (let* ((parms (mapcar (lambda (x)
                                       (declare (ignore x))
-                                      (funcall ctr)
-                                      ) (cadr f)))
+                                      (funcall ctr))
+                                    (cadr f)))
                      (body (algorithm-j
                             (env-join
                              (mapcar (lambda (x y) (list x 'lambda y))
