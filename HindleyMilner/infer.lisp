@@ -48,14 +48,6 @@
       (incf variable-count)
       (intern (format nil "T~A" variable-count)))))
 
-(defparameter *variable-count* 0 "A counter for generating type variables.")
-
-(defun new-variable ()
-  "Generate a new generic type variable. A type variable will start
-with a capitalized letter T followed by an integer."
-  (incf *variable-count*)
-  (intern (concatenate 'string "T" (write-to-string *variable-count*))))
-
 (defun variablep (x)
   "Check if X is a type variable."
   (and (symbolp x)
@@ -90,15 +82,6 @@ and Y so that they unify."
        (unify (cdr xv) (cdr yv) (unify (car xv) (car yv) env)))
       (t
        (error "Cannot unify structures.")))))
-
-(defun substitute-values (x env)
-  "Return X but with each variable in X substituted for the values
-defined in ENV."
-  (cond ((variablep x) (let ((y (variable-val x env)))
-                         (if (variablep y) y (substitute-values y env))))
-        ((consp x) (cons (substitute-values (car x) env)
-                         (substitute-values (cdr x) env)))
-        (t x)))
 
 (defun instance (x prefix counter)
   "Generate an instance of X with fresh variables in place of the
@@ -202,6 +185,17 @@ to see if he type of the symbol PRIM is registered."
        (list 'list element-type)))
     (t (error "Unknown constant type."))))
 
+(defun substitute-type-variables (x env)
+  "Return X but with each variable in X substituted for the values
+defined in ENV."
+  (cond ((variablep x) (let ((y (variable-val x env)))
+                         (if (variablep y)
+                             y
+                             (substitute-type-variables y env))))
+        ((consp x) (cons (substitute-type-variables (car x) env)
+                         (substitute-type-variables (cdr x) env)))
+        (t x)))
+
 (defun derive-type (f)
   "Derive the type of expression F and return it using Milner's Algorithm J."
   (let ((e (env-empty))
@@ -303,4 +297,4 @@ Algorithm W."
       ;; Compute the type of F, and then substitute all type-variables
       ;; in.
       (let ((tt (algorithm-j (env-empty) f)))
-        (substitute-values tt e)))))
+        (substitute-type-variables tt e)))))
