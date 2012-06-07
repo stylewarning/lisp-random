@@ -218,10 +218,10 @@ Algorithm W."
              ((not (consp f))
               ;; j(constant) => constant-type
               (instance (constant-type f) (env-empty) ctr))
-             ((equalp (car f) 'quote)
+             ((eql (car f) 'quote)
               ;; j('constant) => j(constant)
               (instance (constant-type (cadr f)) (env-empty) ctr))
-             ((equalp (car f) 'if)
+             ((eql (car f) 'if)
               ;; j( if(p, x, y) ) =>
               ;;   unify(j(p), bool),
               ;;   unify(j(x), j(y))
@@ -230,7 +230,7 @@ Algorithm W."
                     (alt (algorithm-j p (fourth f))))
                 (setf e (unify con alt (unify pre 'bool e)))
                 con))
-             ((equalp (car f) 'lambda)
+             ((eql (car f) 'lambda)
               ;; j(lambda(vars, body)) => (vars -> j(body))
               (let* ((parms (mapcar (lambda (x)
                                       (declare (ignore x))
@@ -244,7 +244,7 @@ Algorithm W."
                              p)
                             (caddr f))))
                 (cons '-> (append parms (list body)))))
-             ((equalp (car f) 'let)
+             ((eql (car f) 'let)
               ;; j(let([[x1,y1], [x2, y2],...], body)) =>
               ;; with j(x1) := j(y1)
               ;;      j(x2) := j(y2)
@@ -258,7 +258,7 @@ Algorithm W."
                  (cadr f))
                 p)
                (caddr f)))
-             ((equalp (car f) 'letrec)
+             ((eql (car f) 'letrec)
               ;; j(letrec([[x1,y1], [x2, y2],...], body)) =>
               ;; with j(x1) := T1
               ;;      j(x2) := T2
@@ -277,7 +277,8 @@ Algorithm W."
                      (setf e (unify (cadr (env-value (car x) p*)) val e))))
                  (cadr f))
                 (algorithm-j p* (caddr f))))
-             ((and (consp (car f)) (equalp (caar f) 'lambda))
+             ((and (consp (car f))
+                   (eql (caar f) 'lambda))
               ;; j( (lambda([v1, v2, ..., vn], body))(a1, a2, ..., an) ) =>
               ;; j( let([[v1, a1],
               ;;         [v2, a2],
