@@ -1,12 +1,5 @@
 ;;;; Some tests for `infer.lisp'.
 
-;;;; Note that your output might contain different type variable
-;;;; names. All that is important is that the type variables in an
-;;;; expression are the same if they are the same here (e.g., if you
-;;;; have (-> T163 T163) for EXAMPLE4, then it is correct. However, if
-;;;; you have (-> T162 T163), then it is incorrect because they are
-;;;; not the same, but I display that they are (-> T10 T10).
-
 (defmacro try (x)
   `(format t "~A~% :: ~A~%~%" ',x (derive-type ',x)))
 
@@ -33,7 +26,7 @@
 (try 
  (let ((ident (lambda (x) x)))
    (ident ident)))
-;; :: (-> T10 T10)
+;; :: (-> T4 T4)
 
 (try 
  (letrec ((length (lambda (l)
@@ -41,7 +34,7 @@
                         0
                         (+ 1 (length (cdr l)))))))
          length))
-;; :: (-> (LIST T174) NUM)
+;; :: (-> (LIST T4) NUM)
 
 (try 
  (letrec ((map (lambda (f l)
@@ -50,7 +43,7 @@
                      (cons (f (car l))
                            (map f (cdr l)))))))
          map))
-;; :: (-> (-> T194 T199) (LIST T194) (LIST T199))
+;; :: (-> (-> T10 T6) (LIST T10) (LIST T6))
 
 (try 
  (lambda (x)
@@ -58,4 +51,4 @@
                    (if (null? x)
                        (exit 0)
                        (length x)))))))
-;; :: (-> (LIST T207) NUM)
+;; :: (-> (LIST T12) NUM)
