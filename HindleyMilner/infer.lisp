@@ -166,6 +166,7 @@ to see if he type of the symbol PRIM is registered."
               not       (-> bool bool)
               call/cc   (-> (-> (-> Ta Tb) Tc) Ta)
               apply     (-> (-> Ta Tb) (list Ta) Tb)
+              display   (-> Ta ())
               write     (-> Ta ()))
 
 (defun constant-type (x)
