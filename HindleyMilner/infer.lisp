@@ -116,7 +116,7 @@ INSTANCE."
   "Is VAR a generic variable in PREFIX?"
   (cond
     ((null prefix) t)
-    ((and (equalp (cadar prefix) var)
+    ((and (eql (cadar prefix) var)
           (not (eql (caar prefix) 'let))) nil)
     (t (genericp var (cdr prefix)))))
 
