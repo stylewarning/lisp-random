@@ -174,8 +174,8 @@ to see if he type of the symbol PRIM is registered."
   (cond
     ((numberp x)            'num)
     ((characterp x)         'char)
-    ((or (equalp x 'true)
-         (equalp x 'false)) 'bool)
+    ((or (eql x 'true)
+         (eql x 'false))    'bool)
     ((null x)               '(list Ta))
     ((consp x)
      (let ((element-type (constant-type (car x))))
