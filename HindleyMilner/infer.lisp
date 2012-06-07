@@ -192,6 +192,17 @@ to see if he type of the symbol PRIM is registered."
        (list 'list element-type)))
     (t (error "Unknown constant type."))))
 
+(defun recursive-sublis (alist tree &optional (max-depth -1))
+  "Recursively invoke SUBLIS until the tree stops changing."
+  (labels ((recur (previous depth)
+             (if (= depth max-depth)
+                 previous
+                 (let ((current (sublis alist previous)))
+                   (if (tree-equal current previous)
+                       current
+                       (recur current (1+ depth)))))))
+    (recur tree 0)))
+
 (defun derive-type (f)
   "Derive the type of expression F and return it using Milner's Algorithm J."
   (let ((e (env-empty)))
@@ -229,7 +240,8 @@ Algorithm W."
               ;; j(lambda(vars, body)) => (vars -> j(body))
               (let* ((parms (mapcar (lambda (x)
                                       (declare (ignore x))
-                                      (new-variable)) (cadr f)))
+                                      (new-variable))
+                                    (cadr f)))
                      (body (algorithm-j
                             (env-join
                              (mapcar (lambda (x y) (list x 'LAMBDA y))
@@ -292,4 +304,5 @@ Algorithm W."
       ;; in.
       (reset-variable-count)
       (let ((tt (algorithm-j (env-empty) f)))
-        (sublis e tt)))))
+        (values (recursive-sublis e tt)
+                e)))))
