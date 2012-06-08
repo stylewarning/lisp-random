@@ -44,9 +44,13 @@
               :do (setf idx     i
                         max-mob x)
             :finally (let ((adj-idx (- idx (sign max-mob))))
-                       
+                       ;; Swap the largest mobile element with its
+                       ;; adjacent partner
                        (rotatef (aref perm idx)
                                 (aref perm adj-idx))
+                       
+                       ;; Reverse the direction of all larger
+                       ;; elements.
                        (loop :for i :from 0
                              :for x :across perm
                              :when (abs> x max-mob)
