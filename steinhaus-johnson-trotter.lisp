@@ -44,10 +44,9 @@
               :do (setf idx     i
                         max-mob x)
             :finally (let ((adj-idx (- idx (sign max-mob))))
-                       (when (and (not (minusp adj-idx))
-                                  (not (minusp idx)))
-                         (rotatef (aref perm idx)
-                                  (aref perm adj-idx)))
+                       
+                       (rotatef (aref perm idx)
+                                (aref perm adj-idx))
                        (loop :for i :from 0
                              :for x :across perm
                              :when (abs> x max-mob)
