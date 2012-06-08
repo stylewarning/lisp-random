@@ -30,8 +30,6 @@
   (loop :for i :below len
         :thereis (mobilep i perm len)))
 
-
-
 (defun next-perm (perm &optional (len (length perm)))
   (let ((idx -1)
         (max-mob -1))
@@ -62,3 +60,19 @@
     (loop :for perm := initial :then (next-perm perm)
           :while perm
           :do (print perm))))
+
+(defun perm-generator (n)
+  (let ((perm t))
+    (lambda ()
+      ;; Check if PERM is NIL (if the generator was exhausted).
+      (when perm
+        
+        ;; We do this hackery to be able to emit the initial
+        ;; (identity) perm. Initially PERM is just T -- not a vector.
+        (if (not (vectorp perm))
+            (setf perm (id n))
+            (let ((next (next-perm perm n)))
+              ;; If we are at the end, then set PERM to NIL.
+              (if next
+                  (map 'vector #'abs next)
+                  (setf perm nil))))))))
