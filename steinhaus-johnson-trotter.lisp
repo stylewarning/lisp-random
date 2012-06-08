@@ -55,18 +55,21 @@
                                :do (reverse-direction i perm))))
       perm)))
 
-(defun perms (n)
+(defun print-perms (n &optional (amount -1))
   (let ((initial (id n)))
     (loop :for perm := initial :then (next-perm perm)
-          :while perm
-          :do (print perm))))
+          :for count :from 1
+          :while (and perm
+                      (/= count amount))
+          :do (loop :for x :across perm
+                    :do (format t "~D " (abs x))
+                    :finally (terpri)))))
 
 (defun perm-generator (n)
   (let ((perm t))
     (lambda ()
       ;; Check if PERM is NIL (if the generator was exhausted).
       (when perm
-        
         ;; We do this hackery to be able to emit the initial
         ;; (identity) perm. Initially PERM is just T -- not a vector.
         (if (not (vectorp perm))
