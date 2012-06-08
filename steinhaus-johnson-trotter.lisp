@@ -58,7 +58,4 @@
   (let ((initial (id n)))
     (loop :for perm := initial :then (next-perm perm)
           :while perm
-          :do (progn
-                (print perm)
-                (when (eql (read) 1)
-                  (return-from perms))))))
+          :do (print perm))))
