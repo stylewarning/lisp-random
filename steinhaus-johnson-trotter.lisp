@@ -55,16 +55,6 @@
                                :do (reverse-direction i perm))))
       perm)))
 
-(defun print-perms (n &optional (amount -1))
-  (let ((initial (id n)))
-    (loop :for perm := initial :then (next-perm perm)
-          :for count :from 1
-          :while (and perm
-                      (/= count amount))
-          :do (loop :for x :across perm
-                    :do (format t "~D " (abs x))
-                    :finally (terpri)))))
-
 (defun perm-generator (n)
   (let ((perm t))
     (lambda ()
@@ -79,3 +69,15 @@
               (if next
                   (map 'vector #'abs next)
                   (setf perm nil))))))))
+
+(defmacro doperms ((x n &optional result) &body body)
+  (let ((perm (gensym "PERM")))
+    `(loop :for ,perm := (id ,n) :then (next-perm ,perm)
+           :while ,perm
+           :do (let ((,x (map 'vector 'abs ,perm)))
+                 ,@body)
+           :finally (return ,result))))
+
+(defun print-perms (n)
+  (doperms (x n)
+    (print x)))
