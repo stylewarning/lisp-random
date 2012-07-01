@@ -78,6 +78,12 @@
   (aref (aref (tableau.rows tableau) (1- row))
         (1- col)))
 
+(defun tableau-set-cell (tableau row col new-cell)
+  (setf (aref (aref (tableau.rows tableau) (1- row))
+              (1- col))
+        new-cell))
+
+(defsetf tableau-cell tableau-set-cell)
 
 (defun tableau-add-row (tableau new-cell)
   (add-tableau-row tableau (make-row new-cell))
