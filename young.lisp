@@ -73,3 +73,25 @@
             (add-tableau-row tab (apply #'make-row list-row)))
           lists)
     tab))
+
+(defun tableau-cell (tableau row col)
+  (aref (aref (tableau.rows tableau) (1- row))
+        (1- col)))
+
+
+(defun tableau-add-row (tableau new-cell)
+  (add-tableau-row tableau (make-row new-cell))
+  tableau)
+
+(defun tableau-delete-row (tableau)
+  (vector-pop (tableau.rows tableau))
+  tableau)
+
+(defun tableau-add-column (tableau row-number new-cell)
+  (extend-row (aref (tableau.rows tableau) (1- row-number))
+              new-cell)
+  tableau)
+
+(defun tableau-delete-column (tableau row-number)
+  (vector-pop (aref (tableau.rows tableau) (1- row-number)))
+  tableau)
