@@ -48,6 +48,9 @@
 (defun tableau-row-size (tab row)
   (length (aref (tableau.rows tab) (1- row))))
 
+(defun tableau-shape (tab)
+  (map 'list #'length (tableau.rows tab)))
+
 (defun print-tableau (obj stream depth)
   (declare (ignore depth))
   (print-unreadable-object (obj stream :type t)
