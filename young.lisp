@@ -42,6 +42,12 @@
   (loop :for row :across (tableau.rows tab)
         :sum (length row)))
 
+(defun tableau-height (tab)
+  (length (tableau.rows tab)))
+
+(defun tableau-row-size (tab row)
+  (length (aref (tableau.rows tab) (1- row))))
+
 (defun print-tableau (obj stream depth)
   (declare (ignore depth))
   (print-unreadable-object (obj stream :type t)
@@ -101,3 +107,36 @@
 (defun tableau-delete-column (tableau row-number)
   (vector-pop (aref (tableau.rows tableau) (1- row-number)))
   tableau)
+
+;;;;;;;;;;;;;;;;;;;;;; ROBINSON-SCHENSTED-KNUTH ;;;;;;;;;;;;;;;;;;;;;;
+
+;;; Possible Optimizations
+;;; 
+;;; * Keep track of the height to avoid recomputing it each time.
+
+(defun perm-to-tableau (perm)
+  (labels ((bump! (tab i &optional (initial-row 1))
+             (declare (type tableau tab)
+                      (type tableau-element i)
+                      (type fixnum initial-row))
+             (if (> initial-row (tableau-height tab))
+                 (tableau-add-row tab i)
+                 (if (<= (tableau-cell tab ; Last cell...
+                                       initial-row
+                                       (tableau-row-size tab initial-row))
+                         i)
+                     (tableau-add-column tab initial-row i)
+                     (let* ((row (aref (tableau.rows tab) (1- initial-row)))
+                            (j (position-if (lambda (x) (> x i))
+                                            row))
+                            (row-j (aref row j)))
+                       (declare (type fixnum j)
+                                (type tableau-element row-j))
+                       (setf (tableau-cell tab initial-row (1+ j)) i)
+                       (bump! tab row-j (1+ initial-row)))))))
+
+    ;; Bump each point in the word onto the tableau.
+    (loop :with tab := (make-tableau)
+          :for point :across (subseq (perm::perm.spec perm) 1)
+          :do (bump! tab point)
+          :finally (return tab))))
