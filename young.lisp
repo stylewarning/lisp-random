@@ -2,6 +2,28 @@
 ;;; young.lisp
 ;;; Copyright (c) 2012 Robert Smith
 
+(in-package #:common-lisp-user)
+
+(defpackage #:young-tableaux
+  (:use #:common-lisp)
+  (:nicknames #:young)
+  (:export #:tableau-element
+           #:tableau-row
+           #:tableau
+           #:tableau-size
+           #:tableau-height
+           #:tableau-shape
+           #:make-tableau
+           #:lists-to-tableau
+           #:tableau-cell
+           #:tableau-add-row
+           #:tableau-delete-row
+           #:tableau-add-column
+           #:tableau-delete-column
+           #:perm-to-tableau))
+
+(in-package #:young-tableaux)
+
 ;;;;;;;;;;;;;;;;;;; YOUNG TABLEAUX data structure ;;;;;;;;;;;;;;;;;;;;
 
 ;;; Tableaux Rows
