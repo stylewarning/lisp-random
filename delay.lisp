@@ -44,3 +44,20 @@ memoize it."
                             args
                             genargs)
            ,@body)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; EXAMPLES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(deflazy if* (pred then else)
+  (if pred then else))
+
+(defun test-if* ()
+  (if (functionp #'if*)
+      (format t "Yes ~S is a function!" 'if*)
+      (format t "ERROR! ~S is not a function!" 'if*))
+  
+  (terpri)
+  
+  (lazycall 'if*
+            t
+            (format t "~S worked!~%" 'if*)
+            (error "This shouldn't get called.")))
