@@ -1,3 +1,13 @@
+;;; Things that can affect optimization...
+;;;
+;;; * Constant value (CV)
+;;; * Constant bindings (CB)
+;;; * Back references (BR)
+;;; * Kleene star (KS)
+;;;
+;;; CV + CB ===> complete compile-time destructuring
+;;; CB      ===> LSB -> MSB
+;;; BR      ===> MSB -> LSB
 
 (declaim (inline ones))
 (defun ones (n)
@@ -13,6 +23,21 @@
         (vals (mapcar #'second pattern)))
     `(let ,(mapcar #'list vars (decompose vals n))
        ,@body)))
+
+#+#:ignore
+(defun generate-code (pattern n &optional body)
+  (let ((reg (gensym))
+        (len (gensym)))
+    `(let* ((,reg ,n)
+            (,len (integer-length ,reg)))
+       ,(loop :for (var val) :in pattern
+              :collect `(,var (prog1 (ash ,reg (- ,val ,len))
+                                (setf ,reg (logand ,reg
+                                                   (ones (- ,len ,val))))
+                                (decf ,len ,val)))
+                :into bindings
+              :finally (return `(let* ,bindings
+                                  ,@body))))))
 
 (defun generate-code (pattern n &optional body)
   (let ((reg (gensym))
