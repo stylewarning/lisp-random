@@ -9,9 +9,18 @@
 ;;; CB      ===> LSB -> MSB
 ;;; BR      ===> MSB -> LSB
 
+
+;;;; Some utilities
+
 (declaim (inline ones))
 (defun ones (n)
   (1- (ash 1 n)))
+
+(defun static-fields-p (fields)
+  (every #'integerp (mapcar #'second fields)))
+
+
+;;;; Code generators
 
 (defun decompose (sizes n)
   (loop :for len := (integer-length n) :then (- len size)
@@ -43,8 +52,8 @@
               :finally (return `(let* ,bindings
                                   ,@body))))))
 
-(defun static-fields-p (fields)
-  (every #'integerp (mapcar #'second fields)))
+
+;;;; The Real Deal (tm)
 
 (defmacro with-bits ((&rest fields) n &body body)
   (if (and (integerp n)
