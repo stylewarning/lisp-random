@@ -14,6 +14,7 @@
 
 (declaim (inline ones))
 (defun ones (n)
+  (declare (type unsigned-byte n))
   (1- (ash 1 n)))
 
 (defun static-fields-p (fields)
