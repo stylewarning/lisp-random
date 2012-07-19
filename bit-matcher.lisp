@@ -27,7 +27,10 @@
         :for size :in sizes
         :collect (ldb (byte size (- len size)) n)))
 
-;;; This is a complete compile-time destructuring
+;;; This is a complete compile-time destructuring; assumes
+;;;   * CV
+;;;   * CB
+;;;   * no back references (subsumed by CB)
 (defun generate-inline (pattern n &optional body)
   (let ((vars (mapcar #'first pattern))
         (vals (mapcar #'second pattern)))
