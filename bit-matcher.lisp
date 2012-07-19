@@ -18,27 +18,17 @@
         :for size :in sizes
         :collect (ldb (byte size (- len size)) n)))
 
+;;; This is a complete compile-time destructuring
 (defun generate-inline (pattern n &optional body)
   (let ((vars (mapcar #'first pattern))
         (vals (mapcar #'second pattern)))
     `(let ,(mapcar #'list vars (decompose vals n))
        ,@body)))
 
-#+#:ignore
-(defun generate-code (pattern n &optional body)
-  (let ((reg (gensym))
-        (len (gensym)))
-    `(let* ((,reg ,n)
-            (,len (integer-length ,reg)))
-       ,(loop :for (var val) :in pattern
-              :collect `(,var (prog1 (ash ,reg (- ,val ,len))
-                                (setf ,reg (logand ,reg
-                                                   (ones (- ,len ,val))))
-                                (decf ,len ,val)))
-                :into bindings
-              :finally (return `(let* ,bindings
-                                  ,@body))))))
-
+;;; This does an MSB -> LSB destructuring and assumes
+;;;   * Non-CV
+;;;   * Non-CB
+;;;   * Back references
 (defun generate-code (pattern n &optional body)
   (let ((reg (gensym))
         (len (gensym)))
