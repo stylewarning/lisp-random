@@ -9,16 +9,16 @@
 ;;; 2. Enter TAGBODY. Push a new frame onto *TAGBODY-ENVIRONMENT*.
 ;;;
 ;;; 3. Collect TAGBODY symbols (the tags), and push them to current
-;;; frame.
+;;;    frame.
 ;;;
 ;;; 4. Walk TAGBODY forms.
 ;;;
-;;; 5a. If another TAGBODY is found, go to step #2.
+;;;   4a. If another TAGBODY is found, go to step #2.
 ;;;
-;;; 5b. If DYNGO is found, expand DYNGO with the current
-;;; *TAGBODY-ENVIRONMENT*.
+;;;   4b. If DYNGO is found, expand DYNGO with the current
+;;;       *TAGBODY-ENVIRONMENT*.
 ;;; 
-;;; 6. Pop *TAGBODY-ENVIRONMENT*.
+;;; 5. Pop *TAGBODY-ENVIRONMENT*.
 ;;; 
 ;;; 
 ;;; The expansion of a (DYNGO X) form is a (CASE X ...) form where
