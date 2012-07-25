@@ -24,6 +24,11 @@
 ;;; The expansion of a (DYNGO X) form is a (CASE X ...) form where
 ;;; each case of of the form (<tag> (go <tag)), where <tag> is a tag
 ;;; from the *TAGBODY-ENVIRONMENT*.
+;;; 
+;;; If SPACE > SPEED, then DYNGO can "redirect" to a single giant jump
+;;; table, as opposed to embedding the table at each DYNGO
+;;; invocation. However, the number of tables, even for SPACE > SPEED,
+;;; is generally linear in the number of nested TAGBODY forms.
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;; TAGBODY ENVIRONMENT ;;;;;;;;;;;;;;;;;;;;;;;;;
