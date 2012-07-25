@@ -1,22 +1,29 @@
-;;; Dynamic GO.
+;;;; dyngo.lisp
+;;;; Copyright (c) 2012 Robert Smith
 
-;;; Algorithm:
+;;; Algorithm
+;;; =========
 ;;; 
-;;; 1. Initialize *TAGBODY-ENVIRONMENT* to
+;;; 1, Initialize *TAGBODY-ENVIRONMENT* to NIL.
 ;;; 
-;;; 2. Enter TAGBODY.
+;;; 2. Enter TAGBODY. Push a new frame onto *TAGBODY-ENVIRONMENT*.
 ;;;
-;;; 3. Collect TAGBODY symbols (the tags), and push them to the top of
-;;; *TAGBODY-ENVONMENT*.
+;;; 3. Collect TAGBODY symbols (the tags), and push them to current
+;;; frame.
 ;;;
 ;;; 4. Walk TAGBODY forms.
 ;;;
-;;; 5. If another TAGBODY is found, go to step #1.
+;;; 5a. If another TAGBODY is found, go to step #2.
 ;;;
-;;; 6. If DYNGO is found, expand DYNGO with the current
+;;; 5b. If DYNGO is found, expand DYNGO with the current
 ;;; *TAGBODY-ENVIRONMENT*.
 ;;; 
-;;; 7. Pop *TAGBODY-ENVIRONMENT*.
+;;; 6. Pop *TAGBODY-ENVIRONMENT*.
+;;; 
+;;; 
+;;; The expansion of a (DYNGO X) form is a (CASE X ...) form where
+;;; each case of of the form (<tag> (go <tag)), where <tag> is a tag
+;;; from the *TAGBODY-ENVIRONMENT*.
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;; TAGBODY ENVIRONMENT ;;;;;;;;;;;;;;;;;;;;;;;;;
