@@ -22,7 +22,7 @@
 ;;; 
 ;;; 
 ;;; The expansion of a (DYNGO X) form is a (CASE X ...) form where
-;;; each case of of the form (<tag> (go <tag)), where <tag> is a tag
+;;; each case of of the form (<tag> (go <tag>)), where <tag> is a tag
 ;;; from the *TAGBODY-ENVIRONMENT*.
 ;;; 
 ;;; If SPACE > SPEED, then DYNGO can "redirect" to a single giant jump
