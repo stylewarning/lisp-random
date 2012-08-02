@@ -81,8 +81,7 @@
                        
                        ;; Move remainder into eax if we wanted that.
                        (when (eq (car expr) '%)
-                         (isn "mov eax, edx"))
-                       ))
+                         (isn "mov eax, edx"))))
                     
                     ;; Push the result back onto the stack.
                     (isn "push eax")))
