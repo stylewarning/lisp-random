@@ -1,31 +1,35 @@
-;;; REGISTERS
-;;; 
-;;; return = rax
-;;; 
-;;; fastcall regs
-;;; -------------
-;;; 
-;;; rdi    xmm0
-;;; rsi    ...
-;;; rdx    xmm7
-;;; rcx
-;;; r8
-;;; r9
-;;; 
-;;; scratch regs
-;;; ------------
-;;; 
-;;; rax, rcx, rdx, rsi, rdi, r8 - r11
-;;; 
-;;; callee responsible
-;;; ------------------
-;;; 
-;;; rbx, rsp, rbp, r12 - r15
+;;;; lisp86_64.lisp
+;;;; Copyright (c) 2012 Robert Smith
 
-;;; STACK
-;;; 
-;;; rbp = stack marker
-;;; rsp = stack pointer
+
+;;; Computational Registers
+
+(defvar *return-registers* '(:rax :eax))
+
+(defvar *fastcall-registers*
+  '(:rdi :rsi :rdx :rcx :r8 :r9)
+  "Registers that are used for argument passing in the fastcall
+  calling convention.")
+
+(defvar *scratch-registers*
+  '(:rax :rcx :rdx :rsi :r8 :r9 :r10 :r11)
+  "Registers that can be used as scratchwork in the fastcall calling
+  convention.")
+
+(defvar *callee-responsible-registers*
+  '(:rbx :rsp :rbp :r12 :r13 :r14 :r15)
+  "Registers that the callee are responsible for preserving in the
+  fastcall calling convention.")
+
+
+;;; The Raspberry Registers
+
+(defvar *frame-pointer-register* :rbp
+  "The register containing the frame pointer.")
+
+(defvar *stack-pointer-register* :rsp
+  "The register containing the stack pointer.")
+
 ;;;    rsp+8n = look at stack[n]
 ;;;    rsp-8n = allocate n words
 
