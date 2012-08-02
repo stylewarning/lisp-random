@@ -54,10 +54,35 @@
                     
                     ;; Generate arithmetic.
                     (case (car expr)
+                      ;; +-* all are easy.
                       ((+) (isn "add eax, edx"))
                       ((-) (isn "sub eax, edx"))
                       ((*) (isn "imul eax, edx"))
-                      ((/) (error "i don't know")))
+                      
+                      ;; division requires
+                      ;;   - dividend is the concatenation
+                      ;;     of edx and eax
+                      ;;   - divisor in any reg (here ecx)
+                      ;; 
+                      ;; Since we only want 32-bit division,
+                      ;; we fill edx with the sign of eax.
+                      ;; 
+                      ;; Quotient will be in eax, remainder
+                      ;; in edx.
+                      ((/ %)
+                       ;; Get our divisor in place.
+                       (isn "mov ecx, edx")
+                       
+                       ;; Fill edx with appropriate sign bits.
+                       (isn "cdq")
+                       
+                       ;; Perform division.
+                       (isn "idiv ecx")
+                       
+                       ;; Move remainder into eax if we wanted that.
+                       (when (eq (car expr) '%)
+                         (isn "mov eax, edx"))
+                       ))
                     
                     ;; Push the result back onto the stack.
                     (isn "push eax")))
@@ -71,3 +96,11 @@
       
       ;; Return instructions.
       (nreverse isns))))
+
+;;; Example
+;; CL-USER> (generate-asm '(+ (* 9 (/ 3 2)) (- 10 (% 5 3))))
+;; ("push 9" "push 3" "push 2" "pop edx" "pop eax" "mov ecx, edx" "cdq" "idiv ecx"
+;;  "push eax" "pop edx" "pop eax" "imul eax, edx" "push eax" "push 10" "push 5"
+;;  "push 3" "pop edx" "pop eax" "mov ecx, edx" "cdq" "idiv ecx" "mov eax, edx"
+;;  "push eax" "pop edx" "pop eax" "sub eax, edx" "push eax" "pop edx" "pop eax"
+;;  "add eax, edx" "push eax" "pop eax")
