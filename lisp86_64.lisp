@@ -29,22 +29,25 @@
 ;;;    rsp+8n = look at stack[n]
 ;;;    rsp-8n = allocate n words
 
-;;;;;;;;;;;;;;;;;;;; Instructions and Formatting ;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;; Instructions ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defstruct (isn (:conc-name isn.)
                 (:constructor make-isn (op &rest args)))
-  (op   :nop :type keyword)
+  (op   :nop :type keyword
+             :read-only t)
   (args nil  :type list))
 
 (defun format-isn (isn)
   (with-output-to-string (s)
     (labels ((kw (k)
                (string-downcase (symbol-name k)))
+             
              (format-arg (arg)
                (princ " " s)
                (etypecase arg
                  (integer (princ arg s))
                  (keyword (princ (kw arg) s))
+                 (label (princ (label.name arg) s))
                  (list (error "unimplemented formatting for ~S" arg)))))
       
       ;; Operator
@@ -62,11 +65,29 @@
                (princ "," s))
              (format-arg (first (last args))))))))))
 
-(defun print-isns (isn-list &optional (stream *standard-output*))
-  (dolist (isn isn-list)
-    (princ "        " stream)
-    (princ (format-isn isn) stream)
-    (terpri stream)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Labels ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defstruct (label (:conc-name label.)
+                  (:constructor make-label (name)))
+  (name (error "A label requires a name.") :type string
+                                           :read-only t))
+
+(let ((label-counter 0))
+  (defun genlabel (&optional (prefix "L"))
+    (incf label-counter)
+    (make-label (format nil "~A~D" prefix label-counter))))
+
+(defun print-asm (asm &optional (stream *standard-output*))
+  (dolist (isn asm)
+    (etypecase isn
+      (label (progn
+               (princ (label.name isn))
+               (princ ":")
+               (terpri stream)))
+      (isn (progn
+             (princ "        " stream)
+             (princ (format-isn isn) stream)
+             (terpri stream))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;; ASM generation ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -136,10 +157,4 @@
       ;; Return instructions.
       (nreverse isns))))
 
-;;; Example
-;; CL-USER> (generate-asm '(+ (* 9 (/ 3 2)) (- 10 (% 5 3))))
-;; ("push 9" "push 3" "push 2" "pop edx" "pop eax" "mov ecx, edx" "cdq" "idiv ecx"
-;;  "push eax" "pop edx" "pop eax" "imul eax, edx" "push eax" "push 10" "push 5"
-;;  "push 3" "pop edx" "pop eax" "mov ecx, edx" "cdq" "idiv ecx" "mov eax, edx"
-;;  "push eax" "pop edx" "pop eax" "sub eax, edx" "push eax" "pop edx" "pop eax"
-;;  "add eax, edx" "push eax" "pop eax")
+
