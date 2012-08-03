@@ -109,7 +109,22 @@
              (gen (expr)
                (cond
                  ((integerp expr) (isn :push expr))
+
                  ((atom expr) (error "unknown thing ~S" expr))
+
+                 ((= 2 (length expr))
+                  (progn
+                    (gen (second expr))
+                    
+                    (isn :pop :eax)
+                    
+                    ;; Generate arithmetic.
+                    (case (car expr)
+                      ((-) (isn :neg :eax)))
+                    
+                    ;; Push the result back onto the stack.
+                    (isn :push :eax)))
+                 
                  ((= 3 (length expr))
                   (progn
                     ;; Generate code for the first argument.
