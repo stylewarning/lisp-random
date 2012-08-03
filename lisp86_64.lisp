@@ -84,6 +84,9 @@
 (defun print-asm (asm &optional (stream *standard-output*))
   (dolist (isn asm)
     (etypecase isn
+      (string (progn                    ; Intended for simple additions.
+                (princ isn stream)
+                (terpri stream)))
       (label (progn
                (princ (label.name isn))
                (princ ":")
@@ -95,8 +98,10 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;; ASM generation ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun generate-asm (expr)
-  (let ((isns nil))
+(defun generate-asm (expr &key name
+                               (auto-generate-name-p t))
+  (let ((isns nil)
+        (fn? (or name auto-generate-name-p)))
     (labels ((isn (op &rest args)
                (push (apply 'make-isn op args)
                      isns))
@@ -152,11 +157,26 @@
                     (isn :push :eax)))
                  (t (error "unknown thing ~S" expr)))))
       
+      ;; Add label name.
+      (when fn?
+        (let ((lab (if name
+                       (make-label name)
+                       (genlabel))))
+          (push (concatenate 'string
+                             "global "
+                             (label.name lab))
+                isns)
+          (push lab isns)))
+      
       ;; Generate all the code.
       (gen expr)
       
       ;; Get result into eax.
       (isn :pop :eax)
+      
+      ;; Return the value.
+      (when fn?
+        (isn :ret))
       
       ;; Return instructions.
       (nreverse isns))))
