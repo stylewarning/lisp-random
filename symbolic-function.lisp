@@ -98,6 +98,7 @@ bound to the expression EXPRESSION."
   "Is the symbolic function SF nullary?"
   (= 1 (length (symbolic-function.parameters sf))))
 
+;;; XXX: This should probably make a copy/new function.
 (defun alpha-convert (sf new-var &optional old-var)
   (unless (nullary-function-p sf)
     (with-slots (parameters expression) sf
@@ -114,3 +115,5 @@ bound to the expression EXPRESSION."
             (nsublis subs parameters)
             (nsublis subs expression)))))
   sf)
+
+;;; XXX: add substitution and beta reduction
