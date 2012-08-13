@@ -80,3 +80,37 @@ bound to the expression EXPRESSION."
   (with-slots (parameters expression) sf
     (make-symbolic-function parameters
                             (list f expression))))
+
+(defun bound-variable-p (var sf)
+  "Is the variable VAR bound in the symbolic function SF?"
+  (and (member var (symbolic-function.parameters sf) :test 'eq)
+       t))
+
+(defun free-variable-p (var sf)
+  "Is the variable VAR free in the symbolic function SF?"
+  (not (bound-variable-p var sf)))
+
+(defun nullary-function-p (sf)
+  "Is the symbolic function SF nullary?"
+  (null (symbolic-function.parameters sf)))
+
+(defun unary-function-p (sf)
+  "Is the symbolic function SF nullary?"
+  (= 1 (length (symbolic-function.parameters sf))))
+
+(defun alpha-convert (sf new-var &optional old-var)
+  (unless (nullary-function-p sf)
+    (with-slots (parameters expression) sf
+      (unless old-var
+        (setf old-var (first parameters)))
+      
+      (if (bound-variable-p new-var sf)
+          (error "Cannot alpha convert ~S to ~S because ~S is bound in ~S."
+                 old-var
+                 new-var
+                 new-var
+                 sf)
+          (let ((subs (list (cons old-var new-var))))
+            (nsublis subs parameters)
+            (nsublis subs expression)))))
+  sf)
