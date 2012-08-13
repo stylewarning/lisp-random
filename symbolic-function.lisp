@@ -43,6 +43,11 @@
   `(lambda ,(symbolic-function.parameters sf)
      ,(symbolic-function.expression sf)))
 
+(defun compile-symbolic-function (sf)
+  "(Re)compile a symbolic function."
+  (setf (symbolic-function.compiled-function sf)
+        (compile nil (symbolic-function-lambda-form sf))))
+
 (defun make-symbolic-function (parameters expression)
   "Make a SYMBOLIC-FUNCTION with parameters PARAMETERS and expression
   EXPRESSION."
@@ -56,14 +61,15 @@
     ;; Grab the symbolic function or compute it, and set the
     ;; FUNCALLABLE-INSTANCE-FUNCTION.
     (let ((lam (or (symbolic-function.compiled-function sf)
-                   (setf (symbolic-function.compiled-function sf)
-                         (compile nil (symbolic-function-lambda-form sf))))))
+                   (compile-symbolic-function sf))))
       (c2mop:set-funcallable-instance-function sf lam))))
 
 (defmacro define-symbolic-function (name param-list expression)
   "Define a symbolic function NAME with the parameters PARAM-LIST,
 bound to the expression EXPRESSION."
   `(progn
+     (when (fboundp ',name)
+       (warn "Redefining (symbolic) function ~S." ',name))
      (setf (symbol-function ',name)
            (make-symbolic-function ',param-list
                                    ',expression))
