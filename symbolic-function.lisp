@@ -74,3 +74,9 @@ bound to the expression EXPRESSION."
            (make-symbolic-function ',param-list
                                    ',expression))
      ',name))
+
+(defun symbolic-compose (f sf)
+  "Compose a regular function F and the symbolic function SF."
+  (with-slots (parameters expression) sf
+    (make-symbolic-function parameters
+                            (list f expression))))
