@@ -36,7 +36,8 @@
 
 (defun make-neuron-layer (neuron-count connectivity)
   (loop :repeat neuron-count
-        :collect (make-neuron connectivity)))
+        :collect (make-neuron connectivity) :into neurons
+        :finally (return (%make-neuron-layer :neurons neurons))))
 
 (defun layer-output (layer inputs)
   (loop
