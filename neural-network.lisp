@@ -4,8 +4,8 @@
 (defun step-function (&key (threshold 0))
   (lambda (activation)
     (if (< activation threshold)
-        1
-        0)))
+        0
+        1)))
 
 (defun logistic-function (&key (threshold 0)
                                (response 1)
@@ -13,7 +13,7 @@
   (lambda (activation)
     (- (/ (1+ (exp (/ (- threshold activation)
                       response))))
-       (if inhibitory-p 0 1/2))))
+       (if inhibitory-p 1/2 0))))
 
 (defstruct (neuron (:constructor %make-neuron))
   connectivity
