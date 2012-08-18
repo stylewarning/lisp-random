@@ -28,8 +28,8 @@
   (loop :for w :in (neuron-synapse-weights neuron)
         :for x :in inputs
         :sum (* x w) :into activation
-        :finally (funcall (neuron-response-function neuron)
-                          activation)))
+        :finally (return (funcall (neuron-response-function neuron)
+                                  activation))))
 
 (defstruct (neuron-layer (:constructor %make-neuron-layer))
   neurons)
