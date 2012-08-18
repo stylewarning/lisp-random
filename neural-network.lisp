@@ -51,7 +51,7 @@
   layers)
 
 (defun fire-network (net inputs)
-  (loop :for layer :across (neural-network-layers net)
+  (loop :for layer :in (neural-network-layers net)
         :for outputs := (layer-output layer inputs)
           :then (layer-output layer outputs)
         :finally (return outputs)))
