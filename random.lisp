@@ -2,7 +2,20 @@
   "Choose true or false at random."
   (zerop (random 2)))
 
-(defun random-point-on-perimeter (width height)
+(defun random-point-in-rectangle (width height)
+  "Choose a random point in this rectangle:
+
+   (0,0)                            (width, 0)
+     +-------------------------------+
+     |                               |
+     |                               |
+     |                               |
+     +-------------------------------+
+   (0, height)                      (width, height)
+"
+  (list (random width) (random height)))
+
+(defun random-point-on-rectangle (width height)
   "Choose a random point on this rectangle:
 
    (0,0)                            (width, 0)
