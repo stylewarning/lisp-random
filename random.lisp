@@ -37,11 +37,8 @@
         (random-scale (random 1.0)))    ; Choose a random scale factor
                                         ; between 0 and 1 inclusive.
     (if horizontal?
-        (let ((random-x (* random-scale width)))
-          (if nearest?
-              (list random-x 0)
-              (list random-x height)))
-        (let ((random-y (* random-scale height)))
-          (if nearest?
-              (list 0 random-y)
-              (list width random-y))))))
+        (list (* random-scale width)      ; Random X.
+              (if nearest? 0 height))
+        
+        (list (if nearest? 0 width)
+              (* random-scale height))))) ; Random Y.
