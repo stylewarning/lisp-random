@@ -11,7 +11,7 @@
      |                               |
      |                               |
      +-------------------------------+
-   (height, 0)                      (width, height)
+   (0, height)                      (width, height)
 "
   (let ((horizontal? (coin-flip))       ; Do we choose a random edge
                                         ; on the top/bottom or
