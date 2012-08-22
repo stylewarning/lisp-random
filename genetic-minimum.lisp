@@ -1,9 +1,16 @@
 ;;;; genetic-minimum.lisp
 ;;;; Copyright (c) 2012 Robert Smith
 
+(declaim (optimize speed (safety 0) (debug 0)))
+
+#+quicklisp
 (ql:quickload :ieee-floats)
 
-(declaim (optimize speed (safety 0) (debug 0)))
+#+cmucl
+(set-floating-point-modes :traps nil)
+
+#+sbcl
+(sb-int:set-floating-point-modes :traps nil)
 
 (defparameter *population-size* 1024
   "The size of a population.")
