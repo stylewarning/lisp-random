@@ -1,3 +1,4 @@
 syntax: glob
 *.ofasl
 *.fasl
+*.sse2f
