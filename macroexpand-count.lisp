@@ -32,3 +32,18 @@ of expansions."
          (let ((*macroexpand-hook* #',hook))
            (values (progn ,@body)
                    ,count))))))
+
+(defmacro count-macro-expansions-2 (&body body)
+  "Count the number of macro expansions required to execute
+BODY. Return two values: the result of executing BODY and the number
+of expansions."
+  (let ((count (gensym "COUNT-"))
+        (hook  (gensym "HOOK-")))
+    `(let ((,count 0))
+       (declare (special ,count))
+       (let ((*macroexpand-hook* (compile nil (lambda (expander form env)
+                                                (declare (special ,count))
+                                                (setq ,count (+ 1 ,count))
+                                                (funcall expander form env)))))
+         (values (progn ,@body)
+                 ,count)))))
