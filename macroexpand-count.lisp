@@ -1,8 +1,6 @@
 ;;;; macroexpand-count.lisp
 ;;;; Copyright (c) 2012 Robert Smith
 
-;;; Count the number of macroexpansions taken to execute a form.
-
 ;;; Note that this is not guaranteed to terminate: the special form
 ;;; SETQ is not guaranteed to not be a macro per section
 ;;; 3.1.2.1.2.2. If it was a macro, then *MACROEXPAND-HOOK* would get
@@ -22,6 +20,9 @@
 ;;; We don't choose any of these options and assume that compilers
 ;;; won't implement macros for SETQ.
 (defmacro count-macro-expansions (&body body)
+  "Count the number of macro expansions required to execute
+BODY. Return two values: the result of executing BODY and the number
+of expansions."
   (let ((count (gensym "COUNT-"))
         (hook  (gensym "HOOK-")))
     `(let ((,count 0))
