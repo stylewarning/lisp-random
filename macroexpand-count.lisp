@@ -55,12 +55,13 @@ of expansions."
 BODY. Return two values: the result of executing BODY and the number
 of expansions."
   (let ((closures (gensym "CLOSURES-")))
-    `(let* ((,closures (funcall (compile nil `(lambda ()
-                                                (let ((count 0))
-                                                  (cons (lambda (expander form env)
-                                                          (incf count)
-                                                          (funcall expander form env)) 
-                                                        (lambda () count)))))))
+    `(let* ((,closures (funcall
+                        (compile nil `(lambda ()
+                                        (let ((count 0))
+                                          (cons (lambda (expander form env)
+                                                  (incf count)
+                                                  (funcall expander form env)) 
+                                                (lambda () count)))))))
             (*macroexpand-hook* (car ,closures)))
        (values (progn ,@body)
                (funcall (cdr ,closures))))))
