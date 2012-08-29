@@ -37,8 +37,7 @@ of expansions."
   "Count the number of macro expansions required to execute
 BODY. Return two values: the result of executing BODY and the number
 of expansions."
-  (let ((count (gensym "COUNT-"))
-        (hook  (gensym "HOOK-")))
+  (let ((count (gensym "COUNT-")))
     `(let ((,count 0))
        (declare (special ,count))
        (let ((*macroexpand-hook* (compile nil (lambda (expander form env)
