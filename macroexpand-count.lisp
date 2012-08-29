@@ -1,7 +1,7 @@
 ;;;; macroexpand-count.lisp
 ;;;; Copyright (c) 2012 Robert Smith
 
-;;; Solution using a Lexical mish-mash described by pjb.
+;;; Solution using a lexical mish-mash described by pjb.
 (defmacro count-macro-expansions (&body body)
   "Count the number of macro expansions required to execute
 BODY. Return two values: the result of executing BODY and the number
