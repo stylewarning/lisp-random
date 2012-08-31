@@ -51,7 +51,7 @@ TRIALS number of trials."
   generator FIXED-RANDOM."
   (assert (<= m *random-upper-bound*)
           (m)
-          "M must be less than ~D."
+          "M must be at most ~D."
           *random-upper-bound*)
   
   (let ((valid-range (- *random-upper-bound*
@@ -70,7 +70,7 @@ TRIALS number of trials."
 number generator FIXED-RANDOM."
   (assert (<= m *random-upper-bound*)
           (m)
-          "M must be less than ~D."
+          "M must be at most ~D."
           *random-upper-bound*)
   
   (mod (fixed-random) m))
