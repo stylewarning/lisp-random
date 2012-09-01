@@ -1,6 +1,8 @@
 ;;;; binsplit.pdf
 ;;;; Copyright (c) 2012 Robert Smith
 
+(declaim (optimize speed))
+
 (defun print-unreadable (object stream depth)
   (declare (ignore depth))
   (print-unreadable-object (object stream :type t :identity t)))
@@ -177,7 +179,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;; Catalan's Constant ;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;;; This wouldn't actually compute Catalan's constant G. It would compute G' such that
+;;; This wouldn't actually compute Catalan's constant G. It would
+;;; compute G' such that
 ;;;
 ;;;         3      π
 ;;;     G = - G' + - log(2 + √3)
@@ -192,3 +195,25 @@
                                                   (if (zerop n)
                                                       1
                                                       (+ 2 (* 4 n))))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;; Apéry's Constant ;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; Actually computes 2*ζ(3).
+
+(defvar apery-series (make-binsplit-series :a (lambda (n)
+                                                (+ 77 (* n (+ 250 (* n 205)))))
+                                           :b (constantly-integer 1)
+                                           :p (lambda (n)
+                                                (if (zerop n)
+                                                    1
+                                                    (- (* (square n)
+                                                          (cube n))))) ; n⁵
+                                           :q (lambda (n)
+                                                (let ((2n+1 (1+ (* 2 n))))
+                                                  (* 32 ; 32(2n+1)⁵
+                                                     (square 2n+1)
+                                                     (cube 2n+1))))))
+
+(defun compute-apery (terms)
+  (/ (compute-series apery-series :upper terms) 2))
