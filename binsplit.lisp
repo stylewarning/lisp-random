@@ -1,11 +1,19 @@
 ;;;; binsplit.pdf
 ;;;; Copyright (c) 2012 Robert Smith
 
-(defstruct (binsplit-series (:conc-name series.))
+(defun print-unreadable (object stream depth)
+  (declare (ignore depth))
+  (print-unreadable-object (object stream :type t :identity t)))
+
+(defstruct (binsplit-series (:conc-name series.)
+                            (:print-function print-unreadable))
   a b p q)
 
 (defstruct (binsplit-computation (:conc-name comp.))
-  p q b r)
+  (p 0 :type integer)
+  (q 0 :type integer)
+  (b 0 :type integer)
+  (r 0 :type integer))
 
 (defun product (f lower upper)
   "Compute the product
@@ -93,3 +101,29 @@
 
 (defvar e-series (exp-series 1))
 
+(defvar pi-series (let* ((chud-a 13591409)
+                         (chud-b 545140134)
+                         (chud-c 640320)
+                         (chud-c^3 (/ (* chud-c chud-c chud-c) 24)))
+                    (flet ((a (n) (+ chud-a (* chud-b n)))
+                           (p (n) (if (zerop n)
+                                      1
+                                      (* -1
+                                         (- (* 6 n) 5)
+                                         (- (* 2 n) 1)
+                                         (- (* 6 n) 1))))
+                           (q (n) (if (zerop n)
+                                      1
+                                      (* n n n chud-c^3))))
+                      (make-binsplit-series :a #'a
+                                            :b (constantly 1)
+                                            :p #'p
+                                            :q #'q))))
+
+(defconstant +chud-decimals-per-term+ 14.181647462d0)
+
+#+#:buggy
+(defun compute-pi (prec)
+  (let ((num-terms (floor (+ 2 (/ prec +chud-decimals-per-term+))))
+        (sqrt-c (isqrt (* (expt 640320 3) (expt 100 prec)))))
+    (*  sqrt-c (/ (compute-series pi-series :upper num-terms) 12))))
