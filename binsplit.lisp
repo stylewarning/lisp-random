@@ -158,10 +158,9 @@
                            (declare (type integer n))
                            (if (zerop n)
                                1
-                               (* -1
-                                  (- (* 6 n) 5)
-                                  (- (* 2 n) 1)
-                                  (- (* 6 n) 1))))
+                               ;; This is Horner's form of
+                               ;; -(6n - 5)*(2n - 1)*(6n - 1)
+                               (+ 5 (* n (+ -46 (* n (+ 108 (* n -72))))))))
                          (q (n)
                            (declare (type integer n))
                            (if (zerop n)
