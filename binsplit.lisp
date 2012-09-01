@@ -22,7 +22,7 @@
 (defun product (f lower upper)
   "Compute the product
  
-  F(LOWER) * F(LOWER + 1) + ... + F(UPPER - 1)."
+  F(LOWER) * F(LOWER + 1) * ... * F(UPPER - 1)."
   (labels ((rec (current accum)
              (if (>= current upper)
                  accum
