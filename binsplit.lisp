@@ -130,10 +130,7 @@
 
 (defun compute-series (series &key (lower 0) (upper 1000))
   (declare (type integer lower upper))
-  (computation-to-rational (prog1 (binary-split series lower upper)
-;                             (format t "Hello!!!~%")
-;                             (force-output)
-                             )))
+  (computation-to-rational (binary-split series lower upper)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;; Exponential eˣ ;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -168,7 +165,7 @@
                              (declare (type integer n))
                              (if (zerop n)
                                  1
-                                 (* n n n chud-c^3))))
+                                 (* (cube n) chud-c^3))))
                       (make-binsplit-series :a #'a
                                             :b (constantly-integer 1)
                                             :p #'p
