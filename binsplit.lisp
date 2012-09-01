@@ -15,15 +15,15 @@
              (ignore n))
     k))
 
-(declaim (inline square cube))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (declaim (inline square cube))
+  (defun square (x)
+    (declare (type integer x))
+    (* x x))
 
-(defun square (x)
-  (declare (type integer x))
-  (* x x))
-
-(defun cube (x)
-  (declare (type integer x))
-  (* x x x))
+  (defun cube (x)
+    (declare (type integer x))
+    (* x x x)))
 
 (deftype Z->Z () '(function (integer) integer))
 
@@ -146,42 +146,41 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; pi π ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defvar pi-series (let* ((chud-a 13591409)
-                         (chud-b 545140134)
-                         (chud-c 640320)
-                         (chud-c^3 (/ (cube chud-c) 24)))
-                    (flet ((a (n)
-                             (declare (type integer n))
-                             (+ chud-a (* chud-b n)))
-                           (p (n)
-                             (declare (type integer n))
-                             (if (zerop n)
-                                 1
-                                 (* -1
-                                    (- (* 6 n) 5)
-                                    (- (* 2 n) 1)
-                                    (- (* 6 n) 1))))
-                           (q (n)
-                             (declare (type integer n))
-                             (if (zerop n)
-                                 1
-                                 (* (cube n) chud-c^3))))
-                      (make-binsplit-series :a #'a
-                                            :b (constantly-integer 1)
-                                            :p #'p
-                                            :q #'q))))
-
 (defconstant +chud-decimals-per-term+ 14.181647462d0)
+(defconstant +chud-a+ 13591409)
+(defconstant +chud-b+ 545140134)
+(defconstant +chud-c+ 640320)
+
+(defvar pi-series (flet ((a (n)
+                           (declare (type integer n))
+                           (+ +chud-a+ (* n +chud-b+)))
+                         (p (n)
+                           (declare (type integer n))
+                           (if (zerop n)
+                               1
+                               (* -1
+                                  (- (* 6 n) 5)
+                                  (- (* 2 n) 1)
+                                  (- (* 6 n) 1))))
+                         (q (n)
+                           (declare (type integer n))
+                           (if (zerop n)
+                               1
+                               (* (cube n)
+                                  #.(/ (cube +chud-c+) 24)))))
+                    (make-binsplit-series :a #'a
+                                          :b (constantly-integer 1)
+                                          :p #'p
+                                          :q #'q)))
 
 (defun compute-pi (prec)
-  (let* ((chud-c 640320)
-         (chud-c/12 (/ chud-c 12))
-         (num-terms (floor (+ 2 (/ prec +chud-decimals-per-term+))))
-         (sqrt-c (isqrt (* chud-c (expt 100 prec))))
-         (comp (binary-split pi-series 0 num-terms)))
+  (let* ((num-terms (floor (+ 2 (/ prec +chud-decimals-per-term+))))
+         ;; √640320 = 8√10005
+         (sqrt-c    (* 8 (isqrt (* 10005 (expt 100 prec)))))
+         (comp      (binary-split pi-series 0 num-terms)))
     (multiple-value-bind (num den) (computation-numerator/denominator comp)
-      (values (floor  (* sqrt-c chud-c/12 den)
-                      num)))))
+      (values (floor (* sqrt-c den #.(/ +chud-c+ 12))
+                     num)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Catalan's Constant G ;;;;;;;;;;;;;;;;;;;;;;;;
 
