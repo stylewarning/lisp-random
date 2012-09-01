@@ -5,6 +5,10 @@
   (declare (ignore depth))
   (print-unreadable-object (object stream :type t :identity t)))
 
+(defun square (x) (* x x))
+
+(defun cube (x) (* x x x))
+
 (defstruct (binsplit-series (:conc-name series.)
                             (:print-function print-unreadable))
   a b p q)
@@ -104,7 +108,7 @@
 (defvar pi-series (let* ((chud-a 13591409)
                          (chud-b 545140134)
                          (chud-c 640320)
-                         (chud-c^3 (/ (* chud-c chud-c chud-c) 24)))
+                         (chud-c^3 (/ (cube chud-c) 24)))
                     (flet ((a (n) (+ chud-a (* chud-b n)))
                            (p (n) (if (zerop n)
                                       1
@@ -122,8 +126,10 @@
 
 (defconstant +chud-decimals-per-term+ 14.181647462d0)
 
-#+#:buggy
 (defun compute-pi (prec)
-  (let ((num-terms (floor (+ 2 (/ prec +chud-decimals-per-term+))))
-        (sqrt-c (isqrt (* (expt 640320 3) (expt 100 prec)))))
-    (*  sqrt-c (/ (compute-series pi-series :upper num-terms) 12))))
+  (let* ((chud-c 640320)
+         (chud-c/12 (/ chud-c 12))
+         (num-terms (floor (+ 2 (/ prec +chud-decimals-per-term+))))
+         (sqrt-c (isqrt (* chud-c (expt 100 prec)))))
+    (values (floor  (* sqrt-c chud-c/12)
+                    (compute-series pi-series :upper num-terms)))))
