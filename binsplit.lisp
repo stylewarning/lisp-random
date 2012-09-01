@@ -129,7 +129,7 @@
   (computation-to-rational (binary-split series lower upper)))
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;; Exponential ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;; Exponential eˣ ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun exp-series (x)
   (assert (rationalp x) (x) "X must be rational, given ~A." x)
@@ -140,7 +140,7 @@
 
 (defvar e-series (exp-series 1))
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Pi ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; pi π ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defvar pi-series (let* ((chud-a 13591409)
                          (chud-b 545140134)
@@ -177,7 +177,7 @@
     (values (floor  (* sqrt-c chud-c/12)
                     (compute-series pi-series :upper num-terms)))))
 
-;;;;;;;;;;;;;;;;;;;;;;;;; Catalan's Constant ;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;;; Catalan's Constant G ;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; This wouldn't actually compute Catalan's constant G. It would
 ;;; compute G' such that
@@ -197,7 +197,7 @@
                                                       (+ 2 (* 4 n))))))
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;;; Apéry's Constant ;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;;;;;;;;;;; Apéry's Constant ζ(3) ;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;;; Actually computes 2*ζ(3).
 
