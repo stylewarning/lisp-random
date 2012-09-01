@@ -19,6 +19,7 @@
     (rec lower 1)))
 
 ;;; naive, slow direct summation
+;;; also buggy
 (defun sum-series-direct (series lower upper)
   (with-accessors ((a series.a)
                    (b series.b)
@@ -37,7 +38,6 @@
                              :r (* (funcall (series.a series) lower)
                                    (funcall (series.p series) lower))))
 
-;;; buggy
 (defun binary-split-base-case=n (series lower upper)
   (let ((b (product (series.b series) lower upper))
         (q (product (series.q series) lower upper)))
