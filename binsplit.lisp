@@ -1,11 +1,17 @@
 ;;;; binsplit.pdf
 ;;;; Copyright (c) 2012 Robert Smith
 
-(declaim (optimize speed (safety 0) (debug 0)))
-
 (defun print-unreadable (object stream depth)
   (declare (ignore depth))
   (print-unreadable-object (object stream :type t :identity t)))
+
+(declaim (inline constantly-integer))
+(defun constantly-integer (k)
+  (declare (type integer k))
+  (lambda (n)
+    (declare (type integer n)
+             (ignore n))
+    k))
 
 (declaim (inline square cube))
 
@@ -21,10 +27,10 @@
 
 (defstruct (binsplit-series (:conc-name series.)
                             (:print-function print-unreadable))
-  (a (constantly 1) :type Z->Z :read-only t)
-  (b (constantly 1) :type Z->Z :read-only t)
-  (p (constantly 1) :type Z->Z :read-only t)
-  (q (constantly 1) :type Z->Z :read-only t))
+  (a (constantly-integer 1) :type Z->Z :read-only t)
+  (b (constantly-integer 1) :type Z->Z :read-only t)
+  (p (constantly-integer 1) :type Z->Z :read-only t)
+  (q (constantly-integer 1) :type Z->Z :read-only t))
 
 (defstruct (binsplit-computation (:conc-name comp.))
   (p 0 :type integer :read-only t)
@@ -120,14 +126,19 @@
   (declare (type integer lower upper))
   (computation-to-rational (binary-split series lower upper)))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;; Exponential ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (defun exp-series (x)
   (assert (rationalp x) (x) "X must be rational, given ~A." x)
-  (make-binsplit-series :a (constantly 1)
-                        :b (constantly 1)
+  (make-binsplit-series :a (constantly-integer 1)
+                        :b (constantly-integer 1)
                         :p (lambda (n) (if (zerop n) 1 (numerator x)))
                         :q (lambda (n) (if (zerop n) 1 (* n (denominator x))))))
 
 (defvar e-series (exp-series 1))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Pi ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defvar pi-series (let* ((chud-a 13591409)
                          (chud-b 545140134)
@@ -150,7 +161,7 @@
                                  1
                                  (* n n n chud-c^3))))
                       (make-binsplit-series :a #'a
-                                            :b (constantly 1)
+                                            :b (constantly-integer 1)
                                             :p #'p
                                             :q #'q))))
 
@@ -163,3 +174,21 @@
          (sqrt-c (isqrt (* chud-c (expt 100 prec)))))
     (values (floor  (* sqrt-c chud-c/12)
                     (compute-series pi-series :upper num-terms)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;; Catalan's Constant ;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; This wouldn't actually compute Catalan's constant G. It would compute G' such that
+;;;
+;;;         3      π
+;;;     G = - G' + - log(2 + √3)
+;;;         8      8
+;;;
+(defvar catalan-series (make-binsplit-series :a (constantly-integer 1)
+                                             :b (lambda (n)
+                                                  (1+ (* 2 n)))
+                                             :p (lambda (n)
+                                                  (if (zerop n) 1 n))
+                                             :q (lambda (n) 
+                                                  (if (zerop n)
+                                                      1
+                                                      (+ 2 (* 4 n))))))
