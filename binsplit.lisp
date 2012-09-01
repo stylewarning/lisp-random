@@ -37,6 +37,7 @@
                              :r (* (funcall (series.a series) lower)
                                    (funcall (series.p series) lower))))
 
+;;; buggy
 (defun binary-split-base-case=n (series lower upper)
   (let ((b (product (series.b series) lower upper))
         (q (product (series.q series) lower upper)))
@@ -65,6 +66,7 @@
     (cond
       ((zerop delta) (error "UPPER must be greater than LOWER."))
       ((= 1 delta) (binary-split-base-case=1 series lower upper))
+      #+#:bug
       ((< delta 5) (binary-split-base-case=n series lower upper))
       (t (let* ((m    (floor (+ lower upper) 2))
                 (left (binary-split series lower m))
