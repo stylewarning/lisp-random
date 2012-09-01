@@ -116,6 +116,10 @@
                 (right (binary-split series m upper)))
            (combine-computations left right))))))
 
+(defun computation-numerator/denominator (comp)
+  (values (comp.r comp)
+          (* (comp.b comp) (comp.q comp))))
+
 (defun computation-to-rational (comp)
   (/ (comp.r comp) (comp.b comp) (comp.q comp)))
 
@@ -126,7 +130,10 @@
 
 (defun compute-series (series &key (lower 0) (upper 1000))
   (declare (type integer lower upper))
-  (computation-to-rational (binary-split series lower upper)))
+  (computation-to-rational (prog1 (binary-split series lower upper)
+;                             (format t "Hello!!!~%")
+;                             (force-output)
+                             )))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;; Exponential eˣ ;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -173,9 +180,11 @@
   (let* ((chud-c 640320)
          (chud-c/12 (/ chud-c 12))
          (num-terms (floor (+ 2 (/ prec +chud-decimals-per-term+))))
-         (sqrt-c (isqrt (* chud-c (expt 100 prec)))))
-    (values (floor  (* sqrt-c chud-c/12)
-                    (compute-series pi-series :upper num-terms)))))
+         (sqrt-c (isqrt (* chud-c (expt 100 prec))))
+         (comp (binary-split pi-series 0 num-terms)))
+    (multiple-value-bind (num den) (computation-numerator/denominator comp)
+      (values (floor  (* sqrt-c chud-c/12 den)
+                      num)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Catalan's Constant G ;;;;;;;;;;;;;;;;;;;;;;;;
 
