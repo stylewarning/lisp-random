@@ -89,6 +89,10 @@ bound to the expression EXPRESSION."
     (make-symbolic-function parameters
                             (list f expression))))
 
+(defun function-arity (sf)
+  "What is the arity of the symbolic function SF?"
+  (length (symbolic-function.parameters sf)))
+
 (defun bound-variable-p (var sf)
   "Is the variable VAR bound in the symbolic function SF?"
   (and (member var (symbolic-function.parameters sf) :test 'eq)
@@ -100,11 +104,16 @@ bound to the expression EXPRESSION."
 
 (defun nullary-function-p (sf)
   "Is the symbolic function SF nullary?"
-  (null (symbolic-function.parameters sf)))
+  (zerop (function-arity sf)))
 
 (defun unary-function-p (sf)
-  "Is the symbolic function SF nullary?"
-  (= 1 (length (symbolic-function.parameters sf))))
+  "Is the symbolic function SF unary?"
+  (= 1 (function-arity sf)))
+
+(defun binary-function-p (sf)
+  "Is the symbolic function SF binary?"
+  (= 2 (function-arity sf)))
+
 
 ;;; XXX: This should probably make a copy/new function.
 (defun alpha-convert (sf new-var &optional old-var)
@@ -149,7 +158,7 @@ bound to the expression EXPRESSION."
          (t (error "Don't know how to diff ~S" expr))))))
 
 (defun differentiate (sf)
-  (assert (= 1 (length (symbolic-function.parameters sf)))
+  (assert (unary-function-p sf)
           (sf)
           "Symbolic function must have exactly one parameter.")
   (let ((var (first (symbolic-function.parameters sf)))
