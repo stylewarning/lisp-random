@@ -22,7 +22,9 @@
                :accessor symbolic-function.expression))
   (:metaclass c2mop:funcallable-standard-class))
 
-(defconstant +function-arrow+ #\↦
+(defvar +function-arrow+
+  #+unicode "↦"
+  #-unicode "->"
   "The arrow printed in the printed representation of a
   SYMBOLIC-FUNCTION.")
 
@@ -31,7 +33,7 @@
     (with-slots (parameters expression) sf
       (format
        stream
-       "~S ~C ~S"
+       "~S ~A ~S"
        (if (endp (rest parameters))
            (first parameters)
            parameters)
@@ -53,6 +55,12 @@
   EXPRESSION."
   (make-instance 'symbolic-function :parameters parameters
                                     :expression expression))
+
+;;; Note that a SLAMBDA body does not have a &BODY part of its lambda
+;;; list to keep in spirit with the value-producing forms.
+(defmacro slambda (lambda-list body)
+  `(make-instance 'symbolic-function :parameters ',lambda-list
+                                     :expression ',body))
 
 (defmethod initialize-instance :after ((sf symbolic-function) &key)
   (with-slots (compiled-function parameters expression) sf
