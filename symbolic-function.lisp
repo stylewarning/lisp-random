@@ -125,3 +125,34 @@ bound to the expression EXPRESSION."
   sf)
 
 ;;; XXX: add substitution and beta reduction
+
+;;; Symbolic Manipulation
+
+;;; A very primitive differentiator
+(defun diff (expr var)
+  (cond
+    ((symbolp expr) (if (eq expr var) 1 0))
+    ((atom expr)    0)
+    (t (case (first expr)
+         ((+) `(+ ,(diff (second expr) var)
+                  ,(diff (third expr)  var)))
+         ((-) `(- ,(diff (second expr) var)
+                  ,(diff (third expr)  var)))
+         ((*) `(+ (* ,(diff (second expr) var)
+                     ,(third expr))
+                  (* ,(second expr)
+                     ,(diff (third expr) var))))
+         ((sin) `(* ,(diff (second expr) var)
+                    (cos ,(second expr))))
+         ((cos) `(- 0 (* ,(diff (second expr) var)
+                         (sin ,(second expr)))))
+         (t (error "Don't know how to diff ~S" expr))))))
+
+(defun differentiate (sf)
+  (assert (= 1 (length (symbolic-function.parameters sf)))
+          (sf)
+          "Symbolic function must have exactly one parameter.")
+  (let ((var (first (symbolic-function.parameters sf)))
+        (expr (symbolic-function.expression sf)))
+    (make-symbolic-function (list var)
+                            (diff expr var))))
