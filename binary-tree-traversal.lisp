@@ -72,6 +72,9 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;; Breadth First ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;; N.B. This is not an efficient queue implementation. DEQUEUE takes
+;;; O(N) time. Implementing a heap would be a better idea.
+
 (defstruct queue
   elements)
 
