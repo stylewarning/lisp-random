@@ -2,3 +2,5 @@ syntax: glob
 *.ofasl
 *.fasl
 *.sse2f
+*.fas
+*.lib
