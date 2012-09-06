@@ -1,3 +1,11 @@
+;;;; binary-tree-traversal.lisp
+;;;; Copyright (c) 2012 Robert Smith
+
+;;;; This file has the solution to basic computer science exercises on
+;;;; tree traversal. It includes the tree representation,
+;;;; construction, pre/in/post-order (depth-first) traversal, and
+;;;; level-order (breadth-first) traversal.
+
 (defstruct node
   value
   left
