@@ -14,7 +14,7 @@
   )
 
 
-(defparameter *maximum-iterations* 10)
+(defparameter *maximum-iterations* 100)
 
 (defun almost-equal (x y epsilon)
   (or (= x y)
