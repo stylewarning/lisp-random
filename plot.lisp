@@ -21,7 +21,7 @@
   (sdl:with-init ()
     (sdl:window 320 240)
     (sdl:draw-rectangle-* 50 50 60 40)
-    (sdl:draw-string-solid-* "hi #symbollox" 180 150
+    (sdl:draw-string-solid-* "hi there" 180 150
                              :font (sdl:initialise-font sdl:*font-10x20*)
                              :color sdl:*cyan*)
     (parametric-plot (lemniscate :center (sdl:point :x 100 :y 160))
