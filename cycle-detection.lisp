@@ -1,6 +1,6 @@
 ;;;; Cycle Detection
 ;;;; Code copyright (c) 2011 Robert Smith
-;;;; Challenge copyright (c) 2011 T. Thaine
+;;;; Challenge copyright (c) 2011 T. Thain
 
 ;;;; CHALLENGE: Given a sequence s = (s1, ..., sn, ...), determine if
 ;;;; S is cyclical.
