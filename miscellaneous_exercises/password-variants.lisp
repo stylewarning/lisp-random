@@ -49,6 +49,7 @@
                            (cons (+ carry (car radix))
                                  accum)))
                
+               ;; Overflow... Propagate the carries forward.
                (t
                 (propagate (cdr radix)
                            (cdr sig)
