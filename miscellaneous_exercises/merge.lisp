@@ -52,3 +52,49 @@
                     (second arrays)))
       (otherwise (merge-2 (merge-k (subseq arrays 0 (floor cnt 2)))
                           (merge-k (subseq arrays (floor cnt 2))))))))
+
+
+;;; a more efficient merge...
+
+(defun <* (a b)
+  ;; NIL = Infinity
+  (cond
+    ((null a) nil)
+    ((null b) t)
+    (t (< a b))))
+
+(defun merge-k-opt (arrays)
+  (if (= 1 (length arrays))
+      (first arrays)
+      (let* ((cursors (make-array (length arrays) :initial-element 0))
+             (lengths (map 'vector #'length arrays))
+             (final-length (reduce #'+ lengths))
+             (final (make-array final-length)))
+        (labels ((peek (i)
+                   "Peek at the value at the cursor in array I."
+                   (let ((cursor (aref cursors i))
+                         (len    (aref lengths i)))
+                     (if (= cursor len)
+                         nil
+                         (aref (nth i arrays) cursor))))
+                 
+                 (compute-next ()
+                   "Find the minimum element at or above each array's
+                cursor in ARRAYS."
+                   (loop :with min-index   := nil
+                         :and  min-element := nil
+                         :for i :from 0
+                         :for a :in arrays
+                         :do (let ((peeked-value (peek i)))
+                               (when (<* peeked-value min-element)
+                                 (setf min-element peeked-value
+                                       min-index   i)))
+                         :finally (return (values min-element min-index)))))
+          (loop :for i :below final-length
+                :do (multiple-value-bind (min-elt min-idx) (compute-next)
+                      ;; Save the minimum into the final array.
+                      (setf (aref final i) min-elt)
+                      
+                      ;; Increment the cursor for the array with the minimum.
+                      (incf (aref cursors min-idx)))
+                :finally (return final))))))
