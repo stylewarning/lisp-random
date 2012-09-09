@@ -70,7 +70,7 @@
           :then (replace-char-at s c p)
         :finally (return str)))
 
-(defun generate-passwords (string base-subs)
+(defun map-passwords (f string base-subs)
   (multiple-value-bind (full-subs idxs) 
       (generate-full-substitution-table string base-subs)
     (let* ((sig       (generate-signature full-subs))
@@ -84,10 +84,17 @@
             
             ;; We must copy the sequence since we are destructively
             ;; updating using REPLACE.
-            :collect (copy-seq (replace-chars string
-                                              (radix-rep->characters radix
-                                                                     full-subs)
-                                              idxs))))))
+            :do (funcall f (replace-chars string
+                                          (radix-rep->characters radix
+                                                                 full-subs)
+                                          idxs))))))
+
+(defun generate-passwords (string base-subs)
+  (let ((passwords nil))
+    (map-passwords (lambda (pass) (push (copy-seq pass) passwords))
+                   string
+                   base-subs)
+    (nreverse passwords)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Tests ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
