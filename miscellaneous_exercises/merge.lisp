@@ -39,9 +39,8 @@
                    (if (zerop p)
                        (incf cursor1)
                        (incf cursor2))))))
-      (loop :for i :below (+ len1 len2)
-            :do (set-next)
-            :finally (return final)))))
+      (dotimes (i (+ len1 len2) final)
+        (set-next)))))
 
 (defun merge-k (arrays)
   (let ((cnt (length arrays)))
