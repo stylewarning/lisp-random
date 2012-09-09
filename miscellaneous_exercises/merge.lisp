@@ -79,7 +79,7 @@
                  
                  (compute-next ()
                    "Find the minimum element at or above each array's
-                cursor in ARRAYS."
+                    cursor in ARRAYS."
                    (loop :with min-index   := nil
                          :and  min-element := nil
                          :for i :from 0
