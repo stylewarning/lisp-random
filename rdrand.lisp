@@ -17,7 +17,7 @@
   (opc    :field (byte 3 18) :value #b110)
   (reg    :field (byte 3 21)  :type 'reg-b))
 
-(sb!disassem:define-instruction-format (ext-rdrand-format 24
+(sb!disassem:define-instruction-format (ext-rdrand-format 32
                                         :default-printer '(:name :tab reg))
   ;; REX
   (prefix :field (byte 8 0))
