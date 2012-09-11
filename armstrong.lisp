@@ -1,8 +1,8 @@
 ;;;; armstrong.lisp
 ;;;; Copyright (c) 2012 Robert Smith
 
-;;;; An Armstrong number is a number equal to the sum of the cube of
-;;;; its digits.
+;;;; An ``Armstrong number'' is a number equal to the sum of the cubes of
+;;;; each digit.
 
 (defun cube (x)
   "Return the cube of X."
