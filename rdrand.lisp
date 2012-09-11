@@ -5,20 +5,30 @@
 
 (in-package "SB-VM")
 
-;;; Define the instruction format.
+;;; Define the instruction formats.
 
-#+#:ignore
-(sb!disassem:define-instruction-format (ext-two-byte-op-reg-no-width 32
+(sb!disassem:define-instruction-format (rdrand-format 24
+                                        :default-printer '(:name :tab reg))
+  ;; two byte operand
+  (op     :field  (byte 16 0))
+  
+  ;; ModR/M format
+  (mod    :field (byte 2 16) :value #b11)
+  (opc    :field (byte 3 18) :value #b110)
+  (reg    :field (byte 3 21)  :type 'reg-b))
+
+(sb!disassem:define-instruction-format (ext-rdrand-format 24
                                         :default-printer '(:name :tab reg))
   ;; REX
-  (prefix  :field (byte 8 0)    ;; :value #b00001111
-           )
+  (prefix :field (byte 8 0))
   
   ;; two byte operand
-  (op    :field (list (byte 5 11)))
+  (op     :field  (byte 16 8))
   
-  ;; Mod R/M register format
-  (reg   :field (byte 3 8) :type 'reg-b))
+  ;; ModR/M format
+  (mod    :field (byte 2 24) :value #b11)
+  (opc    :field (byte 3 26) :value #b110)
+  (reg    :field (byte 3 8)  :type 'reg-b))
 
 
 ;;; The RDRAND instruction has the following layout:
@@ -28,10 +38,10 @@
 ;;;    64-bit: REX.W + #x0FC7 /6
 
 (define-instruction rdrand (segment dst)
-  (:printer ext-two-byte-op-reg-no-width ())             ; not quite right...
+  (:printer rdrand-format ((op #x0FC7)))             ; not quite right...
   (:emitter
    ;; Emit REX depending on register kind.
-   (maybe-emit-rex-for-ea segment dst nil)
+   ;; (maybe-emit-rex-for-ea segment dst nil)
    
    ;; Emit the RDRAND instruction bits.
    (emit-byte segment #x0F)
