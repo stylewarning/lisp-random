@@ -4,7 +4,7 @@
 ;;;; Some trivial generators
 
 
-;;; Error conditions
+;;;;;;;;;;;;;;;;;;;;;;;;;; Error conditions ;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-condition generator-exhausted (error) ()
   (:report "Generator has been exhausted."))
@@ -23,13 +23,32 @@
                      (list (read)))
       value)))
 
-;;; Generate all values of a generator
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;; Data Structure ;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defstruct (generator (:print-function
+                       (lambda (obj str depth)
+                         (declare (ignore depth))
+                         (print-unreadable-object (obj str :type t
+                                                           :identity t))))
+                      (:copier nil)
+                      (:predicate generatorp)
+                      (:constructor generator (closure)))
+  (closure #'exhausted :type (function () t)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Collectors ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(declaim (inline next))
+(defun next (gen)
+  "Obtain the next value in a generator GEN."
+  (funcall (generator-closure gen)))
 
 (defun collect (gen)
   "Collect all of the values of the generator GEN into a list."
   (let ((collected nil))
     (loop
-      (handler-case (push (funcall gen)
+      (handler-case (push (next gen)
                           collected)
         (generator-exhausted ()
           (return (nreverse collected)))))))
@@ -38,33 +57,56 @@
   "Collect at most N values of the generator GEN into a list."
   (let ((collected nil))
     (loop :repeat n
-          :do (handler-case (push (funcall gen)
+          :do (handler-case (push (next gen)
                                   collected)
                 (generator-exhausted ()
                   (return (nreverse collected))))
           :finally (return (nreverse collected)))))
 
-;;; Iterators
 
-(defun xrange (a b &optional (step 1))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Iterators ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun xrange (a b &key (step 1) key)
   "Return a generator that returns values from A to B, with a step
-size of STEP."
-  (let ((x a))
-    (lambda ()
-      (if (> x b)
-          (exhausted)
-          (prog1 x
-            (incf x step))))))
+size of STEP. Optionally provide KEY which is applied to each
+generated element."
+  (generator
+   (let ((x a)
+         (key (or key #'identity)))
+     (lambda ()
+       (if (> x b)
+           (exhausted)
+           (prog1 (funcall key x)
+             (incf x step)))))))
 
 (defun each (list)
   "Return a generator that iterates through the list LIST."
-  (lambda ()
-    (if (null list)
-        (exhausted)
-        (prog1 (car list)
-          (setf list (cdr list))))))
+  (generator
+   (lambda ()
+     (if (null list)
+         (exhausted)
+         (prog1 (car list)
+           (setf list (cdr list)))))))
 
 (defun each-of (&rest items)
   "Return a generator that iterates through each of the arguments
 ITEMS."
   (each items))
+
+(defun fibs ()
+  "Create a new generator for Fibonacci numbers."
+  (generator
+   (let ((x 0)
+         (y 1))
+     (lambda ()
+       (prog1 x
+         (psetq x y
+                y (+ x y)))))))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;; Generator Modifiers ;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun map-generator (f gen)
+  (generator
+   (lambda ()
+     (funcall f (next gen)))))
