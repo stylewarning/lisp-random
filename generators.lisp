@@ -107,6 +107,9 @@ ITEMS."
 ;;;;;;;;;;;;;;;;;;;;;;;; Generator Modifiers ;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun map-generator (f gen)
+  "Produce a new generator equivalent to GEN except F is applied to
+each generated value. In other words, map F across GEN, producing a
+new generator."
   (generator
    (lambda ()
      (funcall f (next gen)))))
