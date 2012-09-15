@@ -18,15 +18,6 @@
    (error "HASH-FUNCTION must be specified for a bloom filter.")
    :type (function (t) (integer 0))))
 
-(defun bloom-filter-length (bf)
-  (length (bloom-filter-bits bf)))
-
-(defun bloom-filter-insert (bf object)
-  (setf (bloom-filter-bits bf)
-        (logior (bloom-filter-bits bf)
-                (funcall (bloom-filter-hash-function bf) object)))
-  (incf (bloom-filter-count bf)))
-
 (declaim (inline log-contains-p))
 (defun log-contains-p (a b)
   "Does the integer B contain all of the 1 bits that A has?"
@@ -34,9 +25,11 @@
 
 (defun bloom-filter-add (bf object)
   "Add OBJECT to the Bloom filter BF."
+  (incf (bloom-filter-count bf))
   (setf (bloom-filter-bits bf)
-        (logand (bloom-filter-bits bf)
-                (funcall (bloom-filter-hash-function bf) object))))
+        (logior (bloom-filter-bits bf)
+                (funcall (bloom-filter-hash-function bf) object)))
+  bf)
 
 (defun bloom-filter-contains-p (bf object)
   "Does the Bloom filter BF contain the object OBJECT?"
@@ -51,3 +44,8 @@ Bloom filter BF."
          (bit-prob (- 1.0d0 (/ m=k))))
     (expt (- 1.0d0 (expt bit-prob (* n m=k)))
           m=k)))
+
+(defun make-generic-bloom-filter ()
+  "Make a generic Bloom filter, working on any element type."
+  (make-bloom-filter :size (logcount most-positive-fixnum)
+                     :hash-function #'sxhash))
