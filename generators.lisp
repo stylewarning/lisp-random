@@ -48,7 +48,7 @@
   "Continue obtaining elements from the generator GEN until one
   satisfies the predicate PREDICATE."
   (loop :for x := (next gen) :then (next gen)
-        :until (funcall predicate gen)
+        :until (funcall predicate x)
         :do (values)
         :finally (return x)))
 
@@ -123,6 +123,13 @@ Essentially a generator form of REDUCE or fold."
      (lambda ()
        (prog1 accum
          (setq accum (funcall f (next gen) accum)))))))
+
+(defun filter (predicate gen)
+  "Produce a new generator which keeps elements of GEN that satisfy
+  the predicate PREDICATE."
+  (generator
+   (lambda ()
+     (next-if predicate gen))))
 
 ;;;;;;;;;;;;;;;;;;;;;; Miscellaneous Generators ;;;;;;;;;;;;;;;;;;;;;;
 
