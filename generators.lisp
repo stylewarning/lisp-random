@@ -93,16 +93,6 @@ generated element."
 ITEMS."
   (each items))
 
-(defun fibs ()
-  "Create a new generator for Fibonacci numbers."
-  (generator
-   (let ((x 0)
-         (y 1))
-     (lambda ()
-       (prog1 x
-         (psetq x y
-                y (+ x y)))))))
-
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Generator Modifiers ;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -113,3 +103,37 @@ new generator."
   (generator
    (lambda ()
      (funcall f (next gen)))))
+
+(defun accumulator (f init gen)
+  "Accumulate values from GEN according to the rule
+   x(0)   = init
+   x(n+1) = f( next(g), x(n) )
+
+Essentially a generator form of REDUCE or fold."
+  (generator
+   (let ((accum init))
+     (lambda ()
+       (prog1 accum
+         (setq accum (funcall f (next gen) accum)))))))
+
+
+;;;;;;;;;;;;;;;;;;;;;; Miscellaneous Generators ;;;;;;;;;;;;;;;;;;;;;;
+
+(defun fibs ()
+  "Create a new generator for Fibonacci numbers."
+  (generator
+   (let ((x 0)
+         (y 1))
+     (lambda ()
+       (prog1 x
+         (psetq x y
+                y (+ x y)))))))
+
+(defun up-from (n &key (step 1)
+                       key)
+  "Generate integers starting at N and increasing by STEP."
+  (generator
+   (let ((key (or key #'identity)))
+     (lambda ()
+       (prog1 (funcall key n)
+         (incf n step))))))
