@@ -84,3 +84,19 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; PSLQ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;;; incomplete
+(defun hermitian-reduce (H)
+  (loop
+    :with n := (length H)
+    :for i :from 1 :below n
+    :for j :from (- i 2) :downto 0
+    :do (let ((q (round (aref H i j)
+                        (aref H j j))))
+          (dotimes (k j)
+            (decf (aref H2 i k)
+                  (* q (aref H2 j k))))
+          (dotimes (k n)
+            (decf (aref D i k)
+                  (* q (aref D j k)))))
+    :finally (return (cons D H2))))
+
