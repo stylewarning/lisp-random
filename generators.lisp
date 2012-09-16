@@ -131,6 +131,7 @@ Essentially a generator form of REDUCE or fold."
    (lambda ()
      (next-if predicate gen))))
 
+
 ;;;;;;;;;;;;;;;;;;;;;; Miscellaneous Generators ;;;;;;;;;;;;;;;;;;;;;;
 
 (defun fibs ()
