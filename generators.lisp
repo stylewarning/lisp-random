@@ -44,6 +44,14 @@
   "Obtain the next value in a generator GEN."
   (funcall (generator-closure gen)))
 
+(defun next-if (predicate gen)
+  "Continue obtaining elements from the generator GEN until one
+  satisfies the predicate PREDICATE."
+  (loop :for x := (next gen) :then (next gen)
+        :until (funcall predicate gen)
+        :do (values)
+        :finally (return x)))
+
 (defun collect (gen)
   "Collect all of the values of the generator GEN into a list."
   (let ((collected nil))
@@ -116,7 +124,6 @@ Essentially a generator form of REDUCE or fold."
        (prog1 accum
          (setq accum (funcall f (next gen) accum)))))))
 
-
 ;;;;;;;;;;;;;;;;;;;;;; Miscellaneous Generators ;;;;;;;;;;;;;;;;;;;;;;
 
 (defun fibs ()
@@ -129,9 +136,9 @@ Essentially a generator form of REDUCE or fold."
          (psetq x y
                 y (+ x y)))))))
 
-(defun up-from (n &key (step 1)
-                       key)
-  "Generate integers starting at N and increasing by STEP."
+(defun up-from (n &key (step 1) key)
+  "Generate integers starting at N and increasing by STEP, optionally
+calling KEY on each element.."
   (generator
    (let ((key (or key #'identity)))
      (lambda ()
