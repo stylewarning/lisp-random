@@ -155,10 +155,10 @@
 
     (setf s (make-array n :initial-element 0.0L0))
     
-    (loop :for k :below n
-          :do (setf (aref s k)
-                    (sqrt (loop :for j :from k :below n
-                                :sum (square (aref x j))))))
+    (dotimes (k n)
+      (setf (aref s k)
+            (sqrt (loop :for j :from k :below n
+                        :sum (square (aref x j))))))
     
     (setf tt (aref s 0))
     (setf y (v/s x tt))
@@ -168,46 +168,40 @@
 
     (setf h (zero-matrix n (1- n)))
     
-    (loop
-      :for i :below n
-      :do (progn
-            (loop
-              :for j :from (1+ i) :below (1- n)
-              :do (progn
-                    (setf (aref h i j) 0.0L0)))
+    (dotimes (i n)
+      (loop
+        :for j :from (1+ i) :below (1- n)
+        :do (setf (aref h i j) 0.0L0))
 
-            (when (< i (1- n))
-              (setf (aref h i i)
-                    (/ (aref s (1+ i))
-                       (aref s i))))
+      (when (< i (1- n))
+        (setf (aref h i i)
+              (/ (aref s (1+ i))
+                 (aref s i))))
 
-            (loop :for j :to (1- i)
-                  :do (setf (aref h i j)
-                            (- (/ (* (aref y i) (aref y j))
-                                  (* (aref s j) (aref s (1+ j)))))))))
+      (dotimes (j i)
+        (setf (aref h i j)
+              (- (/ (* (aref y i) (aref y j))
+                    (* (aref s j) (aref s (1+ j))))))))
     
     ;; Step Init.4
 
-    (loop
-      :for i :from 1 :below n
-      :do (progn
-            (loop :for j :from (1- i) :downto 0
-                  :do (progn
-                        (setf tt (round (aref h i j)
-                                        (aref h j j)))
-                        
-                        (incf (aref y j) (* tt (aref y i)))
-                        
-                        (loop :for k :to j ; ??
-                              :do (decf (aref h i k) (* tt (aref h j k))))
-                        
-                        (loop :for k :below n
-                              :do (progn
-                                    (decf (aref a i k)
-                                          (* tt (aref a j k)))
-                                    
-                                    (incf (aref b k j)
-                                          (* tt (aref b k i)))))))))
+    (dotimes (i n)
+      (loop :for j :from (1- i) :downto 0
+            :do (progn
+                  (setf tt (round (aref h i j)
+                                  (aref h j j)))
+                  
+                  (incf (aref y j) (* tt (aref y i)))
+                  
+                  (loop :for k :to j ; ??
+                        :do (decf (aref h i k) (* tt (aref h j k))))
+                  
+                  (dotimes (k n)
+                    (decf (aref a i k)
+                          (* tt (aref a j k)))
+                    
+                    (incf (aref b k j)
+                          (* tt (aref b k i)))))))
     
     ;; Loop
     
@@ -228,7 +222,6 @@
        
        (swap-rows a m (1+ m))
        (swap-rows h m (1+ m))
-       
        (swap-cols b m (1+ m))
 
        
@@ -267,13 +260,12 @@
                            (loop :for k :to j ; ??
                                  :do (decf (aref h i k) (* tt (aref h j k))))
                            
-                           (loop :for k :below n
-                                 :do (progn
-                                       (decf (aref a i k)
-                                             (* tt (aref a j k)))
-                                       
-                                       (incf (aref b k j)
-                                             (* tt (aref b k i)))))))))
+                           (dotimes (k n)
+                             (decf (aref a i k)
+                                   (* tt (aref a j k)))
+                             
+                             (incf (aref b k j)
+                                   (* tt (aref b k i))))))))
        
        
        ;; Step Loop.5
@@ -287,7 +279,7 @@
        
        (let* ((max-a (max-entry a))
               (min-y (max-index y :key 'abs :predicate '<))
-              (relation (reverse (column b min-y))))
+              (relation (column b min-y)))
          (format t "Max of A: ~A~%" max-a)
          (format t "Min of Y: Y[~A] = ~A~%"
                  min-y
