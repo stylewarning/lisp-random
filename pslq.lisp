@@ -74,6 +74,10 @@
   (make-array (list n m) :initial-element 0.0L0
                          :element-type 'long-float))
 
+(defun zero-matrix-int (n &optional (m n))
+  (make-array (list n m) :initial-element 0
+                         :element-type 'integer))
+
 (defun diagonal-matrix (v)
   (let* ((n (length v))
          (m (zero-matrix n)))
@@ -85,6 +89,11 @@
   (let ((m (zero-matrix n)))
     (dotimes (i n m)
       (setf (aref m i i) 1.0L0))))
+
+(defun identity-matrix-int (n)
+  (let ((m (zero-matrix-int n)))
+    (dotimes (i n m)
+      (setf (aref m i i) 1))))
 
 (defun diagonal-elements (m &key key)
   (unless key
@@ -129,7 +138,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; PSLQ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defvar gamma (float (sqrt 4/3) 1.0L0))
+(defvar gamma (sqrt (/ 4.0L0 3.0L0)))
 
 (defun pslq (x &key (threshold 1.0L-5))
   
@@ -139,7 +148,7 @@
     ;; Step Init.1
 
     (setf a (identity-matrix n)
-          b (identity-matrix n))
+          b (identity-matrix-int n))
     
     
     ;; Step Init.2
@@ -224,6 +233,7 @@
 
        
        ;; Step Loop.3
+       
        (when (< m (- n 2))              ; < or <= ?
          (let* ((t0 (dist (aref h m m)
                           (aref h m (1+ m))))
@@ -276,12 +286,16 @@
        ;; Step Loop.6
        
        (let* ((max-a (max-entry a))
-              (min-y (max-index y :predicate '<))
+              (min-y (max-index y :key 'abs :predicate '<))
               (relation (reverse (column b min-y))))
          (format t "Max of A: ~A~%" max-a)
          (format t "Min of Y: Y[~A] = ~A~%"
                  min-y
                  (aref y min-y))
+         (format t "Y = ~A~%" y)
+         (format t "Matrix B:~%")
+         (pprint b)
+         (terpri)
          (format t "Relation R: ~A~%" (column b min-y))
          (format t "R.X = ~A~%" (dot relation x))
          (terpri))
@@ -290,3 +304,8 @@
        
        (go :start))))
 
+(defun find-poly (a degree)
+  (loop :repeat (1+ degree)
+        :for x := 1 :then (* x a)
+        :collect x :into coeffs
+        :finally (return (pslq (coerce coeffs 'vector)))))
