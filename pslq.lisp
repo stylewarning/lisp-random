@@ -143,9 +143,10 @@
 
 (defvar gamma (sqrt (/ 4.0L0 3.0L0)))
 
-(defun pslq (x &key (tolerance long-float-epsilon)
-                    (max-iterations 50)
-                    (verbose t))
+(defvar *pslq-verbose* t)
+
+(defun find-integer-relation (x &key (tolerance (* 2 long-float-epsilon))
+                                     (max-iterations 1000))
   
   (let ((n (length x)) a b s y tt h bound)
     
@@ -166,16 +167,11 @@
             (sqrt (loop :for j :from k :below n
                         :sum (square (aref x j))))))
     
-    (format t "S => ~A~%" s)
-    
     (setf tt (aref s 0))
     (setf y (v/s x tt))
     (setf s (v/s s tt))
     
-    (format t "TT => ~A~%" tt)
-    (format t "Y => ~A~%" y)
-    (format t "S => ~A~%" s)
-    
+
     ;; Step Init.3: Initialize H.
 
     (setf h (zero-matrix n (1- n)))
@@ -225,7 +221,7 @@
        
      :start
        
-       (incf iterations)
+       (when max-iterations (incf iterations))
        
        ;; Step Loop.1: Compute M.
        
@@ -302,28 +298,51 @@
               (min-y-idx (max-index y :key 'abs :predicate '<))
               (min-y (aref y min-y-idx))
               (relation (column b min-y-idx)))
-         (when verbose
+         (when *find-integer-relation-verbose*
+           (format t "Iteration: ~A~%" iterations)
            (format t "Max of A: ~A~%" max-a)
            (format t "Min of Y: Y[~A] = ~A~%"
                    min-y-idx
                    min-y)
            (format t "Y = ~A~%" y)
-           (format t "Matrix B:~%")
-           (pprint b)
-           (terpri)
            (format t "Norm: ~A~%" bound)
            (format t "Relation R: ~A~%" (column b min-y-idx))
            (format t "R.X = ~A~%" (dot relation x))
-           (terpri))
+           (terpri)
+           (force-output))
          
          (cond
            ;; XXX: Check Max(A)
-           ((<= min-y tolerance)          (return relation))
-           ((> iterations max-iterations) (break "Max iterations exceeded."))
+           ((<= (abs min-y) tolerance)    (return relation))
+           ((>= iterations max-iterations)
+            (progn
+              (when *find-integer-relation-verbose*
+                (format t "Max iterations exceeded."))
+              nil))
            (t (go :start)))))))
 
 (defun find-poly (a degree)
   (loop :repeat (1+ degree)
         :for x := 1 :then (* x a)
         :collect x :into coeffs
-        :finally (return (pslq (coerce coeffs 'vector)))))
+        :finally (return (find-integer-relation (coerce coeffs 'vector)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; TESTS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun run-tests ()
+  (assert (equal '(1 16 -4)
+                 (find-integer-relation (vector (- pi)
+                                                (atan (/ 5.0L0))
+                                                (atan (/ 239.0L0))))))
+  
+  (assert (equal '(1 0 -10 0 1)
+                 (find-poly (+ (sqrt 2.0L0) (sqrt 3.0L0)) 4)))
+  
+  ;; This needs at least 326 iterations at 100 digits of precision
+  (assert (equal '(-576 0 960 0 -352 0 40 0 -1)
+                 (find-poly (+ (sqrt 2.0L0) 
+                               (sqrt 3.0L0)
+                               (sqrt 5.0L0))
+                            8)))
+  (format t "~&All tests passed!~%")
+  t)
