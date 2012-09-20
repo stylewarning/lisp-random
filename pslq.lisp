@@ -136,11 +136,16 @@
   (loop :for row :below (array-dimension m 0)
         :collect (aref m row col)))
 
+(defun float-exponent (f)
+  (nth-value 1 (decode-float f)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; PSLQ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defvar gamma (sqrt (/ 4.0L0 3.0L0)))
 
-(defun pslq (x &key (threshold 1.0L-5))
+(defun pslq (x &key (tolerance long-float-epsilon)
+                    (max-iterations 50)
+                    (verbose t))
   
   (let ((n (length x)) a b s y tt h bound)
     
@@ -216,9 +221,11 @@
     
     ;; Loop
     
-    (prog (m)
+    (prog (m (iterations 0))
        
      :start
+       
+       (incf iterations)
        
        ;; Step Loop.1: Compute M.
        
@@ -288,24 +295,32 @@
        
        ;; Step Loop.6
        
-       (let* ((max-a (max-entry a))
-              (min-y (max-index y :key 'abs :predicate '<))
-              (relation (column b min-y)))
-         (format t "Max of A: ~A~%" max-a)
-         (format t "Min of Y: Y[~A] = ~A~%"
-                 min-y
-                 (aref y min-y))
-         (format t "Y = ~A~%" y)
-         (format t "Matrix B:~%")
-         (pprint b)
-         (terpri)
-         (format t "Norm: ~A~%" bound)
-         (format t "Relation R: ~A~%" (column b min-y))
-         (format t "R.X = ~A~%" (dot relation x))
-         (terpri))
+       ;; If Max(A) exceeds precision => bad
+       ;; If Min(Y) less than threshold => relation detected!
        
-       (when (y-or-n-p "Continue?")
-         (go :start)))))
+       (let* ((max-a (max-entry a))
+              (min-y-idx (max-index y :key 'abs :predicate '<))
+              (min-y (aref y min-y-idx))
+              (relation (column b min-y-idx)))
+         (when verbose
+           (format t "Max of A: ~A~%" max-a)
+           (format t "Min of Y: Y[~A] = ~A~%"
+                   min-y-idx
+                   min-y)
+           (format t "Y = ~A~%" y)
+           (format t "Matrix B:~%")
+           (pprint b)
+           (terpri)
+           (format t "Norm: ~A~%" bound)
+           (format t "Relation R: ~A~%" (column b min-y-idx))
+           (format t "R.X = ~A~%" (dot relation x))
+           (terpri))
+         
+         (cond
+           ;; XXX: Check Max(A)
+           ((<= min-y tolerance)          (return relation))
+           ((> iterations max-iterations) (break "Max iterations exceeded."))
+           (t (go :start)))))))
 
 (defun find-poly (a degree)
   (loop :repeat (1+ degree)
