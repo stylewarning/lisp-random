@@ -304,9 +304,8 @@
          (format t "R.X = ~A~%" (dot relation x))
          (terpri))
        
-       (break)
-       
-       (go :start))))
+       (when (y-or-n-p "Continue?")
+         (go :start)))))
 
 (defun find-poly (a degree)
   (loop :repeat (1+ degree)
