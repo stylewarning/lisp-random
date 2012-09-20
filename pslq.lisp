@@ -14,9 +14,9 @@
              (let ((v (gensym "V-"))
                    (s (gensym "S-"))
                    (x (gensym "X-")))
-               `(defun ,name (,v ,s)
+               `(defun ,name (,s ,v)
                   (map 'vector
-                       (lambda (,x) (funcall ,binary-fn ,x ,s))
+                       (lambda (,x) (funcall ,binary-fn ,s ,x))
                        ,v))))
            
            (define-vector-scalar-operation (name binary-fn)
@@ -25,7 +25,7 @@
                    (x (gensym "X-")))
                `(defun ,name (,v ,s)
                   (map 'vector
-                       (lambda (,x) (funcall ,binary-fn ,s ,x))
+                       (lambda (,x) (funcall ,binary-fn ,x ,s))
                        ,v))))
            
            (define-pointwise-operation (name binary-fn)
@@ -95,7 +95,7 @@
     (dotimes (i n m)
       (setf (aref m i i) 1))))
 
-(defun diagonal-elements (m &key key)
+(defun tr (m &key key)
   (unless key
     (setf key (lambda (x i)
                 (declare (ignore i))
@@ -145,13 +145,14 @@
   (let ((n (length x)) a b s y tt h bound)
     
     ;; Initialization
-    ;; Step Init.1
+    
+    ;; Step Init.1: Initialize matrices.
 
     (setf a (identity-matrix n)
           b (identity-matrix-int n))
     
     
-    ;; Step Init.2
+    ;; Step Init.2: Initialize S and Y vector.
 
     (setf s (make-array n :initial-element 0.0L0))
     
@@ -160,48 +161,58 @@
             (sqrt (loop :for j :from k :below n
                         :sum (square (aref x j))))))
     
+    (format t "S => ~A~%" s)
+    
     (setf tt (aref s 0))
     (setf y (v/s x tt))
     (setf s (v/s s tt))
     
-    ;; Step Init.3
+    (format t "TT => ~A~%" tt)
+    (format t "Y => ~A~%" y)
+    (format t "S => ~A~%" s)
+    
+    ;; Step Init.3: Initialize H.
 
     (setf h (zero-matrix n (1- n)))
     
     (dotimes (i n)
-      (loop
-        :for j :from (1+ i) :below (1- n)
-        :do (setf (aref h i j) 0.0L0))
-
+      ;; Upper triangle = 0.
+      
+      ;; Diagonal is H[i,i] = s[i+1]/s[i] 
       (when (< i (1- n))
         (setf (aref h i i)
               (/ (aref s (1+ i))
                  (aref s i))))
 
+      ;;                                y[i]y[j]
+      ;; Lower triangle is H[i,j] = - ------------
+      ;;                               s[j]s[j+1]
       (dotimes (j i)
         (setf (aref h i j)
               (- (/ (* (aref y i) (aref y j))
                     (* (aref s j) (aref s (1+ j))))))))
     
-    ;; Step Init.4
+    
+    ;; Step Init.4: Reduce H.
 
-    (dotimes (i n)
-      (loop :for j :from (1- i) :downto 0
-            :do (progn
-                  (setf tt (round (aref h i j)
-                                  (aref h j j)))
-                  
-                  (incf (aref y j) (* tt (aref y i)))
-                  
-                  (loop :for k :to j ; ??
-                        :do (decf (aref h i k) (* tt (aref h j k))))
-                  
-                  (dotimes (k n)
-                    (decf (aref a i k)
-                          (* tt (aref a j k)))
-                    
-                    (incf (aref b k j)
-                          (* tt (aref b k i)))))))
+    (loop
+      :for i :from 1 :below n
+      :do (loop :for j :from (1- i) :downto 0
+                :do (progn
+                      (setf tt (round (aref h i j)
+                                      (aref h j j)))
+                      
+                      (incf (aref y j) (* tt (aref y i)))
+                      
+                      (dotimes (k (1+ j))
+                        (decf (aref h i k) (* tt (aref h j k))))
+                      
+                      (dotimes (k n)
+                        (decf (aref a i k)
+                              (* tt (aref a j k)))
+                        
+                        (incf (aref b k j)
+                              (* tt (aref b k i)))))))
     
     ;; Loop
     
@@ -209,17 +220,17 @@
        
      :start
        
-       ;; Step Loop.1
+       ;; Step Loop.1: Compute M.
        
        (setf m (max-index
-                (diagonal-elements h :key (lambda (x i)
-                                            (* (expt gamma i)
-                                               (abs x))))))
+                (tr h :key (lambda (x i)
+                             (* (expt gamma (1+ i))
+                                (abs x))))))
        
-       ;; Step Loop.2
+
+       ;; Step Loop.2: Swap entries.
        
        (rotatef (aref y m) (aref y (1+ m)))
-       
        (swap-rows a m (1+ m))
        (swap-rows h m (1+ m))
        (swap-cols b m (1+ m))
@@ -227,7 +238,7 @@
        
        ;; Step Loop.3
        
-       (when (< m (- n 2))              ; < or <= ?
+       (when (< m (- n 2))
          (let* ((t0 (dist (aref h m m)
                           (aref h m (1+ m))))
                 (t1 (/ (aref h m m) t0))
@@ -245,27 +256,27 @@
                          (aref h i (1+ m)) (- (* t1 t4)
                                               (* t2 t3)))))))
        
+       
        ;; Step Loop.4
        
        (loop
          :for i :from (1+ m) :below n
-         :do (progn
-               (loop :for j :from (min (1- i) (1+ m)) :downto 0
-                     :do (progn
-                           (setf tt (round (aref h i j)
-                                           (aref h j j)))
+         :do (loop :for j :from (min (1- i) (1+ m)) :downto 0
+                   :do (progn
+                         (setf tt (round (aref h i j)
+                                         (aref h j j)))
+                         
+                         (incf (aref y j) (* tt (aref y i)))
+                         
+                         (dotimes (k (1+ j))
+                           (decf (aref h i k) (* tt (aref h j k))))
+                         
+                         (dotimes (k n)
+                           (decf (aref a i k)
+                                 (* tt (aref a j k)))
                            
-                           (incf (aref y j) (* tt (aref y i)))
-                           
-                           (loop :for k :to j ; ??
-                                 :do (decf (aref h i k) (* tt (aref h j k))))
-                           
-                           (dotimes (k n)
-                             (decf (aref a i k)
-                                   (* tt (aref a j k)))
-                             
-                             (incf (aref b k j)
-                                   (* tt (aref b k i))))))))
+                           (incf (aref b k j)
+                                 (* tt (aref b k i)))))))
        
        
        ;; Step Loop.5
@@ -288,6 +299,7 @@
          (format t "Matrix B:~%")
          (pprint b)
          (terpri)
+         (format t "Norm: ~A~%" bound)
          (format t "Relation R: ~A~%" (column b min-y))
          (format t "R.X = ~A~%" (dot relation x))
          (terpri))
