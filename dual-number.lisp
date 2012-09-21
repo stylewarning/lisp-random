@@ -143,6 +143,11 @@
   :function (exp x)
   :derivative (exp x))
 
+;;; TODO: Handle the following cases for (DUAL-EXPT A B):
+;;; 
+;;;   * A is real, B is dual
+;;;   * A is dual, B is dual
+
 (defun dual-expt (dual-number n)
   (check-type n real)
 
