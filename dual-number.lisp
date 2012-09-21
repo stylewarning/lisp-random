@@ -109,3 +109,22 @@
                           :derivative (lambda (,argument) ,derivative)))
      ',name))
 
+
+;;; Some dual functions.
+
+(define-dual-function dual-sin (x)
+  :function (sin x)
+  :derivative (cos x))
+
+(define-dual-function dual-cos (x)
+  :function (cos x)
+  :derivative (- (sin x)))
+
+(define-dual-function dual-tan (x)
+  :function (tan x)
+  :derivative (expt (cos x) -2))        ; sec(x)²
+
+(define-dual-function dual-sqrt (x)
+  :function (sqrt x)
+  :derivative (/ 1 (sqrt x) 2))
+
