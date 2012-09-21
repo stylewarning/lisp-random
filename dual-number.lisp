@@ -139,3 +139,15 @@
   :function (sqrt x)
   :derivative (/ 1 (sqrt x) 2))
 
+(define-dual-function dual-exp (x)
+  :function (exp x)
+  :derivative (exp x))
+
+(defun dual-expt (dual-number n)
+  (check-type n real)
+
+  (with-dual (a b) dual-number
+      (if (zerop n)
+          (dual 1 b)
+          (dual (expt a n)
+                (* b n (expt a (1- n))))))) ; aⁿ + b·naⁿ⁻¹ε
