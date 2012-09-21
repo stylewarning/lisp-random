@@ -1,7 +1,18 @@
 ;;;; dual-number.lisp
 ;;;; Copyright (c) 2012 Robert Smith
 
+;;;; TODO
+;;;;
+;;;;  * Experiment with symbolic functions and dual functions.
+;;;;
+;;;;  * Allow the definition of multi-argument dual functions,
+;;;;    e.g. exponentiation.
+;;;;
+;;;;  * Look into computing gradients instead of one-dimensional
+;;;;    derivatives for automatic differentiation.
+
 ;;; Requires MOP.
+
 #-closer-mop
 (ql:quickload "CLOSER-MOP")
 
@@ -38,7 +49,7 @@
 ;;; 
 ;;;         [ A  B ]
 ;;;         [      ].
-;;;         [ 0  B ]
+;;;         [ 0  A ]
 ;;; 
 ;;; Addition and multiplication of dual numbers follows from the rules
 ;;; of matrix addition and multiplication.
