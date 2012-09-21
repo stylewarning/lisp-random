@@ -25,4 +25,36 @@
 
 (defvar epsilon (dual 0 1))
 
+(defun dual-+ (d1 d2)
+  (with-dual (a b) d1
+    (with-dual (p q) d2
+      (dual (+ a p) (+ b q)))))
+
+(defun dual-negate (d)
+  (with-dual (a b) d
+    (dual (- a) (- b))))
+
+(defun dual-- (d1 d2)
+  (with-dual (a b) d1
+    (with-dual (p q) d2
+      (dual (- a p) (- b q)))))
+
+(defun dual-* (d1 d2)
+  (with-dual (a b) d1
+    (with-dual (p q) d2
+      (dual (* a p)
+            (+ (* b p) (* a q))))))
+
+(defun dual-reciprocal (d)
+  (with-dual (a b) d
+    (dual (/ p)
+          (- (/ q p p)))))
+
+(defun dual-/ (d1 d2)
+  (with-dual (a b) d1
+    (with-dual (p q) d2
+      (dual (/ a p)
+            (/ (- (* b p) (* a q))
+               p p)))))
+
 
