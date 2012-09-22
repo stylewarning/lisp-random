@@ -141,14 +141,15 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; PSLQ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defvar gamma (sqrt (/ 4.0L0 3.0L0)))
-
 (defvar *pslq-verbose* t)
 
 (defun find-integer-relation (x &key (tolerance (* 2 long-float-epsilon))
                                      (max-iterations 1000))
   
-  (let ((n (length x)) a b s y tt h bound)
+  (let ((gamma (sqrt (/ 4.0L0 3.0L0))) ; we must recompute this in
+                                       ; case precision changes
+        (n (length x))
+        a b s y tt h bound)
     
     ;; Initialization
     
@@ -298,7 +299,7 @@
               (min-y-idx (max-index y :key 'abs :predicate '<))
               (min-y (aref y min-y-idx))
               (relation (column b min-y-idx)))
-         (when *find-integer-relation-verbose*
+         (when *pslq-verbose*
            (format t "Iteration: ~A~%" iterations)
            (format t "Max of A: ~A~%" max-a)
            (format t "Min of Y: Y[~A] = ~A~%"
@@ -316,7 +317,7 @@
            ((<= (abs min-y) tolerance)    (return relation))
            ((>= iterations max-iterations)
             (progn
-              (when *find-integer-relation-verbose*
+              (when *pslq-verbose*
                 (format t "Max iterations exceeded."))
               nil))
            (t (go :start)))))))
