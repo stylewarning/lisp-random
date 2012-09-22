@@ -144,7 +144,7 @@
 (defvar *pslq-verbose* t)
 
 (defun find-integer-relation (x &key (tolerance (* 2 long-float-epsilon))
-                                     (max-iterations 1000))
+                                     (max-iterations nil))
   
   (let ((gamma (sqrt (/ 4.0L0 3.0L0))) ; we must recompute this in
                                        ; case precision changes
@@ -315,7 +315,8 @@
          (cond
            ;; XXX: Check Max(A)
            ((<= (abs min-y) tolerance)    (return relation))
-           ((>= iterations max-iterations)
+           ((and max-iterations
+                 (>= iterations max-iterations))
             (progn
               (when *pslq-verbose*
                 (format t "Max iterations exceeded."))
@@ -331,6 +332,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; TESTS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun run-tests ()
+  ;; FIXME: Fails when precision is set to 1k bits.
   (assert (equal '(1 16 -4)
                  (find-integer-relation (vector (- pi)
                                                 (atan (/ 5.0L0))
