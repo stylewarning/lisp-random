@@ -160,14 +160,14 @@
 
 (defgeneric dual-expt (a b))
 
-(defmethod dual-expt ((x dual-number) (n real))
+(defmethod dual-expt ((x dual) (n real))
   (with-dual (a b) x
     (if (zerop n)
         (dual 1 b)
         (dual (expt a n)
               (* b n (expt a (1- n))))))) ; aⁿ + b·naⁿ⁻¹ε
 
-(defmethod dual-expt ((α real) (x dual-number))
+(defmethod dual-expt ((α real) (x dual))
   (with-dual (a b) x
     (if (or (zerop α)
             (= 1 α)) 
