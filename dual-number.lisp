@@ -154,16 +154,24 @@
   :function (log x)
   :derivative (/ x))
 
-;;; TODO: Handle the following cases for (DUAL-EXPT A B):
+;;; TODO: Handle the following case for (DUAL-EXPT A B):
 ;;; 
-;;;   * A is real, B is dual
 ;;;   * A is dual, B is dual
 
-(defun dual-expt (dual-number n)
-  (check-type n real)
+(defgeneric dual-expt (a b))
 
-  (with-dual (a b) dual-number
-      (if (zerop n)
-          (dual 1 b)
-          (dual (expt a n)
-                (* b n (expt a (1- n))))))) ; aⁿ + b·naⁿ⁻¹ε
+(defmethod dual-expt ((x dual-number) (n real))
+  (with-dual (a b) x
+    (if (zerop n)
+        (dual 1 b)
+        (dual (expt a n)
+              (* b n (expt a (1- n))))))) ; aⁿ + b·naⁿ⁻¹ε
+
+(defmethod dual-expt ((α real) (x dual-number))
+  (with-dual (a b) x
+    (if (or (zerop α)
+            (= 1 α)) 
+        (dual α)
+        (let ((α^a (expt α a)))
+          (dual α^a
+                (* b (log α) α^a))))))
