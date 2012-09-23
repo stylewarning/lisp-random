@@ -143,6 +143,17 @@
   :function (exp x)
   :derivative (exp x))
 
+(define-dual-function dual-abs (x)
+  :function (abs x)
+  :derivative (cond
+                ((plusp x) 1)
+                ((minusp x) -1)
+                (t (error "Can't differentiate ABS at zero."))))
+
+(define-dual-function dual-log (x)
+  :function (log x)
+  :derivative (/ x))
+
 ;;; TODO: Handle the following cases for (DUAL-EXPT A B):
 ;;; 
 ;;;   * A is real, B is dual
