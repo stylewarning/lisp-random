@@ -11,3 +11,8 @@
                   (format t "~C~%" c)
                   (format t "~C~A" c (spaces (funcall growth-function i)))))))
 
+(defun triangle (n &optional (period 8))
+  (let ((m (mod n period)))
+    (if (> m (floor period 2))
+        (- period m)
+        m)))
