@@ -93,6 +93,10 @@
 ;;;        f(a + bε) = f(a) + b·f′(a)ε.
 ;;; 
 ;;; We will call (f, f′) pairs "dual functions".
+;;; 
+;;; For a binary function f : D² → D, we have the rule
+;;; 
+;;;   f(〈a,a′〉, 〈b,b′〉) = 〈f(a,b), a′·∂f/∂a + b′·∂f/∂b〉
 
 (defclass dual-function ()
   ((function :initarg :function
@@ -154,10 +158,6 @@
   :function (log x)
   :derivative (/ x))
 
-;;; TODO: Handle the following case for (DUAL-EXPT A B):
-;;; 
-;;;   * A is dual, B is dual
-
 (defgeneric dual-expt (a b))
 
 (defmethod dual-expt ((x dual) (n real))
@@ -175,3 +175,12 @@
         (let ((α^a (expt α a)))
           (dual α^a
                 (* b (log α) α^a))))))
+
+(defmethod dual-expt ((x dual) (y dual))
+  (with-dual (a p) x
+    (with-dual (b q) y
+      ;; Real Part: aᵇ
+      ;; Dual Part: p·b·aᵇ⁻¹ + q·log(a)·aᵇ
+      (dual (expt a b)
+            (+ (* p b (expt a (1- b)))  ; Factor out aᵇ?
+               (* q (log a) (expt a b)))))))
