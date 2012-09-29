@@ -28,7 +28,7 @@
                       (format str "~A ~:[+~;-~] ~Aε"
                               (dual.real obj)
                               (minusp (dual.epsilon obj))
-                              (dual.epsilon obj))))))
+                              (abs (dual.epsilon obj)))))))
   real
   epsilon)
 
