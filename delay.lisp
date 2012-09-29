@@ -45,6 +45,26 @@ memoize it."
                             genargs)
            ,@body)))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; NOTATION ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun enable-lazy-syntax ()
+  (set-macro-character
+   #\[
+   (lambda (stream char)
+     (declare (ignore char))
+     (let* ((lst (read-delimited-list #\] stream t)))
+       (if (null lst)
+           nil
+           (destructuring-bind (f . args) lst
+             `(lazycall ,(if (listp f)
+                             f
+                             `(function ,f))
+                        ,@args))))))
+
+  (set-macro-character
+   #\]
+   (get-macro-character #\))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; EXAMPLES ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (deflazy if* (pred then else)
