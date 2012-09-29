@@ -44,8 +44,8 @@
             (,b (dual.epsilon ,g)))
        ,@body)))
 
-;;; A dual number A+Bε can be algebraically emulated by the following
-;;; matrix:
+;;; A dual number A + Bε = 〈A, B〉 can be algebraically emulated by
+;;; the following matrix:
 ;;; 
 ;;;         [ A  B ]
 ;;;         [      ].
@@ -90,7 +90,7 @@
 
 ;;; A unary function f : R → R can be lifted to duals by defining f as
 ;;; 
-;;;        f(a + bε) = f(a) + b·f′(a)ε.
+;;;        f(a + bε) = f(〈a,b〉) = f(a) + b·f′(a)ε.
 ;;; 
 ;;; We will call (f, f′) pairs "dual functions".
 ;;; 
