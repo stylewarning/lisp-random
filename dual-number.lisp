@@ -184,3 +184,17 @@
       (dual (expt a b)
             (+ (* p b (expt a (1- b)))  ; Factor out aᵇ?
                (* q (log a) (expt a b)))))))
+
+;;; To evaluate the derivative of f at x, compute f(〈x, 1〉) and the
+;;; result will be 〈f(x), f′(x)〉.
+;;; 
+;;; For example, √sin(x) can be computed by
+
+#+#:example
+(defun sqrt-sin (x)
+  (dual-sqrt (dual-sin (dual x 1))))
+
+;;; The derivative at x=3 is -1.317... and our computation gives...
+;;; 
+;;;   CL-USER> (sqrt-sin 3.0)
+;;;   #<0.37565944 - 1.3176728ε>
