@@ -46,4 +46,14 @@
                                   (rec (- x 3)))))))))
       (rec (- b a)))))
 
-
+(defun stairs-dyn (a b)
+  (let ((memo (make-array (1+ (- b a)) :initial-element nil)))
+    (setf (aref memo 0) 1
+          (aref memo 1) 1
+          (aref memo 2) 2)              ; 1 + 1 and 2
+    (loop :for i :from 3 :to (- b a)
+          :do (setf (aref memo i)
+                    (+ (aref memo (- i 1))
+                       (aref memo (- i 2))
+                       (aref memo (- i 3))))
+          :finally (return (aref memo (- b a))))))
