@@ -116,3 +116,16 @@ normalized."
                    (when (valid-move-p state m)
                      (rec (do-move state m) (cons m moves)))))))
       (rec state nil))))
+
+(defun apply-moves (initial-state moves)
+  (loop :for move :in moves
+        :for state := (do-move initial-state move)
+                   :then (do-move state move)
+        :collect state))
+
+(defun solve-and-print (puzzle-state)
+  (let ((solution (solve puzzle-state)))
+    (format t "Start   --> ~A~%" puzzle-state)
+    (loop :for move :in solution
+          :for state :in (apply-moves puzzle-state solution)
+          :do (format t "~A --> ~A~%" move state))))
