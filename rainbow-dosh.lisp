@@ -81,16 +81,14 @@ normalized."
 
 (defun solve (state)
   (let ((table (make-hash-table :test 'equalp)))
-    (labels ((rec (state depth moves)
-               (declare (type fixnum depth))
+    (labels ((rec (state moves)
                (unless (gethash state table)
                  (when (solvedp state)
-                   (return-from solve (values state depth (nreverse moves))))
+                   (return-from solve (values (nreverse moves) state)))
                  
                  (setf (gethash state table) t)
                  
                  (dolist (m *moves*)
                    (when (valid-move-p state m)
-                     (format t "~vT~D: ~S on ~A~%" (* 2 depth) depth m state)
-                     (rec (do-move state m) (1+ depth) (cons m moves)))))))
-      (rec state 1 nil))))
+                     (rec (do-move state m) (cons m moves)))))))
+      (rec state nil))))
