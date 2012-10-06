@@ -75,19 +75,43 @@ normalized."
   (declare (type state state))
   (some #'zerop state))
 
-(defvar *moves* '((2 . 0) (2 . 1)
-                  (1 . 0) (1 . 2)
-                  (0 . 1) (0 . 2)))
+(defun almost-solved-p (state)
+  "Check if STATE is almost solved, that is, if it has two equal piles."
+  (declare (type state state))
+  (let ((a (aref state 0))
+        (b (aref state 1))
+        (c (aref state 2)))
+    ;; We needn't check if A = C because if that is the case, and we
+    ;; have A <= B <= C, then that imples A = B = C.
+    (cond
+      ((= a b) (make-move 1 0))
+      ((= b c) (make-move 2 1))
+      (t nil))))
+
+;;; We could have 6 moves here, however, since we have A <= B <= C, we
+;;; will never swap lower to higher.
+(defvar *moves* '((2 . 0) (2 . 1) (1 . 0)))
 
 (defun solve (state)
   (let ((table (make-hash-table :test 'equalp)))
     (labels ((rec (state moves)
+               ;; Have we reached this state yet? If not, skip it.
                (unless (gethash state table)
+                 ;; Is it solved? If so, return the solution and the
+                 ;; final state.
                  (when (solvedp state)
                    (return-from solve (values (nreverse moves) state)))
                  
+                 ;; Mark this position as visited.
                  (setf (gethash state table) t)
                  
+                 ;; Avoid trying all moves when we know we are in the
+                 ;; winning state.
+                 (let ((winning-move (almost-solved-p state)))
+                   (when winning-move
+                     (rec (do-move state winning-move) (cons winning-move moves))))
+                 
+                 ;; Brute force... try all moves.
                  (dolist (m *moves*)
                    (when (valid-move-p state m)
                      (rec (do-move state m) (cons m moves)))))))
