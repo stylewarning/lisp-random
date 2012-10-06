@@ -33,6 +33,16 @@
   (declare (type state state))
   (sort state #'<))
 
+(defun reduce-state (state)
+  "Reduce STATE to contain the smallest numbers possible."
+  (let* ((a (aref state 0))
+         (b (aref state 1))
+         (c (aref state 2))
+         (gcd (gcd a b c)))
+    (make-state (floor a gcd)
+                (floor b gcd)
+                (floor c gcd))))
+
 (defun make-state (a b c)
   "Make new state with piles of size A, B, and C. The piles will be
 normalized."
