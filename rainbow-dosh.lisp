@@ -196,8 +196,8 @@ normalized."
                                      (sum reduced-state)))
                            (rec reduced-state (cons m moves))))))))))
       (rec (reduce-state state) nil)
-      solns
-      )))
+      (values solns
+              (hash-table-count table)))))
 
 (defun apply-moves (initial-state moves)
   (loop :for move :in moves
