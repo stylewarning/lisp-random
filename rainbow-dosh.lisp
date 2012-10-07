@@ -6,6 +6,11 @@
 ;;; from another. Prove (or devise an algorithm which you can show is
 ;;; correct) that shows you can always empty one of the stacks.
 
+;;; Utilities
+
+(defun sum (v)
+  (reduce #'+ v))
+
 ;;; Representation
 
 (deftype move ()
@@ -33,15 +38,23 @@
   (declare (type state state))
   (sort state #'<))
 
+(defun reduceablep (state)
+  "Can STATE be reduced?"
+  (/= 1 (gcd (aref state 0)
+             (aref state 1)
+             (aref state 2))))
+
 (defun reduce-state (state)
-  "Reduce STATE to contain the smallest numbers possible."
+  "Reduce STATE to contain the smallest numbers possible. Return a
+second value dictating whether a reduction occurred."
   (let* ((a (aref state 0))
          (b (aref state 1))
          (c (aref state 2))
          (gcd (gcd a b c)))
-    (make-state (floor a gcd)
-                (floor b gcd)
-                (floor c gcd))))
+    (values (make-state (floor a gcd)
+                        (floor b gcd)
+                        (floor c gcd))
+            (/= 1 gcd))))
 
 (defun make-state (a b c)
   "Make new state with piles of size A, B, and C. The piles will be
@@ -80,6 +93,21 @@ normalized."
 
 ;;; Solution
 
+(defun solution-space-size (coin-sum)
+  "The number of solutions given a sum of COIN-SUM."
+  ;; This actually computes an upper bound of the solution space size.
+  
+  ;; Number of 1- and 2-partitions of an integer (DLMF 26.9.3)
+  (+ 2 (floor coin-sum 2)))
+
+(defun state-space-size (coin-sum)
+  "The number of possible states given a sum of COIN-SUM."
+  ;; This actually computes an upper bound of the state space size.
+  
+  ;; Number of 3-partitions of an integer (DLMF 26.9.3)
+  (+ (1+ (floor (* coin-sum (+ coin-sum 6)) 12))
+     (solution-space-size coin-sum)))
+
 (defun solvedp (state)
   "Check if STATE is solved."
   (declare (type state state))
@@ -100,7 +128,7 @@ normalized."
 
 ;;; We could have 6 moves here, however, since we have A <= B <= C, we
 ;;; will never swap lower to higher.
-(defvar *moves* '((2 . 0) (2 . 1) (1 . 0)))
+(defparameter *moves* '((2 . 1) (1 . 0) (2 . 0)))
 
 (defun solve (state)
   (let ((table (make-hash-table :test 'equalp)))
@@ -121,11 +149,25 @@ normalized."
                    (when winning-move
                      (rec (do-move state winning-move) (cons winning-move moves))))
                  
-                 ;; Brute force... try all moves.
-                 (dolist (m *moves*)
-                   (when (valid-move-p state m)
-                     (rec (do-move state m) (cons m moves)))))))
-      (rec state nil))))
+                 (let ((reduceables (loop :for m :in *moves*
+                                          :when (reduceablep (do-move state m))
+                                            :collect m)))
+
+                   
+                   ;; Brute force... try all moves.
+                   (dolist (m (or reduceables *moves*))
+                     (when (valid-move-p state m)
+                       (let ((old-state (do-move state m)))
+                         (multiple-value-bind (reduced-state reduced?)
+                             (reduce-state old-state)
+                           (when reduced?
+                             (format t "Reduced state: ~A --> ~A [~A --> ~A]~%"
+                                     old-state
+                                     reduced-state
+                                     (sum old-state)
+                                     (sum reduced-state)))
+                           (rec reduced-state (cons m moves))))))))))
+      (rec (reduce-state state) nil))))
 
 (defun apply-moves (initial-state moves)
   (loop :for move :in moves
