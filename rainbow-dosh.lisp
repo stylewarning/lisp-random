@@ -149,6 +149,34 @@ normalized."
                    (when winning-move
                      (rec (do-move state winning-move) (cons winning-move moves))))
                  
+                 ;; Brute force... try all moves.
+                 (dolist (m *moves*)
+                   (when (valid-move-p state m)
+                     (rec (do-move state m) (cons m moves)))))))
+      (rec state nil))))
+
+(defun count-solutions (state)
+  (let ((table (make-hash-table :test 'equalp))
+        (solns 0))
+    (labels ((rec (state moves)
+               ;; Have we reached this state yet? If not, skip it.
+               (unless (gethash state table)
+                 ;; Is it solved? If so, return the solution and the
+                 ;; final state.
+                 (when (solvedp state)
+                   (incf solns)
+                   ;; (return-from solve (values (nreverse moves) state))
+                   )
+                 
+                 ;; Mark this position as visited.
+                 (setf (gethash state table) t)
+                 
+                 ;; Avoid trying all moves when we know we are in the
+                 ;; winning state.
+                 (let ((winning-move (almost-solved-p state)))
+                   (when winning-move
+                     (rec (do-move state winning-move) (cons winning-move moves))))
+                 
                  (let ((reduceables (loop :for m :in *moves*
                                           :when (reduceablep (do-move state m))
                                             :collect m)))
@@ -167,7 +195,9 @@ normalized."
                                      (sum old-state)
                                      (sum reduced-state)))
                            (rec reduced-state (cons m moves))))))))))
-      (rec (reduce-state state) nil))))
+      (rec (reduce-state state) nil)
+      solns
+      )))
 
 (defun apply-moves (initial-state moves)
   (loop :for move :in moves
