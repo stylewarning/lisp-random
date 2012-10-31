@@ -41,7 +41,7 @@
       (let ((r (random 3)))
         (format t "r=~D: " r)
         
-        (cond-once
+        (cond
           ((and (= r 0) (once)) (princ "got 0"))
           ((and (= r 1) (once)) (princ "got 1"))
           ((and (= r 2) (once)) (princ "got 2")))
