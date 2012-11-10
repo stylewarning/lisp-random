@@ -1,5 +1,6 @@
-
-;;; An experimental test to see if the solutions
+;;; An experimental test to see if the solutions are correct
+;;;
+;;; Recurrences from THEOROS
 
 (defun test (m n x0 y0)
   (labels (
