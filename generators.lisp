@@ -131,6 +131,7 @@ Essentially a generator form of REDUCE or fold."
    (lambda ()
      (next-if predicate gen))))
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Files ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun file-lines (filename)
@@ -144,6 +145,7 @@ Essentially a generator form of REDUCE or fold."
              (progn
                (close stream)
                (exhausted))))))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;; Miscellaneous Generators ;;;;;;;;;;;;;;;;;;;;;;
 
