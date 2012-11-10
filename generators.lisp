@@ -131,6 +131,19 @@ Essentially a generator form of REDUCE or fold."
    (lambda ()
      (next-if predicate gen))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Files ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun file-lines (filename)
+  "Create a new generator for the lines of a file."
+  (generator
+   (let ((stream (open filename :direction :input
+                                :if-does-not-exist :error)))
+     (lambda ()
+       (let ((line (read-line stream nil nil)))
+         (or line
+             (progn
+               (close stream)
+               (exhausted))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;; Miscellaneous Generators ;;;;;;;;;;;;;;;;;;;;;;
 
