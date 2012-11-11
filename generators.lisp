@@ -167,3 +167,8 @@ calling KEY on each element.."
      (lambda ()
        (prog1 (funcall key n)
          (incf n step))))))
+
+(defun const (x)
+  "Generate a stream of values always containing X. Name derived from
+Haskell's `const'."
+  (generator (lambda () x)))
