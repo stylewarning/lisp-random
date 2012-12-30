@@ -7,7 +7,7 @@
 
 (defstruct (stack (:constructor %make-stack)
                   (:predicate stackp))
-  elements)
+  (elements nil :type list))
 
 (defun make-stack ()
   "Create a new empty stack."
@@ -27,8 +27,8 @@
 
 (defstruct (queue (:constructor %make-queue)
                   (:predicate queuep))
-  elements
-  last)
+  (elements nil :type list)
+  (last nil :type (or null (cons t (member nil)))))
 
 (defun make-queue ()
   "Create a new empty queue."
@@ -40,21 +40,31 @@
 
 (defun list-to-queue (list)
   "Convert the list LIST into a queue. Note: LIST may be modified."
-  (make-queue :elements list
-              :last (last list)))
+  (%make-queue :elements list
+               :last (last list)))
 
 (defun enqueue (queue obj)
   "Add an element OBJ to the end of the queue QUEUE."
   (let ((last (list obj)))
     (if (queue-empty-p queue)
-        (setf (queue-last queue)     last
-              (queue-elements queue) last)
-        (setf (cdr (queue-last queue)) last
-              (queue-last queue)       last)))
+        ;; Set up the queue with the first element. Note that the same
+        ;; reference to the singleton list is shared by both
+        ;; QUEUE-ELEMENTS and QUEUE-LAST.
+        (setf (queue-elements queue) last
+              (queue-last queue)     last)
+        
+        ;; We can now append elements to QUEUE-ELEMENTS simply by
+        ;; modifying QUEUE-LAST, whose reference is shared by
+        ;; QUEUE-ELEMENTS,
+        ;;
+        ;; We do this instead of a single SETF for type safety of
+        ;; QUEUE-LAST.
+        (let ((old (queue-last queue)))
+          (setf (queue-last queue) last
+                (cdr old)          last))))
   queue)
 
 (defun dequeue (queue)
   "Remove and return an element from the queue QUEUE."
   (pop (queue-elements queue)))
-
 
