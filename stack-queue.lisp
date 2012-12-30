@@ -28,7 +28,7 @@
 (defstruct (queue (:constructor %make-queue)
                   (:predicate queuep))
   (elements nil :type list)
-  (last nil :type (or null (cons t (member nil)))))
+  (last nil :type (or null (cons t null))))
 
 (defun make-queue ()
   "Create a new empty queue."
