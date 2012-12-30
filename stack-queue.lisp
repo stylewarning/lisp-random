@@ -13,6 +13,10 @@
   "Create a new empty stack."
   (%make-stack))
 
+(defun stack-empty-p (stack)
+  "Is the stack STACK empty?"
+  (null (stack-elements stack)))
+
 (defun stack-push (stack obj)
   "Push the element OBJ onto the stack STACK."
   (push obj (stack-elements stack))
