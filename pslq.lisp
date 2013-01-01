@@ -44,41 +44,55 @@
   (define-pointwise-operation ./ #'/)
   )
 
-(defun square (x) (* x x))
+(defun square (x) 
+  "Compute the square of X."
+  (* x x))
 
 (defun dist (a b)
+  "Compute the norm of A and B (the length of the hypotenuse of a
+right triangle with legs A and B)."
   (sqrt (+ (square a) (square b))))
 
 (defun dot (u v)
+  "Compute the dot product of vectors U and V."
   (reduce #'+ (map 'vector #'* u v)))
 
 (defun norm (v)
+  "Compute the norm (or magnitude) of the vector V."
   (sqrt (dot v v)))
 
 (defun row-norm (m row)
+  "Compute the norm of the ROWth row of M."
   (loop :for col :below (array-dimension m 1)
         :sum (square (aref m row col)) :into norm^2
         :finally (return (sqrt norm^2))))
 
 (defun normalize (v)
+  "Normalize the vector V."
   (v/s v (norm v)))
 
 (defun iota (n)
+  "Create a vector of length N containing 1 through N."
   (coerce (loop :for i :from 1 :to n :collect i)
           'vector))
 
 (defun map-indexed (f v)
+  "Map the binary function F across V with the second argument of F
+being the index of the elements of V."
   (map 'vector f v (iota (length v))))
 
 (defun zero-matrix (n &optional (m n))
+  "Create an N by M floating-point zero matrix."
   (make-array (list n m) :initial-element 0.0L0
                          :element-type 'long-float))
 
 (defun zero-matrix-int (n &optional (m n))
+  "Create an N by M integer zero matrix."
   (make-array (list n m) :initial-element 0
                          :element-type 'integer))
 
 (defun diagonal-matrix (v)
+  "Create a square matrix whose diagonal is the vector V."
   (let* ((n (length v))
          (m (zero-matrix n)))
     (dotimes (i n m)
@@ -86,16 +100,20 @@
             (aref v i)))))
 
 (defun identity-matrix (n)
+  "Create a floating-point identity matrix of size N."
   (let ((m (zero-matrix n)))
     (dotimes (i n m)
       (setf (aref m i i) 1.0L0))))
 
 (defun identity-matrix-int (n)
+  "Create an integer identity matrix of size N."
   (let ((m (zero-matrix-int n)))
     (dotimes (i n m)
       (setf (aref m i i) 1))))
 
 (defun tr (m &key key)
+  "Compute the trace of M, optionally mapping the binary function KEY
+where the second argument is the index of the element in the trace."
   (unless key
     (setf key (lambda (x i)
                 (declare (ignore i))
@@ -107,6 +125,8 @@
 
 (defun max-index (v &key (key 'identity)
                          (predicate '>))
+  "Compute the maximum value in V according to the predicate PREDICATE
+and metric function KEY."
   (loop :with max-idx := 0
         :and  max-val := (funcall key (aref v 0))
         :for i :from 0
@@ -118,34 +138,47 @@
         :finally (return max-idx)))
 
 (defun swap-rows (m row-a row-b)
+  "Swap the values in rows ROW-A and ROW-B of the matrix M."
   (dotimes (col (array-dimension m 1) m)
     (rotatef (aref m row-a col)
              (aref m row-b col))))
 
 (defun swap-cols (m col-a col-b)
+  "Swap the values in columns COL-A and COL-B in the matrix M."
   (dotimes (row (array-dimension m 0) m)
     (rotatef (aref m row col-a)
              (aref m row col-b))))
 
 (defun max-entry (m)
+  "Find the maximum element in the matrix M."
   (loop :for row :below (array-dimension m 0)
         :maximize (loop :for col :below (array-dimension m 1)
                         :maximize (aref m row col))))
 
 (defun column (m col)
+  "Return column COL of the matrix M."
   (loop :for row :below (array-dimension m 0)
         :collect (aref m row col)))
 
 (defun float-exponent (f)
+  "Compute the binary exponent of the floating point value F."
   (nth-value 1 (decode-float f)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; PSLQ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defvar *pslq-verbose* t)
+(defvar *pslq-verbose* t
+  "Switch to control the printing of extra information during lattice
+  reduction.")
 
 (defun find-integer-relation (x &key (tolerance (* 2 long-float-epsilon))
                                      (max-iterations nil))
-  
+  "Given a vector X of floating point values, attempt to find an
+  integer relation vector Y such that
+
+      X·Y = 0 ± TOLERANCE.
+
+Perform up to MAX-ITERATIONS iterations, or infinitely many when null.
+"
   (let ((gamma (sqrt (/ 4.0L0 3.0L0))) ; we must recompute this in
                                        ; case precision changes
         (n (length x))
@@ -324,6 +357,7 @@
            (t (go :start)))))))
 
 (defun find-poly (a degree)
+  "Find a polynomial p of degree DEGREE such that A is a root."
   (loop :repeat (1+ degree)
         :for x := 1 :then (* x a)
         :collect x :into coeffs
