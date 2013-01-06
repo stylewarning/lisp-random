@@ -66,20 +66,20 @@
       (variable-val (env-value var env) env)
       var))
 
-(defun unify (x y env)
+(defun unify (x y type-env)
   "Return the values that must be substituted for the variables in X
 and Y so that they unify."
-  (let ((xv (variable-val x env))
-        (yv (variable-val y env)))
+  (let ((xv (variable-val x type-env))
+        (yv (variable-val y type-env)))
     (cond
       ((equalp xv yv)
-       env)
+       type-env)
       ((and (variablep xv) (or (not (variablep yv)) (variable< yv xv)))
-       (env-update xv yv env))
+       (env-update xv yv type-env))
       ((variablep yv)
-       (env-update yv xv env))
+       (env-update yv xv type-env))
       ((and (consp xv) (consp yv))
-       (unify (cdr xv) (cdr yv) (unify (car xv) (car yv) env)))
+       (unify (cdr xv) (cdr yv) (unify (car xv) (car yv) type-env)))
       (t
        (error "Cannot unify structures.")))))
 
@@ -88,7 +88,7 @@ and Y so that they unify."
   (cond
     ((null prefix) t)
     ((and (eql (cadar prefix) var)
-          (not (eql (caar prefix) 'let))) nil)
+          (not (eql (caar prefix) :let))) nil)
     (t (genericp var (cdr prefix)))))
 
 (defun instance (x prefix counter)
@@ -99,6 +99,8 @@ in place of the generic variables defined in PREFIX."
 variables in place of the generic variables defined in
 PREFIX. Finally, call SUCCESS on the generated instance. This is used
 as an auxiliary routine for INSTANCE."
+             ;; PREFIX maps identifiers to types
+             ;; ENV maps type variables to types
              (cond
                ((and (variablep x) (genericp x prefix))
                 (if (env-bound-p x env)
@@ -201,59 +203,86 @@ defined in ENV."
 
 (defun derive-type (f)
   "Derive the type of expression F and return it using Milner's Algorithm J."
-  (let ((e (env-empty))
+  (let ((type-env (env-empty))
         (ctr (make-variable-counter)))
     (labels
-        ((algorithm-j (p f)
+        ((algorithm-j (symbol-table f)
            "Robin Milner's type inference algorithm, simulating his
 Algorithm W."
            (cond
+             ;; Symbol
              ;; j(Sym) => j(val(Sym))
              ((symbolp f)
-              (if (env-bound-p f p)
-                  (let* ((x (env-value f p))
-                         (kind (car x))
-                         (derive-type (cadr x)))
-                    (if (eql kind 'let)
-                        (instance derive-type p ctr)
-                        derive-type))
+              (if (env-bound-p f symbol-table)
+                  (let* ((x    (env-value f symbol-table))
+                         (kind (first x))
+                         (type (second x)))
+                    (if (eql kind :let)
+                        (instance type symbol-table ctr)
+                        type))
                   
-                  ;; Must be global variable.
+                  ;; Not in symbol table, so must be global.
+                  ;;
+                  ;; TODO: Error check here.
                   (instance (find-type f) (env-empty) ctr)))
 
+             ;; Constant expression
              ;; j(constant) => constant-type
              ((not (consp f))
               (instance (constant-type f) (env-empty) ctr))
 
+             ;; QUOTE expression
              ;; j('constant) => j(constant)
              ((eql (car f) 'quote)
-              (instance (constant-type (cadr f)) (env-empty) ctr))
+              (instance (constant-type (second f)) (env-empty) ctr))
 
+             ;; IF expression
              ;; j( if(p, x, y) ) =>
              ;;   unify(j(p), bool),
              ;;   unify(j(x), j(y))
              ((eql (car f) 'if)
-              (let ((pre (algorithm-j p (second f)))
-                    (con (algorithm-j p (third f)))
-                    (alt (algorithm-j p (fourth f))))
-                (setf e (unify con alt (unify pre 'bool e)))
-                con))
+              ;; Compute the type for the predicate and each branch.
+              (let ((predicate-type (algorithm-j symbol-table (second f)))
+                    (conseq-type    (algorithm-j symbol-table (third f)))
+                    (alternate-type (algorithm-j symbol-table (fourth f))))
+                ;; Unify the predicate type with BOOL, and unify the
+                ;; types of the branches.
+                (setf type-env
+                      (unify conseq-type
+                             alternate-type
+                             (unify predicate-type 'bool type-env)))
+                
+                ;; Return the type of either branch (as they are the
+                ;; same).
+                conseq-type))
 
+             ;; LAMBDA expression
              ;; j(lambda(vars, body)) => (vars -> j(body))
              ((eql (car f) 'lambda)
-              (let* ((parms (mapcar (lambda (x)
-                                      (declare (ignore x))
-                                      (funcall ctr))
-                                    (cadr f)))
-                     (body (algorithm-j
-                            (env-join
-                             (mapcar (lambda (x y) (list x 'lambda y))
-                                     (cadr f)
-                                     parms)
-                             p)
-                            (caddr f))))
-                (cons '-> (append parms (list body)))))
+              (let ((lambda-args (second f))
+                    (lambda-body (third f)))
+                (let* (
+                       ;; Generate generic types for each parameter.
+                       (param-types (mapcar (lambda (x)
+                                              (declare (ignore x))
+                                              (funcall ctr))
+                                            lambda-args))
+                       
+                       ;; Compute the type of the body expression,
+                       ;; augmenting the environment with the types of
+                       ;; the parameters.
+                       (body-type (algorithm-j
+                                   (env-join
+                                    (mapcar (lambda (x y) (list x :lambda y))
+                                            lambda-args
+                                            param-types)
+                                    symbol-table)
+                                   lambda-body)))
+                  
+                  ;; Construct and return the function type.
+                  (cons '-> (append param-types (list body-type))))))
              
+             ;; LET expression
              ;; j(let([[x1,y1], [x2, y2],...], body)) =>
              ;; with j(x1) := j(y1)
              ;;      j(x2) := j(y2)
@@ -261,34 +290,58 @@ Algorithm W."
              ;;      j(xn) := j(yn)
              ;;  j(body)             
              ((eql (car f) 'let)
-              (algorithm-j
-               (env-join
-                (mapcar
-                 (lambda (x) (list (car x) 'let (algorithm-j p (cadr x))))
-                 (cadr f))
-                p)
-               (caddr f)))
+              (let ((let-bindings (second f))
+                    (let-body     (third f)))
+                ;; The let bindings are bound in parallel, so we can
+                ;; compute the type of each bound expression
+                ;; individually.
+                (algorithm-j
+                 (env-join
+                  (mapcar (lambda (x) 
+                            (list (car x) 
+                                  :let
+                                  (algorithm-j symbol-table (cadr x))))
+                          let-bindings)
+                  symbol-table)
+                 let-body)))
 
-              ;; j(letrec([[x1,y1], [x2, y2],...], body)) =>
-              ;; with j(x1) := T1
-              ;;      j(x2) := T2
-              ;;      ...
-              ;;      j(xn) := Tn
-              ;;  unify( j(y1), j(y2), ..., j(yn)),
-              ;;  j(body)             
+             ;; LETREC expression
+             ;; j(letrec([[x1,y1], [x2, y2],...], body)) =>
+             ;; with j(x1) := T1
+             ;;      j(x2) := T2
+             ;;      ...
+             ;;      j(xn) := Tn
+             ;;  unify( j(y1), T1 )
+             ;;  unify( j(y2), T2 )
+             ;;  ...
+             ;;  unify( j(yn), Tn )
+             ;;  j(body)             
              ((eql (car f) 'letrec)
-              (let ((p* (env-join
-                         (mapcar (lambda (x)
-                                   (list (car x) 'letrec (funcall ctr)))
-                                 (cadr f))
-                         p)))
-                (mapcar
-                 (lambda (x)
-                   (let ((val (algorithm-j p* (cadr x))))
-                     (setf e (unify (cadr (env-value (car x) p*)) val e))))
-                 (cadr f))
-                (algorithm-j p* (caddr f))))
+              (let ((letrec-bindings (second f))
+                    (letrec-body     (third f)))
+                ;; First we augment our symbol table with generated
+                ;; type variables for each of the bindings' variables.
+                (let ((symbol-table* (env-join
+                                      (mapcar (lambda (x)
+                                                (list (car x) :letrec (funcall ctr)))
+                                              letrec-bindings)
+                                      symbol-table)))
+                  
+                  ;; Next, for each expression being bound, compute
+                  ;; the type of the expression, and then augment the
+                  ;; type environment by unifying the just computed
+                  ;; type with our previously generated type variable.
+                  (dolist (binding letrec-bindings)
+                    (let ((val (algorithm-j symbol-table* (cadr binding))))
+                      (setf type-env
+                            (unify (cadr (env-value (car binding) symbol-table*))
+                                   val
+                                   type-env))))
+                  
+                  ;; Finally, compute the type of the body.
+                  (algorithm-j symbol-table* letrec-body))))
 
+             ;; Lambda combination
              ;; j( (lambda([v1, v2, ..., vn], body))(a1, a2, ..., an) ) =>
              ;; j( let([[v1, a1],
              ;;         [v2, a2],
@@ -296,20 +349,40 @@ Algorithm W."
              ;;         [vn, an]], body))
              ((and (consp (car f))
                    (eql (caar f) 'lambda))
-              (algorithm-j p (list 'let
-                                   (mapcar #'list (cadar f) (cdr f))
-                                   (caddar f))))
+              ;; Simply transform the lambda combination into a LET.
+              (algorithm-j symbol-table (list 'let
+                                              (mapcar #'list (cadar f) (cdr f))
+                                              (caddar f))))
 
+             ;; Function combination
              ;; j( g(x1, x2, ..., xn) ) =>
              ;; unify( j(g), (j(x1), j(x2), ..., j(xn)) -> Ta)             
              (t
-              (let ((result (funcall ctr))
-                    (oper (algorithm-j p (car f)))
-                    (args (mapcar (lambda (x) (algorithm-j p x)) (cdr f))))
-                (setf e (unify oper (cons '-> (append args (list result))) e))
-                result)))))
+              (let ((operator (first f))
+                    (arguments (rest f)))
+                (let (
+                      ;; Compute the type of the operator (may be an
+                      ;; arbitrary expression). Call it F.
+                      (operator-type (algorithm-j symbol-table operator))
+
+                      ;; Compute the type of each argument. Call them (A B ...)
+                      (arg-types (mapcar (lambda (x) (algorithm-j symbol-table x))
+                                         arguments))
+                      
+                      ;; Generate a type variable for the entire result. Call it T.
+                      (result-type (funcall ctr)))
+                  
+                  ;; Unify F with (A B ...) -> T.
+                  (setf type-env
+                        (unify operator-type
+                               (cons '-> (append arg-types (list result-type)))
+                               type-env))
+                  
+                  ;; Simply return F. This will be expanded with its
+                  ;; actual type at the very end.
+                  result-type))))))
 
       ;; Compute the type of F, and then substitute all type-variables
       ;; in.
-      (let ((tt (algorithm-j (env-empty) f)))
-        (substitute-type-variables tt e)))))
+      (let ((type-expr (algorithm-j (env-empty) f)))
+        (substitute-type-variables type-expr type-env)))))
