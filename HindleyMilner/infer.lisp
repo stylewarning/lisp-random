@@ -83,14 +83,22 @@ and Y so that they unify."
       (t
        (error "Cannot unify structures.")))))
 
+(defun genericp (var prefix)
+  "Is VAR a generic variable in PREFIX?"
+  (cond
+    ((null prefix) t)
+    ((and (eql (cadar prefix) var)
+          (not (eql (caar prefix) 'let))) nil)
+    (t (genericp var (cdr prefix)))))
+
 (defun instance (x prefix counter)
-  "Generate an instance of X with fresh variables in place of the
-generic variables defined in PREFIX."
+  "Generate an instance of the type expression X with fresh variables
+in place of the generic variables defined in PREFIX."
   (labels ((instance-aux (x prefix env success)
-             "Generate an instance of X with fresh variables in place of the
-generic variables defined in PREFIX. Finally, call SUCCESS on the
-generated instance. This is used as an auxiliary routine for
-INSTANCE."
+             "Generate an instance of the type expression X with fresh
+variables in place of the generic variables defined in
+PREFIX. Finally, call SUCCESS on the generated instance. This is used
+as an auxiliary routine for INSTANCE."
              (cond
                ((and (variablep x) (genericp x prefix))
                 (if (env-bound-p x env)
@@ -111,14 +119,6 @@ INSTANCE."
                   #'(lambda (a env)
                       (declare (ignore env))
                       a))))
-
-(defun genericp (var prefix)
-  "Is VAR a generic variable in PREFIX?"
-  (cond
-    ((null prefix) t)
-    ((and (eql (cadar prefix) var)
-          (not (eql (caar prefix) 'let))) nil)
-    (t (genericp var (cdr prefix)))))
 
 
 ;;; Inference.
@@ -167,7 +167,9 @@ to see if he type of the symbol PRIM is registered."
               call/cc   (-> (-> (-> Ta Tb) Tc) Ta)
               apply     (-> (-> Ta Tb) (list Ta) Tb)
               display   (-> Ta ())
-              write     (-> Ta ()))
+              write     (-> Ta ())
+              true      bool
+              false     bool)
 
 (defun constant-type (x)
   "Determine the type of a constant X."
@@ -215,6 +217,8 @@ Algorithm W."
                     (if (eql kind 'let)
                         (instance derive-type p ctr)
                         derive-type))
+                  
+                  ;; Must be global variable.
                   (instance (find-type f) (env-empty) ctr)))
 
              ;; j(constant) => constant-type
