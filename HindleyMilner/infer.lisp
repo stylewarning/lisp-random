@@ -83,40 +83,37 @@ and Y so that they unify."
       (t
        (error "Cannot unify structures.")))))
 
-(defun genericp (var prefix)
-  "Is VAR a generic variable in PREFIX?"
+(defun genericp (var symbol-table)
+  "Is VAR a generic variable in SYMBOL-TABLE?"
   (cond
-    ((null prefix) t)
-    ((and (eql (cadar prefix) var)
-          (not (eql (caar prefix) :let))) nil)
-    (t (genericp var (cdr prefix)))))
+    ((null symbol-table) t)
+    ((and (eql (cadar symbol-table) var)
+          (not (eql (caar symbol-table) :let))) nil)
+    (t (genericp var (cdr symbol-table)))))
 
-(defun instance (x prefix counter)
+(defun instance (x symbol-table counter)
   "Generate an instance of the type expression X with fresh variables
-in place of the generic variables defined in PREFIX."
-  (labels ((instance-aux (x prefix env success)
-             "Generate an instance of the type expression X with fresh
-variables in place of the generic variables defined in
-PREFIX. Finally, call SUCCESS on the generated instance. This is used
-as an auxiliary routine for INSTANCE."
-             ;; PREFIX maps identifiers to types
-             ;; ENV maps type variables to types
+in place of the generic variables defined in SYMBOL-TABLE."
+  (labels ((instance-aux (x type-env cont)
+             ;; The general strategy here is to maintain table mapping
+             ;; the generic type variables to their instantiated
+             ;; version.
              (cond
-               ((and (variablep x) (genericp x prefix))
-                (if (env-bound-p x env)
-                    (funcall success (env-value x env) env)
-                    (let ((var (funcall counter)))
-                      (funcall success var (env-update x var env)))))
+               ((and (variablep x)
+                     (genericp x symbol-table))
+                (if (env-bound-p x type-env)
+                    (funcall cont (env-value x type-env) type-env)
+                    (let ((tyvar (funcall counter)))
+                      (funcall cont tyvar (env-update x tyvar type-env)))))
                ((consp x)
-                (instance-aux (car x) prefix env
+                (instance-aux (car x) type-env
                               #'(lambda (a env)
-                                  (instance-aux (cdr x) prefix env
+                                  (instance-aux (cdr x) env
                                                 #'(lambda (b env)
-                                                    (funcall success (cons a b) env))))))
+                                                    (funcall cont (cons a b) env))))))
                (t
-                (funcall success x env)))))
+                (funcall cont x type-env)))))
     (instance-aux x
-                  prefix
                   (env-empty)
                   #'(lambda (a env)
                       (declare (ignore env))
@@ -211,7 +208,7 @@ defined in ENV."
 Algorithm W."
            (cond
              ;; Symbol
-             ;; j(Sym) => j(val(Sym))
+             ;; j(sym) => lookup in symbol table
              ((symbolp f)
               (if (env-bound-p f symbol-table)
                   (let* ((x    (env-value f symbol-table))
