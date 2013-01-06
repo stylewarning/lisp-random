@@ -52,3 +52,8 @@
                        (exit 0)
                        (length x)))))))
 ;; :: (-> (LIST T12) NUM)
+
+(try
+ (let ((f (lambda (x) (* x x))))
+   f))
+;; :: (-> NUM NUM)
