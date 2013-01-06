@@ -1,5 +1,5 @@
 ;;;; Hindley-Milner type inference
-;;;; (c) 2010 Robert Smith
+;;;; (c) 2010-2012 Robert Smith
 
 ;;;; This is an implementation of Robin Milner's "Algorithm J" from
 ;;;; his 1978 paper `A Theory of Type Polymorphism in Programming'
@@ -214,6 +214,7 @@ Algorithm W."
                   (let* ((x    (env-value f symbol-table))
                          (kind (first x))
                          (type (second x)))
+                    ;; something is bugging out here.
                     (if (eql kind :let)
                         (instance type symbol-table ctr)
                         type))

@@ -53,6 +53,9 @@
                        (length x)))))))
 ;; :: (-> (LIST T12) NUM)
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;; Buggy test cases ;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (try
  (let ((f (lambda (x) (* x x))))
    f))
