@@ -57,3 +57,9 @@
  (let ((f (lambda (x) (* x x))))
    f))
 ;; :: (-> NUM NUM)
+
+(try
+ (lambda (x)
+   (let ((y x))
+     (+ 1 y))))
+;; :: (-> NUM NUM)
