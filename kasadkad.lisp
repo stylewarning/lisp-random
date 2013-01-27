@@ -72,6 +72,26 @@ n = START + k*STEP."
       (comb1 (coerce x 'list) nil m)
       combs)))
 
+(defun scan-subsequences (f x m)
+  (labels ((comb1 (l c m)
+             (when (>= (length l) m)
+               (when (zerop m)
+                 (funcall f 
+                          (coerce (reverse c) 'vector))
+                 (return-from comb1))
+               (comb1 (cdr l) c m)
+               (comb1 (cdr l) (cons (first l) c) (1- m)))))
+    (comb1 (coerce x 'list) nil m)))
+
+(defun count-subsequences (x n)
+  (let ((c 0))
+    (scan-subsequences (lambda (s)
+                         (declare (ignore s))
+                         (incf c))
+                       x
+                       n)
+    c))
+
 (defun permutation-matches-p (perm pattern)
   "Does the permutation PERM have a subsequence which matches the
 pattern PATTERN?"
