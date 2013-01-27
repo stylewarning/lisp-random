@@ -1,8 +1,6 @@
 ;;;; Kasadkad's avoiding stuff
 ;;;; Copyright (c) 2012 Robert Smith
 
-(declaim (optimize speed (safety 0) (debug 0)))
-
 ;;; UTILITY FUNCTIONS
 
 (declaim (inline xor list-to-vector range iota))
@@ -103,12 +101,42 @@ pattern PATTERN?"
                                      (perms (remove x l :count 1)))) l))))
     (mapcar #'list-to-vector (perms (iota n)))))
 
-(defun avoiding-patterns (permutation pattern-size)
-  "Compute a list of all of the patterns of size PATTERN-SIZE that
-  avoid the permutation PERMUTATION."
+(defun avoided-patterns (permutation pattern-size)
+  "Compute a list of all of the patterns of size PATTERN-SIZE that are
+  avoided by the permutation PERMUTATION."
   (declare (type (unsigned-byte 16) pattern-size))
   
   (let ((perms (permutations pattern-size)))
     (delete-if (lambda (pattern)
-                 (permutation-matches-p pattern permutation))
+                 (permutation-matches-p permutation pattern))
                perms)))
+
+;;; requires steinhaus-johnson-trotter . L I S P
+
+(defun scan-avoided-patterns (f permutation pattern-size)
+  (doperms (pattern pattern-size)
+    (unless (permutation-matches-p permutation pattern)
+      (funcall f pattern))))
+
+(defun count-avoid (perm patlen)
+  (let ((c 0))
+    (scan-avoided-patterns (lambda (p)
+                             (incf c))
+                           perm
+                           patlen)
+    c))
+
+(defun count-avoid-all (n k)
+  "count all of the patterns that everything in S_n avoids where the
+  patterns are in P_k"
+  (let ((total 0))
+    (doperms (perm n total)
+      (incf total (count-avoid perm k)))))
+
+(defun show-counts (max-n)
+  (loop :for n :from 1 :to max-n
+        :do (loop :for k :from 1 :to n
+                  :do (format t "n=~A k=~A: ~A~%"
+                              n
+                              k
+                              (count-avoid-all n k)))))
