@@ -1,3 +1,8 @@
+;;;; linear-interpolation.lisp
+;;;; Copyright (c) 2012-2013 Robert Smith
+
+;;; Technically we don't need to take conses for this program. Conses
+;;; are used only as a formality and can be avoided.
 (defun linear-interpolator (p1 p2)
   "Construct a linear interpolator for the points
 
@@ -19,7 +24,7 @@ and
         :collect (linear-interpolator (cons i (aref src i))
                                       (cons (1+ i) (aref src (1+ i))))))
 
-(defun src->dst (src w_d)
+(defun interpolate-array (src w_d)
   "Interpolate the 1D array SRC to a destination array of size W_D."
   (let* (
          ;; Where the interpolated points go.
@@ -35,6 +40,15 @@ and
          (delta-w (- w_d w_s))
          
          ;; The width of each gap (this will get computed).
+         ;;
+         ;; XXX: There are actually only two gap lengths: the
+         ;; BASE-GAP-SIZE and that plus one. The only thing we need to
+         ;; do is remember when to stop using the increased gap
+         ;; width. By doing this we don't have to remember gap widths,
+         ;; which is favorable for huge interpolations. The advantage
+         ;; of using a concrete array of widths is that we can do more
+         ;; flexible things, like distributing the larger gaps if we
+         ;; want to.
          (gap-widths nil)
          
          ;; Linear interpolation functions.
