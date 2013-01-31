@@ -11,11 +11,11 @@
 and
 
     P2 = (X2 . Y2)."
-  (lambda (x)
-    (let ((x1 (car p1)) (y1 (cdr p1))
-          (x2 (car p2)) (y2 (cdr p2)))
-      (let ((m (/ (- y2 y1)
-                  (- x2 x1))))
+  (let ((x1 (car p1)) (y1 (cdr p1))
+        (x2 (car p2)) (y2 (cdr p2)))
+    (let ((m (/ (- y2 y1)
+                (- x2 x1))))
+      (lambda (x)
         (+ y1 (* m (- x x1)))))))
 
 (defun make-linear-interpolators (src)
