@@ -16,7 +16,7 @@
 ;;; <regex> := <char>
 ;;;          | (:CONCAT <regex> <regex>)
 ;;;          | (:KLEENE <regex>)
-;;;          | (:REPEAT <regex>
+;;;          | (:REPEAT <regex>)
 ;;;          | (:OPTION <regex>)
 ;;;          | (:EITHER <regex> <regex>)
 
@@ -203,7 +203,7 @@ instructions."
                                    (wire-char state)))
                    (push-state (wire-out state)))))
              
-             (rotate-states ()
+             (update-states ()
                (shiftf current-states
                        next-states
                        nil))
@@ -216,12 +216,12 @@ instructions."
       
       ;; We use this hack so we do not need two PUSH-STATE functions.
       (push-state state)
-      (rotate-states)
+      (update-states)
       
       (loop :for c :across string
             :do (progn
                   (compute-next-states c)
-                  (rotate-states))
+                  (update-states))
             :finally (return (match-found-p current-states))))))
 
 (defun regex-match-p (regex string)
