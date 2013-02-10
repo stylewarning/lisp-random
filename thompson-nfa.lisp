@@ -9,6 +9,8 @@
 ;;;; T
 
 
+;;;;;;;;;;;;;;;;;;;;;;; Parsing and Conversion ;;;;;;;;;;;;;;;;;;;;;;;
+
 ;;; Regular Expression Grammar:
 ;;;
 ;;; <regex> := <char>
@@ -39,44 +41,55 @@
       (generate regex)
       (nreverse postfix))))
 
-;;; State
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; State ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defvar *state-counter* 0)
 
+;;; Abstract state
 (defstruct state
   (id (incf *state-counter*)))
 
+
+;;; A vertex with a single non-epsilon edge
 (defstruct (wire (:include state))
   char
   out)
 
+;;; A vertex with two epsilon edges
 (defstruct (junction (:include state))
   left
   right)
 
+;;; Terminal vertex, indicates a successful match
 (defstruct (terminal (:include state)))
 
-(defvar *terminal* (make-terminal))
+(defvar *terminal* (make-terminal)
+  "The terminal vertex, indicating a successful match.")
 
 (defconstant +detached+ :detached
   "Denotes an arrow in the NFA pointing to nowhere.")
 
-;;; Fragment
-;;;
-;;; A fragment holds a state and any arrows that need to be connected.
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Fragment ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; A fragment holds a state and any arrows that need to be connected.
 (defstruct fragment
   state
   arrows)
 
-(defun patch (arrows state)
+(defun connect (arrows state)
   "Connect all of the arrows ARROWS to the state STATE."
   (dolist (arrow arrows)
     (funcall arrow state)))
 
-;;; NFA Construction
+
+;;;;;;;;;;;;;;;;;;;;;;;;;; NFA Construction ;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun make-nfa (instrs)
+  "Given a list of (postfix) instructions INSTR, construct an
+NFA (represented by a state structure) which simulates the
+instructions."
   (let ((frags nil))
     (labels ((push-frag (frag)
                (push frag frags))
@@ -96,8 +109,8 @@
                      ((:CONCAT)
                       (let* ((e2 (pop-frag))
                              (e1 (pop-frag)))
-                        (patch (fragment-arrows e1)
-                               (fragment-state e2))
+                        (connect (fragment-arrows e1)
+                                 (fragment-state e2))
                         (push-frag (make-fragment
                                     :state (fragment-state e1)
                                     :arrows (fragment-arrows e2)))))
@@ -107,8 +120,8 @@
                              (s (make-junction
                                  :left (fragment-state e)
                                  :right +detached+)))
-                        (patch (fragment-arrows e)
-                               s)
+                        (connect (fragment-arrows e)
+                                 s)
                         (push-frag
                          (make-fragment
                           :state s
@@ -120,8 +133,8 @@
                              (s (make-junction
                                  :left (fragment-state e)
                                  :right +detached+)))
-                        (patch (fragment-arrows e)
-                               s)
+                        (connect (fragment-arrows e)
+                                 s)
                         (push-frag
                          (make-fragment
                           :state (fragment-state e)
@@ -159,18 +172,18 @@
       (assert (= 1 (length frags)))
       
       (let ((final (pop-frag)))
-        (patch (fragment-arrows final)
-               *terminal*)
+        (connect (fragment-arrows final)
+                 *terminal*)
         
         (fragment-state final)))))
 
-;;; NFA Simulation
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;; NFA Simulation ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun simulate-nfa (state string)
   (let ((current-states nil)
         (next-states    nil))
     (labels ((push-state (state)
-               ;;(format t "pushing state: ~S~%" state)
                (cond
                  ((eql state +detached+)
                   (warn "Found detached arrow..."))
@@ -185,7 +198,6 @@
              
              (compute-next-states (char)
                (dolist (state current-states)
-                 ;;(format t "looking at: ~S~%" state)
                  (when (and (wire-p state)
                             (char= char
                                    (wire-char state)))
@@ -193,8 +205,8 @@
              
              (rotate-states ()
                (shiftf current-states
-                          next-states
-                          nil))
+                       next-states
+                       nil))
              
              (match-found-p (states)
                ;; XXX: This does a simple pointer check. This could
