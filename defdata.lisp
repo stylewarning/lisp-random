@@ -1,8 +1,39 @@
 ;;;; defdata.lisp
 ;;;; Copyright (c) 2013 Robert Smith
 
-(defvar *field-suffix* "FIELD-")
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defvar *field-suffix* "%")
+  (defvar *constructors* (make-hash-table))
+  
+  (defun get-constructors (adt)
+    (gethash adt *constructors*))
+  
+  (defun set-constructors (adt constructors)
+    (setf (gethash adt *constructors*)
+          constructors)))
 
+(defmacro define-constant (name value &optional doc)
+  `(defconstant ,name (if (boundp ',name) (symbol-value ',name) ,value)
+     ,@(when doc (list doc))))
+
+;;; Utilities
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun wild? (s)
+    (and (symbolp s)
+         (string= "_" (symbol-name s))))
+  
+  (defun ensure-list (x)
+    (if (listp x)
+        x
+        (list x)))
+  
+  (defun ensure-car (x)
+    (if (consp x)
+        (car x)
+        x)))
+
+
+;;; DEFDATA definition
 (flet ((unwrap-singletons (list)
          (mapcar #'(lambda (x)
                      (if (and (listp x)
@@ -10,11 +41,6 @@
                          (first x)
                          x))
                  list))
-       
-       (ensure-car (obj)
-         (if (consp obj)
-             (car obj)
-             obj))
        
        (gen-names (n)
          (loop :for i :below n
@@ -30,9 +56,14 @@
                :collect
                (etypecase ctor
                  ;; Nullary constructor
-                 (symbol `(defstruct (,ctor
-                                      (:include ,adt-name)
-                                      (:constructor ,ctor))))
+                 (symbol `(progn
+                            (defstruct (,ctor
+                                        (:include ,adt-name)
+                                        (:constructor ,ctor)))
+                            (define-constant ,ctor (,ctor))
+                            (fmakunbound ',ctor)))
+                 
+                 ;; N-ary constructors
                  (list (let* ((ctor-name (first ctor))
                               (field-types (rest ctor))
                               (field-names (gen-names (length field-types))))
@@ -45,14 +76,16 @@
                                field-names
                                field-types))))))
        
+       ;; Add constructors to database
+       ,(set-constructors adt-name
+                          (mapcar #'ensure-car constructors))
+       
+       ;; Return the type name
        ',adt-name)))
 
-(labels ((field (name n)
-           (intern (format nil "~A-~A~D" name *field-suffix* n)
-                   (symbol-package name)))
-         
-         (wild? (s)
-           (string= "_" (symbol-name s))))
+(flet ((field (name n)
+           (intern (format nil "~A~A~D" name *field-suffix* n)
+                   (symbol-package name))))
 
   ;; Setter
   (defmacro set-data (obj (name &rest new-values))
@@ -77,5 +110,32 @@
          (let (,@bindings)
            ,@body)))))
 
-;; TODO
-;; (defmacro match (obj &body clauses))
+(defmacro match (adt obj &body clauses)
+  (assert (symbolp adt)
+          (adt)
+          "MATCH requires a symbol for the first argument. Given ~S."
+          adt)
+  
+  (let ((ctors (get-constructors adt))
+        (types (mapcar (lambda (clause)
+                         (ensure-car (car clause)))
+                       clauses))
+        (once (gensym "ONCE-")))
+    
+    ;; Check for match exhaustiveness.
+    (unless (some #'wild? types)
+      (let ((diff (set-difference ctors types)))
+        (when diff
+          (warn "Non-exhaustive match. Missing cases: ~S" diff))))
+    
+    ;; Generate the matching code.
+    `(let ((,once ,obj))
+       (etypecase ,obj
+         ,@(loop :for (bindings . body) :in clauses
+                 :collect (let ((type (ensure-car bindings)))
+                            (if (wild? type)
+                                `(t ,@body)
+                                `(,type 
+                                  (with-data ,(ensure-list bindings)
+                                             ,once
+                                    ,@body)))))))))
