@@ -1,8 +1,11 @@
 ;;;; defdata.lisp
 ;;;; Copyright (c) 2013 Robert Smith
+;;;;
+;;;; See defdata-examples.lisp for examples.
+
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
-  (defvar *field-suffix* "%")
+  (defvar *field-prefix* "%")
   (defvar *constructors* (make-hash-table))
   
   (defun get-constructors (adt)
@@ -10,14 +13,14 @@
   
   (defun set-constructors (adt constructors)
     (setf (gethash adt *constructors*)
-          constructors)))
-
-(defmacro define-constant (name value &optional doc)
-  `(defconstant ,name (if (boundp ',name) (symbol-value ',name) ,value)
-     ,@(when doc (list doc))))
-
-;;; Utilities
-(eval-when (:compile-toplevel :load-toplevel :execute)
+          constructors))
+  
+  (defmacro define-constant (name value &optional doc)
+    `(defconstant ,name (if (boundp ',name)
+                            (symbol-value ',name)
+                            ,value)
+       ,@(when doc (list doc))))
+  
   (defun wild? (s)
     (and (symbolp s)
          (string= "_" (symbol-name s))))
@@ -30,7 +33,10 @@
   (defun ensure-car (x)
     (if (consp x)
         (car x)
-        x)))
+        x))
+  
+  (defun internal (s)
+    (intern (format nil "%~A" s))))
 
 
 ;;; DEFDATA definition
@@ -44,9 +50,15 @@
        
        (gen-names (n)
          (loop :for i :below n
-               :collect (make-symbol (format nil "~A~D" *field-suffix* i)))))
+               :collect (make-symbol (format nil "~A~D" *field-prefix* i)))))
   
   (defmacro defdata (adt-name &body constructors)
+    
+    ;; Add constructors to the database.
+    (set-constructors adt-name
+                      (mapcar #'ensure-car constructors))
+    
+    ;; Define everything.
     `(progn
        ;; Define the data type.
        (defstruct (,adt-name (:constructor nil)))
@@ -59,9 +71,9 @@
                  (symbol `(progn
                             (defstruct (,ctor
                                         (:include ,adt-name)
-                                        (:constructor ,ctor)))
-                            (define-constant ,ctor (,ctor))
-                            (fmakunbound ',ctor)))
+                                        (:constructor ,(internal ctor))))
+                            (define-constant ,ctor (,(internal ctor)))
+                            (fmakunbound ',(internal ctor))))
                  
                  ;; N-ary constructors
                  (list (let* ((ctor-name (first ctor))
@@ -69,22 +81,19 @@
                               (field-names (gen-names (length field-types))))
                          `(defstruct (,ctor-name
                                       (:include ,adt-name)
-                                      (:constructor ,ctor-name (,@field-names)))
+                                      (:constructor ,ctor-name (,@field-names))
+                                      (:conc-name ,ctor-name))
                             ,@(mapcar #'(lambda (name type)
                                           `(,name (error "Unspecified field.")
                                                   :type ,type))
                                field-names
                                field-types))))))
        
-       ;; Add constructors to database
-       ,(set-constructors adt-name
-                          (mapcar #'ensure-car constructors))
-       
        ;; Return the type name
        ',adt-name)))
 
 (flet ((field (name n)
-           (intern (format nil "~A~A~D" name *field-suffix* n)
+           (intern (format nil "~A~A~D" name *field-prefix* n)
                    (symbol-package name))))
 
   ;; Setter
@@ -107,6 +116,7 @@
                              :collect `(,v (,(field name i)
                                             ,once)))))
       `(let ((,once ,obj))
+         (declare (ignorable ,once))
          (let (,@bindings)
            ,@body)))))
 
