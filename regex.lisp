@@ -1,4 +1,4 @@
-;;;; thompson-nfa.lisp
+;;;; regex.lisp
 ;;;; Copyright (c) 2013 Robert Smith
 
 ;;;; Example use:
@@ -45,6 +45,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; State ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defvar *state-counter* 0)
+
+;;; TODO: use ADT
 
 ;;; Abstract state
 (defstruct state
