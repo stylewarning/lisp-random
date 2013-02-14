@@ -1,11 +1,5 @@
 ;;;; Cycle Detection
-;;;; Code copyright (c) 2011 Robert Smith
-;;;; Challenge copyright (c) 2011 T. Thain
-
-;;;; CHALLENGE: Given a sequence s = (s1, ..., sn, ...), determine if
-;;;; S is cyclical.
-
-(use-package :qtility)
+;;;; Copyright (c) 2011-2013 Robert Smith
 
 (defun cyclicp (function origin &key (test 'equalp))
   "Compute the phase and period of the function
@@ -19,7 +13,7 @@ phase respectively. FUNCTION should have a type signature of
 
 where Eq denotes that A has an equality predicate TEST."
   (flet ((f (x) (funcall function x))
-         (f^2 (x) (funcall (compose function function) x)))
+         (f^2 (x) (funcall function (funcall function x))))
     (let (start-of-cycle
           coinciding-position
           phase
@@ -31,7 +25,6 @@ where Eq denotes that A has an equality predicate TEST."
         :for tortoise := (f origin) :then (f tortoise)
         :for hare := (f^2 origin) :then (f^2 hare)
         :until (funcall test tortoise hare)
-        :do (do-nothing)
         :finally (setf coinciding-position hare))
       
       ;; Calculate the "phase" of the cycle. The phase is the distance
@@ -45,7 +38,6 @@ where Eq denotes that A has an equality predicate TEST."
         :for tortoise-1 := origin :then (f tortoise-1)
         :for tortoise-2 := coinciding-position :then (f tortoise-2)
         :until (funcall test tortoise-1 tortoise-2)
-        :do (do-nothing)
         :finally (setf phase          steps
                        start-of-cycle tortoise-1))
       
@@ -57,7 +49,6 @@ where Eq denotes that A has an equality predicate TEST."
         :for steps := 1 :then (1+ steps)
         :for tortoise := (f start-of-cycle) :then (f tortoise)
         :until (funcall test start-of-cycle tortoise)
-        :do (do-nothing)
         :finally (setf period steps))
       
       (values period phase))))
@@ -68,13 +59,23 @@ where Eq denotes that A has an equality predicate TEST."
                (throw :finite-list nil)
                (cdr lst))))
     (when (consp list)
-      (boolify (catch :finite-list (cyclicp #'safe-cdr list))))))
+      (and (catch :finite-list (cyclicp #'safe-cdr list))
+           t))))
+
+
+;;; Tests
 
 (defun test-this-out ()
-  (assert (eq nil (cyclic-list-p '(1 2 3 4 5))))
-  (assert (eq t (cyclic-list-p (cycle '(1 2 3 4 5)))))
-  (assert (eq nil (cyclic-list-p '())))
-  (assert (eq nil (cyclic-list-p 5)))
-  (assert (eq t (cyclic-list-p (append '(1 2 3 4 5)
-                                       (cycle (list 8 2 4 7 0 1 1 3))))))
-  t)
+  (flet ((cycle (list)
+           "Make LIST into a circular list."
+           (and list
+                (let ((list (copy-list list)))
+                  (setf (rest (last list)) list)))))
+    
+    (assert (eq nil (cyclic-list-p '(1 2 3 4 5))))
+    (assert (eq t (cyclic-list-p (cycle '(1 2 3 4 5)))))
+    (assert (eq nil (cyclic-list-p '())))
+    (assert (eq nil (cyclic-list-p 5)))
+    (assert (eq t (cyclic-list-p (append '(1 2 3 4 5)
+                                         (cycle (list 8 2 4 7 0 1 1 3))))))
+    t))
