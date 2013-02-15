@@ -1,6 +1,13 @@
 ;;;; symbolic-function.lisp
 ;;;; Copyright (c) 2012 Robert Smith
 
+;;;; *********************************************************
+;;;; NOTE: THIS CODE HAS BEEN SUPERSEDED BY
+;;;;
+;;;; https://bitbucket.org/tarballs_are_good/symbolic-function
+;;;;
+;;;; *********************************************************
+
 ;;; Requires MOP.
 #-closer-mop
 (ql:quickload "CLOSER-MOP")
@@ -78,7 +85,7 @@ bound to the expression EXPRESSION."
   `(progn
      (when (fboundp ',name)
        (warn "Redefining (symbolic) function ~S." ',name))
-     (setf (symbol-function ',name)
+     (setf (fdefinition ',name)
            (make-symbolic-function ',param-list
                                    ',expression))
      ',name))

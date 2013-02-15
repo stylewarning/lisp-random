@@ -118,7 +118,7 @@
   (check-type name     symbol)
   (check-type argument symbol)
   `(progn
-     (setf (symbol-function ',name)
+     (setf (fdefinition ',name)
            (make-instance 'dual-function
                           :function (lambda (,argument) ,function)
                           :derivative (lambda (,argument) ,derivative)))
