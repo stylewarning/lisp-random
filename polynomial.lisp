@@ -39,6 +39,14 @@
           :initial-value 0
           :from-end t))
 
+(defun poly-diff (p)
+  "Compute the derivative of the polynomial P."
+  (if (poly-zerop p)
+      +zero+
+      (loop :for i :from 1 :below (length p)
+            :collect (* i (aref p i)) :into dp
+            :finally (return (coerce dp 'vector)))))
+
 ;; XXX LENGTH COULD BE BUGGY
 (defun lc (p)
   "Get the leading coefficient."
@@ -236,3 +244,9 @@
         (array-dimensions matrix)
       (assert (= h w) (matrix) "Matrix must be square. Given ~Ax~A." h w)
       (det matrix w))))
+
+(defun resultant (p q)
+  "Compute the resultant of the polynomials P and Q."
+  (* (expt (lc p) (degree q))
+     (expt (lc q) (degree p))
+     (determinant (sylvester-matrix p q))))
