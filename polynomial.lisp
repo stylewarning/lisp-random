@@ -39,9 +39,14 @@
           :initial-value 0
           :from-end t))
 
+;; XXX LENGTH COULD BE BUGGY
 (defun lc (p)
   "Get the leading coefficient."
   (aref p (1- (length p))))
+
+(defun leading-term (p)
+  (let ((d (degree p)))
+    (term (aref p d) d)))
 
 (defun poly-neg (p)
   "Negate a polynomial P."
@@ -87,8 +92,21 @@
   (if (zerop factor)
       +zero+
       (map 'vector (lambda (c)
-                     (* x factor))
+                     (* c factor))
            p)))
+
+(defun poly-mul-term (p term)
+  (let ((coef (term-coefficient term))
+        (exponent (term-exponent term)))
+    (if (zerop exponent)
+        (poly-scale p coef)
+        (let ((prod (zero-poly (+ (degree p)
+                                  exponent))))
+          (loop :for i :from exponent
+                :for c :across p
+                :do (setf (aref prod i)
+                          (* coef c))
+                :finally (return prod))))))
 
 (defun poly-mul (p q)
   (let ((lp (length p))
@@ -110,14 +128,20 @@
   (if (poly-zerop d)
       (error 'division-by-zero :operands (list n d)
                                :operation '/)
-      (loop :with q := +zero+
-            :and  r := n
-            :and  temp := 0
-            :while (and (not (poly-zerop r))
-                        (>= (degree r)
-                            (degree d)))
-            ;; this is not correct.
-            :do (let ((next (/ (lc r) (lc d))))
-                  (psetf q (+ (aref q 0)) (+ q next)
-                         r (- r (* next d))))
-            :finally (return (values q r)))))
+      (flet ((lt-quotient (a b)
+               (let ((la (leading-term a))
+                     (lb (leading-term b)))
+                 (term (/ (term-coefficient la)
+                          (term-coefficient lb))
+                       (- (term-exponent la)
+                          (term-exponent lb))))))
+        (loop :with q := +zero+
+              :and  r := n
+              :while (and (not (poly-zerop r))
+                          (>= (degree r)
+                              (degree d)))
+              ;; this is not correct.
+              :do (let ((next (lt-quotient r d)))
+                    (psetf q (poly-add-term q next)
+                           r (poly-sub r (poly-mul-term d next))))
+              :finally (return (values q r))))))
