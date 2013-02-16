@@ -26,6 +26,7 @@
   (defun thue-morse-displaced (n)
     (declare (type array-bound n))
     (labels ((rec (length)
+               (declare (type array-bound length))
                (if (< n length)
                    bits
                    (let ((double-length (* 2 length)))
@@ -44,14 +45,13 @@
   (defun thue-morse-bit-not (n)
     (declare (type array-bound n))
     (labels ((rec (length)
+               (declare (type array-bound length))
                (if (< n length)
                    bits
-                   (let ((double-length (* 2 length)))
-                     (adjust-array bits double-length :element-type 'bit
-                                                      :initial-element 0)
-                     (setf (subseq bits length)
-                           (bit-not (subseq bits 0 length)))
-                     (rec double-length)))))
+                   (progn
+                     (setf bits
+                           (concatenate 'bit-vector bits (bit-not bits)))
+                     (rec (* 2 length))))))
       (rec (length bits)))))
 
 (let ((bits (make-array 1 :element-type 'bit
@@ -60,6 +60,7 @@
   (defun thue-morse-loop (n)
     (declare (type array-bound n))
     (labels ((rec (length)
+               (declare (type array-bound length))
                (if (< n length)
                    bits
                    (let ((double-length (* 2 length)))
