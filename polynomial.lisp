@@ -100,7 +100,7 @@
         (exponent (term-exponent term)))
     (if (zerop exponent)
         (poly-scale p coef)
-        (let ((prod (zero-poly (+ (degree p)
+        (let ((prod (zero-poly (+ 1 (degree p)
                                   exponent))))
           (loop :for i :from exponent
                 :for c :across p
@@ -140,7 +140,6 @@
               :while (and (not (poly-zerop r))
                           (>= (degree r)
                               (degree d)))
-              ;; this is not correct.
               :do (let ((next (lt-quotient r d)))
                     (psetf q (poly-add-term q next)
                            r (poly-sub r (poly-mul-term d next))))
