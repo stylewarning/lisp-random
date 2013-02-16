@@ -13,83 +13,43 @@
   (declare (type bit n))
   (the bit (- 1 n)))
 
+(declaim (inline smallest-power-of-2-greater-than))
+(defun smallest-power-of-2-greater-than (n)
+  (declare (type array-bound n))
+  (expt 2 (ceiling (log n 2))))
+
+(declaim (inline grow-to))
+(defun grow-to (array n)
+  (declare (type simple-bit-vector array)
+           (type array-bound n))
+  (replace (make-array n :element-type 'bit
+                         :initial-element 0)
+           array))
+
 (defun thue-morse-bit (n)
+  "Find the Nth bit of the Thue-Morse sequence, starting from zero."
   (declare (type (integer 0) n))
   (cond
     ((zerop n) 0)
     ((evenp n) (thue-morse-bit (floor n 2)))
     (t (flip (thue-morse-bit (floor n 2))))))
 
-(let ((bits (make-array 1 :element-type 'bit
-                          :initial-element 0
-                          :adjustable t)))
-  (defun thue-morse-displaced (n)
-    (declare (type array-bound n))
-    (labels ((rec (length)
-               (declare (type array-bound length))
-               (if (< n length)
-                   bits
-                   (let ((double-length (* 2 length)))
-                     (adjust-array bits double-length :element-type 'bit
-                                                      :initial-element 0)
-                     (let ((upper-half (make-array length :element-type 'bit
-                                                          :displaced-to bits
-                                                          :displaced-index-offset length)))
-                       (map-into upper-half #'flip bits)
-                       (rec double-length))))))
-      (rec (length bits)))))
-
 (let ((bits #*0))
-  (defun thue-morse-bit-not (n)
+  (defun thue-morse (n)
+    "Compute the Thue-Morse sequence for at least the number of
+iterations to compute (THUE-MORSE-BIT N). The result is memoized."
     (declare (type array-bound n))
-    (labels ((rec (length)
-               (declare (type array-bound length))
-               (if (< n length)
-                   bits
-                   (progn
-                     (setf bits
-                           (concatenate 'bit-vector bits (bit-not bits)))
-                     (rec (* 2 length))))))
-      (rec (length bits)))))
-
-(declaim (inline smallest-power-of-2-greater-than))
-(defun smallest-power-of-2-greater-than (n)
-  (expt 2 (ceiling (log n 2))))
-
-(declaim (inline grow-to))
-(defun grow-to (array n)
-  (declare (type bit-vector array)
-           (type array-bound n))
-  (replace (make-array n :element-type 'bit
-                         :initial-element 0)
-           array))
-
-(let ((bits #*0))
-  (defun thue-morse-loop (n)
-    (declare (type array-bound n))
-    (labels ((rec (from to)
-               (declare (type array-bound from to))
-               (if (= from to)
-                   bits
-                   (progn
-                     (dotimes (i from)
-                       (setf (aref bits (+ i from))
-                             (flip (aref bits i))))
-                     (rec (* 2 from) to)))))
-      (let ((length (length bits)))
-        (if (< n length)
-            bits
-            (let ((from length)
-                  (to   (smallest-power-of-2-greater-than n)))
+    (let ((length (length bits)))
+      (if (< n length)
+          bits
+          (let ((to (smallest-power-of-2-greater-than n)))
+            (labels ((rec (from)
+                       (declare (type array-bound from))
+                       (if (= from to)
+                           bits
+                           (dotimes (i from (rec (* 2 from)))
+                             (setf (aref bits (+ i from))
+                                   (flip (aref bits i)))))))
+              
               (setf bits (grow-to bits to))
-              (rec from to)))))))
-
-(defun test (n)
-  (gc :full t)
-  (time (thue-morse-displaced n))
-  (gc :full t)
-  (time (thue-morse-bit-not n))
-  (gc :full t)
-  (time (thue-morse-loop n))
-  (gc :full t)
-  t)
+              (rec length)))))))
