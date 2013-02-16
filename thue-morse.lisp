@@ -39,9 +39,7 @@
                        (rec double-length))))))
       (rec (length bits)))))
 
-(let ((bits (make-array 1 :element-type 'bit
-                          :initial-element 0
-                          :adjustable t)))
+(let ((bits #*0))
   (defun thue-morse-bit-not (n)
     (declare (type array-bound n))
     (labels ((rec (length)
@@ -54,23 +52,37 @@
                      (rec (* 2 length))))))
       (rec (length bits)))))
 
-(let ((bits (make-array 1 :element-type 'bit
-                          :initial-element 0
-                          :adjustable t)))
+(declaim (inline smallest-power-of-2-greater-than))
+(defun smallest-power-of-2-greater-than (n)
+  (expt 2 (ceiling (log n 2))))
+
+(declaim (inline grow-to))
+(defun grow-to (array n)
+  (declare (type bit-vector array)
+           (type array-bound n))
+  (replace (make-array n :element-type 'bit
+                         :initial-element 0)
+           array))
+
+(let ((bits #*0))
   (defun thue-morse-loop (n)
     (declare (type array-bound n))
-    (labels ((rec (length)
-               (declare (type array-bound length))
-               (if (< n length)
+    (labels ((rec (from to)
+               (declare (type array-bound from to))
+               (if (= from to)
                    bits
-                   (let ((double-length (* 2 length)))
-                     (adjust-array bits double-length :element-type 'bit
-                                                      :initial-element 0)
-                     (dotimes (i length)
-                       (setf (aref bits (+ i length))
+                   (progn
+                     (dotimes (i from)
+                       (setf (aref bits (+ i from))
                              (flip (aref bits i))))
-                     (rec double-length)))))
-      (rec (length bits)))))
+                     (rec (* 2 from) to)))))
+      (let ((length (length bits)))
+        (if (< n length)
+            bits
+            (let ((from length)
+                  (to   (smallest-power-of-2-greater-than n)))
+              (setf bits (grow-to bits to))
+              (rec from to)))))))
 
 (defun test (n)
   (gc :full t)
