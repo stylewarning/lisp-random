@@ -147,6 +147,19 @@
 
 ;;; Tricker stuff
 
+(defmacro domatrix ((i j mij m &optional result) &body body)
+  (let ((once (gensym "ONCE-"))
+        (rows (gensym "ROWS-"))
+        (cols (gensym "COLS-")))
+    `(let ((,once ,m))
+       (destructuring-bind (,rows ,cols)
+           (array-dimensions ,once)
+         (loop :for ,i :below ,rows
+               :do (loop :for ,j :below ,cols
+                         :do (let ((,mij (aref ,once ,i ,j)))
+                               ,@body))
+               :finally (return ,result))))))
+
 (defun sylvester-matrix (p q)
   "Compute the Sylvester matrix of polynomials P and Q."
   (let* ((deg-p (degree p))
@@ -165,3 +178,61 @@
                               (aref q (- deg-q j)))))
     
     syl))
+
+(defun submatrix (matrix row-from col-from row-to col-to)
+  (let* ((w (1+ (- col-to col-from)))
+         (h (1+ (- row-to row-from)))
+         (result (make-array (list h w) :initial-element 0)))
+    (loop :for row :from row-from :to row-to
+          :for i :from 0
+          :do (loop :for col :from col-from :to col-to
+                    :for j :from 0
+                    :do (setf (aref result i j)
+                              (aref matrix row col)))
+          :finally (return result))))
+
+
+
+(defun minor-matrix (matrix row col)
+  "Compute the minor matrix of the matrix MATRIX, which is the matrix
+  resulting from deleting the ROWth row and COLth column."
+  (flet ((norm-row (x)
+           (if (>= x row)
+               (1- x)
+               x))
+         (norm-col (x)
+           (if (>= x col)
+               (1- x)
+               x)))
+    (destructuring-bind (nrows ncols)
+        (array-dimensions matrix)
+      (let ((result (make-array (list (1- nrows)
+                                      (1- ncols))
+                                :initial-element 0)))
+        (domatrix (i j mij matrix result)
+          (unless (or (= i row)
+                      (= j col))
+            (setf (aref result (norm-row i)
+                               (norm-col j))
+                  mij)))))))
+
+(defun determinant (matrix)
+  (labels ((cofactor (matrix row col dim)
+             (* (expt -1 (+ row col))
+                (det (minor-matrix matrix row col) (1- dim))))
+           
+           (det (matrix dim)
+             (if (= 2 dim)
+                 (- (* (aref matrix 0 0)
+                       (aref matrix 1 1))
+                    (* (aref matrix 0 1)
+                       (aref matrix 1 0)))
+                 (loop :for i :below dim
+                       :for mi0 := (aref matrix i 0)
+                       :sum (if (zerop mi0)
+                                0
+                                (* mi0 (cofactor matrix i 0 dim)))))))
+    (destructuring-bind (h w)
+        (array-dimensions matrix)
+      (assert (= h w) (matrix) "Matrix must be square. Given ~Ax~A." h w)
+      (det matrix w))))
