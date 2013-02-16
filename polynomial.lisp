@@ -3,6 +3,11 @@
 
 (defvar +zero+ #(0))
 
+(defstruct (term (:constructor term (coefficient exponent))
+                 (:predicate termp))
+  (coefficient 0 :type real)
+  (exponent 0 :type integer))
+
 (defun normalize-poly (p)
   "Normalize the polynomial P."
   (let ((last (position-if-not #'zerop p :from-end t))
@@ -11,6 +16,9 @@
       ((null last) +zero+)
       ((= (1- length) last) p)
       (t (subseq p 0 (1+ last))))))
+
+(defun copy-poly (p)
+  (copy-seq p))
 
 (defun degree (p)
   "Compute the degree of a polynomial P."
@@ -38,6 +46,23 @@
 (defun poly-neg (p)
   "Negate a polynomial P."
   (map 'vector (lambda (x) (- x)) p))
+
+(defun poly-add-term (p term)
+  (let ((coef (term-coefficient term))
+        (exponent (term-exponent term)))
+    (if (< exponent
+           (length p)) ; This is an optimization for non-normalized P
+        (let ((sum (copy-poly p)))
+          (setf (aref sum exponent)
+                (+ (aref sum exponent)
+                   coef))
+          sum)
+        (let ((sum (make-array (1+ exponent) :initial-element 0)))
+          (replace sum p)
+          (setf (aref sum exponent)
+                (+ (aref sum exponent)
+                   coef))
+          sum))))
 
 (defun poly-add (p q)
   (let ((l1 (length p))
