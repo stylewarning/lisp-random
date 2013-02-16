@@ -144,3 +144,24 @@
                     (psetf q (poly-add-term q next)
                            r (poly-sub r (poly-mul-term d next))))
               :finally (return (values q r))))))
+
+;;; Tricker stuff
+
+(defun sylvester-matrix (p q)
+  "Compute the Sylvester matrix of polynomials P and Q."
+  (let* ((deg-p (degree p))
+         (deg-q (degree q))
+         (r (+ deg-p deg-q))
+         (syl (make-array (list r r) :initial-element 0)))
+    (loop :for i :below deg-q
+          :do (loop :for j :to deg-p
+                    :do (setf (aref syl i (+ i j))
+                              (aref p (- deg-p j)))))
+    
+    (loop :for i :below deg-p
+          :for row := (+ i deg-q)
+          :do (loop :for j :to deg-q
+                    :do (setf (aref syl row (+ i j))
+                              (aref q (- deg-q j)))))
+    
+    syl))
