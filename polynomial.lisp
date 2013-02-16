@@ -250,3 +250,15 @@
   (* (expt (lc p) (degree q))
      (expt (lc q) (degree p))
      (determinant (sylvester-matrix p q))))
+
+;; If P(a) = 0 and Q(b) = 0, then
+;;
+;;   R(t) = res(P(x), Q(t - x))
+;;
+;; is a polynomial whose root is a + b.
+;;
+;; Similarly,
+;;
+;;   R(t) = res(P(x), x^n Q(t/x))
+;;
+;; is a polynomial whose root is a*b.
