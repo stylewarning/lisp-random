@@ -47,5 +47,7 @@
 ;;; This DEFSETF is actually incorrect. It is possible that the writer
 ;;; function can take multiple values. To use the full functionality,
 ;;; one must simply use LOCATIVE-WRITER.
+;;;
+;;; FIXME: Use DEFINE-SETF-EXPANDER instead.
 (defsetf dereference (locative) (new-val)
   `(funcall (locative-writer ,locative) ,new-val))
