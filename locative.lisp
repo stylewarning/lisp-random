@@ -1,6 +1,14 @@
 ;;;; locative.lisp
 ;;;; Copyright (c) 2013 Robert Smith
+
+
+;;;; DEPRECATED DEPRECATED DEPRECATED DEPRECATED DEPRECATED
 ;;;;
+;;;; Use CL-LOCATIVES instead. It supersedes this.
+;;;;
+;;;; DEPRECATED DEPRECATED DEPRECATED DEPRECATED DEPRECATED
+
+
 ;;;; This is an example implementation of locatives by using closures
 ;;;; and GET-SETF-EXPANSION.
 ;;;;
