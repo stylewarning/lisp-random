@@ -40,7 +40,10 @@
                              (assert-proper-plist (cdr the-cons)))
                      :do (return the-cons)
                    :finally (return nil))))
-    ;; First the first good key and delete any bad key-value pairs
+    (declare (inline assert-proper-plist
+                     bad-key-p
+                     find-first))
+    ;; Find the first good key and delete any bad key-value pairs
     ;; between it and the start.
     (let ((first (find-first)))
       (unless (eq first plist)
@@ -49,7 +52,7 @@
       
       ;; At this point, we know FIRST points to the first key
       ;; which exists, or NIL.
-      (loop :with last-good := first ; Keep the last good key
+      (loop :with last-good := first    ; Keep the last good key
             :for the-cons :on (cddr first) :by #'cddr
             :do (progn
                   (assert-proper-plist (cdr the-cons))
