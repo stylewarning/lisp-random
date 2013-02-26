@@ -1,6 +1,12 @@
 ;;;; dynamic-collector.lisp
 ;;;; Copyright (c) 2013 Robert Smith
 
+;;;; DEPRECATED DEPRECATED DEPRECATED DEPRECATED DEPRECATED DEPRECATED
+;;;;
+;;;; This code has been superseded by the DYNAMIC-COLLECT package.
+;;;;
+;;;; DEPRECATED DEPRECATED DEPRECATED DEPRECATED DEPRECATED DEPRECATED
+
 (define-condition messenger (condition)
   ((payload :initarg :payload
             :reader messenger-payload)
