@@ -1,12 +1,15 @@
 ;;;; pslq.lisp
 ;;;; Copyright (c) 2012 Robert Smith
 
-;;;; An implementation of the PSLQ algorithm.
+;;;; An implementation of lattice reduction with the PSLQ algorithm.
+;;;; 
+;;;; Problem: Given a vector u in Rⁿ, find a vector v in Zⁿ such that
+;;;; such that u.v = 0 and |v| is minimal.
 
 (declaim (optimize (speed 0) safety debug))
 
 #+clisp
-(setf (ext:long-float-digits) 100)
+(setf (ext:long-float-digits) 500)
 
 ;;;;;;;;;;;;;;;;;;;;; Matrix & Vector Arithmetic ;;;;;;;;;;;;;;;;;;;;;
 
@@ -164,6 +167,12 @@ and metric function KEY."
   "Compute the binary exponent of the floating point value F."
   (nth-value 1 (decode-float f)))
 
+(defun min-max-exponent (vec)
+  (loop :for x :across vec
+        :minimizing (float-exponent x) :into mini
+        :maximizing (float-exponent x) :into maxi
+        :finally (return (values mini maxi))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; PSLQ ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defvar *pslq-verbose* t
@@ -251,11 +260,11 @@ Perform up to MAX-ITERATIONS iterations, or infinitely many when null.
     
     ;; Loop
     
-    (prog (m (iterations 0))
+    (prog (m (iterations 0) (old nil))
        
      :start
        
-       (when max-iterations (incf iterations))
+       (incf iterations)
        
        ;; Step Loop.1: Compute M.
        
@@ -331,30 +340,50 @@ Perform up to MAX-ITERATIONS iterations, or infinitely many when null.
        (let* ((max-a (max-entry a))
               (min-y-idx (max-index y :key 'abs :predicate '<))
               (min-y (aref y min-y-idx))
-              (relation (column b min-y-idx)))
+              (relation (column b min-y-idx))
+              (new (min-max-exponent y)))
          (when *pslq-verbose*
-           (format t "Iteration: ~A~%" iterations)
-           (format t "Max of A: ~A~%" max-a)
-           (format t "Min of Y: Y[~A] = ~A~%"
-                   min-y-idx
-                   min-y)
-           (format t "Y = ~A~%" y)
-           (format t "Norm: ~A~%" bound)
-           (format t "Relation R: ~A~%" (column b min-y-idx))
-           (format t "R.X = ~A~%" (dot relation x))
-           (terpri)
+           (format t "~6,' D: ~S~%" iterations relation)
+           
+           (progn
+             (format t "Max of A: ~A~%" max-a)
+             (format t "Min of Y: Y[~A] = ~A~%"
+                     min-y-idx
+                     min-y)
+             (format t "Y = ~A~%" y)
+             (format t "Norm: ~A~%" bound)
+             (multiple-value-bind (mini maxi) (min-max-exponent y)
+               (format t "MAX/MIN = ~A~%" (float (/ maxi mini))))
+             (format t "Relation R: ~A~%" relation)
+             (format t "R.X = ~A~%" (dot relation x)))
+           
+           ;(terpri)
            (force-output))
+         
+         
          
          (cond
            ;; XXX: Check Max(A)
-           ((<= (abs min-y) tolerance)    (return relation))
+           ((<= (abs min-y) tolerance)
+            (return relation))
+           
+           #+#:ignore
+           ((and old (>= (* 0.5 (abs new)) (abs old)))
+            (warn "Probable relation found: ~S" relation)
+            (if (y-or-n-p "Continue?")
+                (go :start)
+                (return relation)))
+           
            ((and max-iterations
                  (>= iterations max-iterations))
             (progn
               (when *pslq-verbose*
                 (format t "Max iterations exceeded."))
               nil))
-           (t (go :start)))))))
+           
+           (t (progn 
+                (setf old new)
+                (go :start))))))))
 
 (defun find-poly (a degree)
   "Find a polynomial p of degree DEGREE such that A is a root."
@@ -383,3 +412,6 @@ Perform up to MAX-ITERATIONS iterations, or infinitely many when null.
                             8)))
   (format t "~&All tests passed!~%")
   t)
+
+(defun x^n-1 (n)
+  (find-poly (expt 2.0L0 (/ (float n 1.0L0))) n))
