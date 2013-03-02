@@ -2,7 +2,7 @@
 ;;;; Copyright (c) 2013 Robert Smith
 
 
-;;;; Special edges
+;;;; Special edges and utilities
 
 (defconstant nul (code-char 0)
   "No transition.")
@@ -16,76 +16,47 @@
 (defun eps? (char)
   (char= char eps))
 
+(defun array-from-list (list-rep)
+  (let ((rows (length list-rep))
+        (cols (length (first list-rep))))
+    (make-array (list rows cols)
+                :initial-contents list-rep)))
 
-;;;; Adjacency matrix manipulation
+(defun explode (string)
+  (coerce string 'list))
 
-(defun adjacency-matrix (vertex-count &optional contents)
-  (make-array (list vertex-count vertex-count)
-              :initial-element nul
-              :initial-contents contents))
+;;;; DFA Representation
 
-(defun transition (matrix from to)
-  (aref matrix from to))
+(defstruct dfa
+  state-count
+  alphabet
+  start-state
+  accepting-states
+  transition-table)
 
-(defsetf transition (matrix from to) (new-val)
-  (setf (aref matrix from to) new-val))
+(defun dfa-of-transition-table (table accepting-states)
+  (make-dfa
+   :state-count (length (rest table))
+   :alphabet (coerce (first table) 'vector)
+   :start-state 0                       ; Do we want this as the DEFAULT?
+   :accepting-states accepting-states
+   :transition-table (array-from-list (rest table))))
 
-(defun matrix-size (matrix)
-  (array-dimension matrix 0))
+(defun transition (dfa from-state edge)
+  (let ((idx (position edge (dfa-alphabet dfa))))
+    (and idx
+         (aref (dfa-transition-table dfa) from-state idx))))
 
-;;;; Table 1
+(defun accepting-state-p (dfa state)
+  (and (find state (dfa-accepting-states dfa))
+       t))
 
-(defun inputs (matrix)
-  (let ((size (matrix-size matrix))
-        (inputs nil))
-    (dotimes (to size inputs)
-      (dotimes (from size)
-        (let ((char (transition matrix from to)))
-          (unless (or (nul? char)
-                      (eps? char))
-            (pushnew char inputs :test #'char=)))))))
-
-(defstruct (nfa-state (:constructor %nfa-state))
-  inputs
-  state-vector)
-
-(defun make-nfa-state (matrix)
-  (let* ((inputs (inputs matrix))
-         (state-vec (make-array (matrix-size matrix))))
-    (%nfa-state :inputs inputs
-                :state-vector 
-                (map-into state-vec
-                          (lambda (x)
-                            (declare (ignore x))
-                            (make-array (1+ (length inputs))))
-                          state-vec))))
-
-(defun refine-nfa-state (matrix state)
-  (labels ((trans-to (char from)
-             (loop :for to :below (matrix-size matrix)
-                   :until (char= char (transition matrix from to))
-                   :finally (return to)))
-           
-           (compute-row (from row)
-             (loop :for c :in (nfa-state-inputs state)
-                   :for i :from 0
-                   :do (setf (aref row i)
-                             (trans-to c from)))))
-    
-    (loop :for frm :below (matrix-size matrix)
-          :do (compute-row frm (aref (nfa-state-state-vector state) frm))
-          :finally (return state))))
-
-(defun compute-nfa-state (matrix)
-  (let ((s (make-nfa-state matrix)))
-    (refine-nfa-state matrix s)
-    s))
-
-(defvar test (adjacency-matrix 4
-                               (list ;  1   2   3   4
-                                (list nul #\a nul #\c) ; 1
-                                (list eps nul #\b nul) ; 2
-                                (list nul #\a nul nul) ; 3
-                                (list nul nul #\c nul) ; 4
-                                )
-                               ))
+(defun match-string (dfa string)
+  (labels ((step (state chars)
+             (cond
+               ((null state) nil)
+               ((null chars) (accepting-state-p dfa state))
+               (t (step (transition dfa state (car chars))
+                        (cdr chars))))))
+    (step (dfa-start-state dfa)
+          (explode string))))
