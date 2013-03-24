@@ -11,8 +11,8 @@
 
 (defstruct edge
   info
-  initial
-  terminal)
+  from
+  to)
 
 (defstruct (graph (:print-function
                    (lambda (obj str dep)
@@ -38,8 +38,8 @@
   "Add the edge EDGE to the graph GRAPH. Insert new vertexes as
 necessary."
   (pushnew edge (graph-edges graph) :test #'eq)
-  (add-vertex graph (edge-initial edge))
-  (add-vertex graph (edge-terminal edge))
+  (add-vertex graph (edge-from edge))
+  (add-vertex graph (edge-to edge))
   graph)
 
 (defun construct-graph (adjacencies)
@@ -52,11 +52,11 @@ necessary."
       (loop :for (from direction to . edge-info) :in adjacencies
             :do (let* ((from-vertex (find-or-make-vertex from))
                        (to-vertex   (find-or-make-vertex to))
-                       (a->b (make-edge :initial from-vertex
-                                        :terminal to-vertex
+                       (a->b (make-edge :from from-vertex
+                                        :to to-vertex
                                         :info (car edge-info)))
-                       (b->a (make-edge :initial to-vertex
-                                        :terminal from-vertex
+                       (b->a (make-edge :from to-vertex
+                                        :to from-vertex
                                         :info (car edge-info))))
                   (cond
                     ((same-name '-- direction) (progn
@@ -72,7 +72,7 @@ necessary."
 
 (defun vertex-neighbors (vertex)
   "Compute the neighbors of the vertex VERTEX."
-  (delete-duplicates (mapcar #'edge-terminal (vertex-edges vertex))
+  (delete-duplicates (mapcar #'edge-to (vertex-edges vertex))
                      :test #'eq))
 
 (defun adjacentp (vertex-1 vertex-2)
@@ -88,8 +88,8 @@ necessary."
 
 (defun edge-loop-p (edge)
   "Is the edge EDGE a loop?"
-  (eq (edge-initial edge)
-      (edge-terminal edge)))
+  (eq (edge-from edge)
+      (edge-to edge)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;; Graph Operations ;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -102,3 +102,36 @@ necessary."
   "The size of a graph GRAPH, equal to the number of edges."
   (length (graph-edges graph)))
 
+(defun map-vertices (f graph)
+  "Map the unary function F across all vertices of GRAPH."
+  (mapcar f (graph-vertices graph)))
+
+(defun for-each-vertex (f graph)
+  "For each vertex of GRAPH, call the unary function F."
+  (mapc f (graph-vertices graph)))
+
+(defun map-edges (f graph)
+  "Map the unary function F across all edges of GRAPH."
+  (mapcar f (graph-edges graph)))
+
+(defun for-each-edge (f graph)
+  "For each edge of GRAPH, call the unary function F."
+  (mapc f (graph-edges graph)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;; Special Graphs ;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun complete-graph (order)
+  (let ((graph (make-graph))
+        (vertices (loop :repeat order :collect (make-vertex))))
+    (maplist (lambda (v-vx)
+               (let ((from (car v-vx))
+                     (to   (cdr v-vx)))
+                 (mapc (lambda (vertex)
+                         (add-edge graph (make-edge :from from
+                                                    :to vertex))
+                         (add-edge graph (make-edge :from vertex
+                                                    :to from)))
+                       to)))
+             vertices)
+    graph))
