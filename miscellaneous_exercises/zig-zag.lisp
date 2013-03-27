@@ -18,8 +18,9 @@
 ;;;;
 ;;;; Numbers increase and decrease on alternating diagonals. We can
 ;;;; check if the numbers are increasing (downward) on a diagonal by
-;;;; the sum of the numbers modulo 2. This is the same as checking if
-;;;; the sum is even. We can see this via the following code:
+;;;; the sum of the coordinates is zero modulo 2. This is the same as
+;;;; checking if the sum is even. We can see this via the following
+;;;; code:
 ;;;;
 ;;;; CL-USER> (dotimes (y 5)
 ;;;;            (dotimes (x 5)
