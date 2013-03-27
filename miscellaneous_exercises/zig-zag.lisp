@@ -36,8 +36,9 @@
 ;;;;
 ;;;; Note that increasing X corresponds to moving right and increasing
 ;;;; Y corresponds to moving *down*, and (0, 0) is our starting
-;;;; coordinate. The numbers are decreasing along the "even"
-;;;; diagonals, indicated by the hash marks.
+;;;; coordinate. The numbers are decreasing downwards (therefore
+;;;; increasing upwards) along the "even" diagonals, indicated by the
+;;;; hash marks.
 ;;;;
 ;;;; Let's first look at the even diagonals only. If we are on any of
 ;;;; the non-boundary hash marks, say (X, Y), then we can move to the
@@ -45,8 +46,9 @@
 ;;;; simply want to stay at zero, and just move to the right, giving
 ;;;; (X+1, Y). This can be written succinctly as (X+1, max(0, Y-1)).
 ;;;;
-;;;; However, X is on the boundary, X = N-1, and we cannot increase
-;;;; anymore. Instead, we simply move down: (X, Y+1).
+;;;; However, X is on the rightmost boundary, X = N-1, and we cannot
+;;;; continue moving in that directione. Instead, we simply move down
+;;;; to the new coordinate (X, Y+1).
 
 (defun next (n x y)
   (if (< x (1- n))                      ; Within bounds?
