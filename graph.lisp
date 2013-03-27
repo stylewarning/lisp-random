@@ -135,3 +135,26 @@ necessary."
                        to)))
              vertices)
     graph))
+
+;;; MAKE C++
+
+(defun graph->c++ (graph)
+  (labels ((vertex-name (vertex)
+             (symbol-name (vertex-info vertex)))
+           
+           (output-vertex (vertex)
+             (let ((name (vertex-name vertex)))
+               (if (string= name "NIL")
+                   (format t "NFA ~A(true);~%" name)
+                   (format t "NFA ~A;~%" name))))
+           
+           (output-edge (edge)
+             (let ((from (vertex-name (edge-from edge)))
+                   (to   (vertex-name (edge-to edge)))
+                   (char (edge-info edge)))
+               (if (null char)
+                   (format t "~A.addEdge(NFA::Epsilon, &~A);~%" from to)
+                   (format t "~A.addEdge('~C', &~A);~%" from char to)))))
+    (for-each-vertex #'output-vertex graph)
+    (for-each-edge #'output-edge graph)
+    t))
