@@ -1,4 +1,4 @@
-;;;; policy-case.lisp
+;;;; policy-cond.lisp
 ;;;; Copyright (c) 2013 Robert Smith
 
 ;;;; DOES NOT WORK
