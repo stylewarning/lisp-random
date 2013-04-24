@@ -11,7 +11,14 @@
   (defmacro policy-if (expr then else &environment env)
     (if (eval `(policy ,expr ,env))
         then
-        else)))
+        else))
+  
+  (defmacro policy-cond (&body cases)
+    (if (null cases)
+        (error "No policy matches.")
+        `(policy-if ,(caar cases)
+                    (progn ,@(cdar cases))
+                    (policy-cond ,@(cdr cases))))))
 
 ;; test stuff
 
@@ -32,6 +39,14 @@
              (+ 1 1)
              (* 4 4)))
 
+(defun test-cond ()
+  (policy-cond
+    ((> speed safety) (+ 1 1))
+    ((= speed safety) (+ 2 2))
+    ((< speed safety) (+ 3 3))))
+
 (defun test ()
   (assert (equal '(16 2)
-                 (list (foo) (bar)))))
+                 (list (foo) (bar))))
+  (assert (= 6 (test-cond))))
+
