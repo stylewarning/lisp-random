@@ -13,9 +13,12 @@
         then
         else)))
 
+;; test stuff
+
 (declaim (optimize (speed 3) (safety 0)))
 
 (defun foo ()
+  (declare (optimize safety (speed 0)))
   (policy-if (> speed safety)
              (+ 1 1)
              (* 4 4)))
@@ -23,6 +26,12 @@
 (declaim (optimize (speed 0) (safety 3)))
 
 (defun bar ()
-  (policy-if (> speed safety)
+  (declare (optimize debug))
+  (policy-if (and (< speed safety)
+                  (= debug safety))
              (+ 1 1)
              (* 4 4)))
+
+(defun test ()
+  (assert (equal '(16 2)
+                 (list (foo) (bar)))))
