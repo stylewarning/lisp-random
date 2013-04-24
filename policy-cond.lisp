@@ -49,5 +49,6 @@
 (defun test ()
   (assert (equal '(16 2)
                  (list (foo) (bar))))
-  (assert (= 6 (test-cond))))
+  (assert (= 6 (test-cond)))
+  t)
 
