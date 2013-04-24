@@ -1,23 +1,17 @@
 ;;;; policy-cond.lisp
 ;;;; Copyright (c) 2013 Robert Smith
 
-;;;; DOES NOT WORK
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defmacro policy (expr env)
+    (let ((policy (sb-cltl2:declaration-information 'optimize env)))
+      `(let ,policy
+         (declare (ignorable ,@(mapcar #'car policy)))
+         ,expr)))
 
-(defun same-name (s1 s2)
-  (string= (symbol-name s1)
-           (symbol-name s2)))
-
-(defun policy (env)
-  (sb-cltl2:declaration-information 'optimize env))
-
-(defmacro policy-if (policy-expression then else &environment env)
-  (if (funcall (compile nil `(lambda ()
-                               (let ((policy (policy env)))
-                                 `(let ,policy
-                                    (declare (ignorable ,@(mapcar #'car policy)))
-                                    ,policy-expression)))))
-      then
-      else))
+  (defmacro policy-if (expr then else &environment env)
+    (if (eval `(policy ,expr ,env))
+        then
+        else)))
 
 (declaim (optimize (speed 3) (safety 0)))
 
