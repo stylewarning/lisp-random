@@ -1,26 +1,27 @@
 ;;;; policy-cond.lisp
 ;;;; Copyright (c) 2013 Robert Smith
 
-(eval-when (:compile-toplevel :load-toplevel :execute)
-  (defmacro policy (expr env)
-    (let ((policy (sb-cltl2:declaration-information 'optimize env)))
-      `(let ,policy
-         (declare (ignorable ,@(mapcar #'car policy)))
-         ,expr)))
+(defmacro policy (expr env)
+  (let ((policy (sb-cltl2:declaration-information 'optimize env)))
+    `(let ,policy
+       (declare (ignorable ,@(mapcar #'car policy)))
+       ,expr)))
 
-  (defmacro policy-if (expr then else &environment env)
-    (if (eval `(policy ,expr ,env))
-        then
-        else))
+(defmacro policy-if (expr then else &environment env)
+  (if (eval `(policy ,expr ,env))
+      then
+      else))
   
-  (defmacro policy-cond (&body cases)
-    (if (null cases)
-        (error "No policy matches.")
-        `(policy-if ,(caar cases)
-                    (progn ,@(cdar cases))
-                    (policy-cond ,@(cdr cases))))))
+(defmacro policy-cond (&body cases)
+  (if (null cases)
+      (error "No policy matches.")
+      `(policy-if ,(caar cases)
+                  (progn ,@(cdar cases))
+                  (policy-cond ,@(cdr cases)))))
 
-;; test stuff
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; tests ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (declaim (optimize (speed 3) (safety 0)))
 
