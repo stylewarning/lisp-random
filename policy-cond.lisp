@@ -1,8 +1,22 @@
 ;;;; policy-cond.lisp
 ;;;; Copyright (c) 2013 Robert Smith
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun get-policy (env)
+    (or
+     #+sbcl
+     (sb-cltl2:declaration-information 'optimize env)
+     
+     #+lispworks
+     (hcl:declaration-information 'optimize env)
+     
+     #+cmucl
+     (ext:declaration-information 'optimize env)
+
+     (warn "Declaration information is unavailable for this implementation."))))
+
 (defmacro policy (expr env)
-  (let ((policy (sb-cltl2:declaration-information 'optimize env)))
+  (let ((policy (get-policy env) ))
     `(let ,policy
        (declare (ignorable ,@(mapcar #'car policy)))
        ,expr)))
