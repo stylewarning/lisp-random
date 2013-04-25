@@ -1,6 +1,12 @@
 ;;;; policy-cond.lisp
 ;;;; Copyright (c) 2013 Robert Smith
 
+;;;; OBSOLETE OBSOLETE OBSOLETE OBSOLETE OBSOLETE OBSOLETE OBSOLETE OBSOLETE OBSOLETE
+;;;;
+;;;; Use https://bitbucket.org/tarballs_are_good/policy-cond
+;;;;
+;;;; OBSOLETE OBSOLETE OBSOLETE OBSOLETE OBSOLETE OBSOLETE OBSOLETE OBSOLETE OBSOLETE
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun get-policy (env)
     (or
