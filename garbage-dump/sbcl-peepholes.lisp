@@ -54,6 +54,11 @@
     (rotatef (aref arr (- 15 idx)) 
              (aref arr idx))))
 
+
+;; [13:46.48] <pkhuong> we don't have any VOP to load immediate values into memory
+;; [13:47.23] <leuler> Quadrescence: I believe this is done to save on VOPs. I remember, say 5 to 10 years ago, there being VOPs with names like ...-c-...-c-..., where the first -c- means constant array index and the second means constant arg (or the other way round).
+;; [13:48.01] <pkhuong> and if we did, we'd have to special case large constants (with temp-reg-tn, that's certainly possible; tastefulness is another issue)
+
 (declaim (ftype (function ((u32* 16)) (u32* 16)) zero32-16))
 (defun zero32-16 (arr)
   ;; This could be improved
