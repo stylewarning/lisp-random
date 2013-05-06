@@ -24,7 +24,7 @@
 ;;;; simple answer, we return a sort of distribution, describing the
 ;;;; relative position of a number in the data set. These
 ;;;; distributions can be combined with other machines' distributions,
-;;;; and the fincal result can be tested to see if the distribution
+;;;; and the final result can be tested to see if the distribution
 ;;;; represents a median.
 ;;;;
 ;;;; Unfortunately, as will be seen, there are lots of corner
