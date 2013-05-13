@@ -12,10 +12,10 @@
 (defun half (x)
   (/ x 2))
 
-(defparameter *cache* (make-hash-table :test 'equalp))
+(defvar *cache* (make-hash-table))
 
 (defun clear-cache ()
-  (setf *cache* (make-hash-table :test 'equalp)))
+  (setf *cache* (make-hash-table)))
 
 (defun hilbert-aux (tt a1 a0)
   (labels ((hilbert-core (n t4)
