@@ -50,8 +50,9 @@
                       new))
               new))))))
 
-(defun hilbert (x)
-  (clear-cache)
+(defun hilbert (x &optional clear-cache-p)
+  (when clear-cache-p
+    (clear-cache))
   (hilbert-aux x 1 0))
 
 
