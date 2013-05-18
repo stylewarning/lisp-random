@@ -66,12 +66,30 @@ and COL, and return a queen at that position."
 
 ;;; START
 ;; User time             =        1.434
-;; System time             =        0.004
-;; Elapsed time             =        1.454
+;; System time           =        0.004
+;; Elapsed time          =        1.454
 ;; Allocation   = 76066680 bytes
 
 ;;; QUEEN CACHING
 ;; User time             =        1.381
-;; System time             =        0.002
-;; Elapsed time             =        1.387
+;; System time           =        0.002
+;; Elapsed time          =        1.387
 ;; Allocation   = 4185256 bytes
+
+
+;;;; MICRO-OPTIMIZATIONS
+
+;;; We can exploit regularities in the solution:
+;;;
+;;;   * We can pre-allocate solution vectors, since we know each
+;;;     solution is a set of N queens.
+;;;
+;;;   * We only need to store the column of each queen, since the
+;;;     ordering of the solutions is fixed. That is, we always have
+;;;     queens sorted by row.
+;;;
+;;;   * We can optimize the structure to use conses instead.
+;;;
+;;;   * Since recursive backtracking is used, the problem is only
+;;;     feasible for smaller numbers. As such, we can take advantage
+;;;     of this and optimize for fixnum-sized quantities.
