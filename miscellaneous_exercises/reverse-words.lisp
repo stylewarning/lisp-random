@@ -4,8 +4,9 @@
 ;;;; Given a string such as "abc def", reverse the words, delimited by
 ;;;; spaces, in the string in place.
 
-(defun reverse-word (string start)
-  "Reverse the word in the string STRING starting at the index START."
+(defun reverse-word! (string start)
+  "Reverse the word in the string STRING starting at the index START
+in place. Return the index proceeding the reversed word."
   (let* ((end (or (position #\Space string :start start
                                            :test #'char=)
                   (length string)))
@@ -17,11 +18,12 @@
 
 (defun reverse-words (string)
   "Reverse the words in the string STRING in place."
-  (loop :with len := (length string)
-        :for next := (reverse-word string 0)
-          :then (reverse-word string next)
-        :while (< next len)
-        :finally (return string)))
+  (let ((len (length string)))
+    (labels ((next-word (word-start)
+               (if (>= word-start len)
+                   string
+                   (next-word (reverse-word string word-start)))))
+      (next-word 0))))
 
 ;; Note that 0 bytes were allocated during the REVERSE-WORDS
 ;; computation.
