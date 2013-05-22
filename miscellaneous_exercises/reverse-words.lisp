@@ -15,16 +15,15 @@ index START to before the index END."
 
 (defun reverse-words (string)
   "Reverse the words in the string STRING in place."
-  (let ((len (length string)))
-    (labels ((reverse-next-word (word-start)
-               (if (>= word-start len)
-                   string
-                   (let ((word-end (or (position #\Space string :start word-start
-                                                                :test #'char=)
-                                       len)))
-                     (reverse-substring! string word-start word-end)
-                     (reverse-next-word (1+ word-end))))))
-      (reverse-next-word 0))))
+  (labels ((reverse-next-word (word-start)
+             (if (>= word-start len)
+                 string
+                 (let ((word-end (or (position #\Space string :start word-start
+                                                              :test #'char=)
+                                     (length string))))
+                   (reverse-substring! string word-start word-end)
+                   (reverse-next-word (1+ word-end))))))
+    (reverse-next-word 0)))
 
 ;; Note that 0 bytes were allocated during the REVERSE-WORDS
 ;; computation.
