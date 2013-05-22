@@ -6,7 +6,7 @@
 
 (defun reverse-word! (string start)
   "Reverse the word in the string STRING starting at the index START
-in place. Return the index proceeding the reversed word."
+in place. Return the index after the reversed word."
   (let* ((end (or (position #\Space string :start start
                                            :test #'char=)
                   (length string)))
