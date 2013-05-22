@@ -1,8 +1,10 @@
 ;;;; reverse-words.lisp
 ;;;; Copyright (c) 2013 Robert Smith
 
-;;;; Exercise: Given a string such as "abc def", reverse the words,
-;;;; delimited by spaces, in the string in place.
+;;;; Exercise: Reverse the letters of words, delimited by spaces, in a
+;;;; string in place.
+;;;;
+;;;; Example: "Hello my name is:    Bob." ==> "olleH ym eman :si    .boB"
 
 (defun reverse-substring! (string start end)
   "Reverse the substring of characters in the string STRING from the
@@ -39,6 +41,8 @@ index START to before the index END."
 
 
 ;;;; Exercise: Reverse the order of words in a sentence.
+;;;;
+;;;; Example: "Hello my name is:    Bob." ==> "Bob.    is: name my Hello"
 
 (defun reverse-sentence (string)
   "Reverse the order of the words in the sentence STRING."
