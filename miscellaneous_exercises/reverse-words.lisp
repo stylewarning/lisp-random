@@ -13,23 +13,20 @@ index START to before the index END."
         :do (rotatef (aref string i)
                      (aref string j))))
 
-(defun reverse-words (string)
-  "Reverse the words in the string STRING in place."
-  (labels ((reverse-next-word (word-start)
-             (if (>= word-start len)
-                 string
-                 (let ((word-end (or (position #\Space string :start word-start
-                                                              :test #'char=)
-                                     (length string))))
-                   (reverse-substring! string word-start word-end)
-                   (reverse-next-word (1+ word-end))))))
-    (reverse-next-word 0)))
+(defun reverse-words! (string)
+  "Reverse the individual words in the string STRING in place."
+  (let ((len (length string))
+        (start 0))
+    (dotimes (i (1+ len) string)
+      (when (or (= len i) (char= #\Space (aref string i)))
+        (reverse-substring! string start i)
+        (setf start (1+ i))))))
 
 ;; Note that 0 bytes were allocated during the REVERSE-WORDS
 ;; computation.
 ;;
 ;; CL-USER> (let ((s (copy-seq "Hello my 1 name is quad")))
-;;            (time (reverse-words s)))
+;;            (time (reverse-words! s)))
 ;;
 ;; Timing the evaluation of (REVERSE-WORDS S)
 ;;
@@ -39,3 +36,5 @@ index START to before the index END."
 ;; Allocation   = 0 bytes
 ;; 0 Page faults
 ;; "olleH ym 1 eman si dauq"
+
+
