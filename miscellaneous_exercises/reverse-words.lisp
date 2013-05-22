@@ -7,10 +7,11 @@
 (defun reverse-substring! (string start end)
   "Reverse the substring of characters in the string STRING from the
 index START to before the index END."
-  (let ((substring-length (- end start)))
-    (loop :for i :from start :below (+ start (floor substring-length 2))
-          :do (rotatef (aref string i)
-                       (aref string (- end (- i start) 1))))))
+  (loop :for i :from start    :to (1- end)
+        :for j :from (1- end) :downto start
+        :while (< i j)
+        :do (rotatef (aref string i)
+                     (aref string j))))
 
 (defun reverse-words (string)
   "Reverse the words in the string STRING in place."
@@ -23,7 +24,7 @@ index START to before the index END."
                                        len)))
                      (reverse-substring! string word-start word-end)
                      (reverse-next-word (1+ word-end))))))
-      (next-word 0))))
+      (reverse-next-word 0))))
 
 ;; Note that 0 bytes were allocated during the REVERSE-WORDS
 ;; computation.
