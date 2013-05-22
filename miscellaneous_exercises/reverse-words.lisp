@@ -41,6 +41,7 @@ index START to before the index END."
 ;;;; Exercise: Reverse the order of words in a sentence.
 
 (defun reverse-sentence (string)
+  "Reverse the order of the words in the sentence STRING."
   (let ((len (length string))
         (start 0)
         (words nil))
@@ -63,4 +64,5 @@ index START to before the index END."
 ;;; Or using the previous solution.
 
 (defun reverse-sentence! (string)
+  "Reverse the order of the words in the sentence STRING in place."
   (reverse-words! (nreverse string)))
