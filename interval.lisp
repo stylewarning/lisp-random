@@ -85,3 +85,43 @@
                    ((>= a 0) (interval (expt a n) (expt b n)))
                    ((minusp b) (interval (expt b n) (expt a n)))
                    (t (interval 0 (max (expt a n) (expt b n)))))))))
+
+;;; Interval Unions
+
+(defun simplify-union (intervals &key (sorted nil))
+  "Simplify a list of intervals INTERVALS, which act as a union."
+  (labels ((rec (intervals current coalesced)
+             (if (null intervals)
+                 (nreverse (cons current coalesced))
+                 (let ((interval (car intervals)))
+                   (cond
+                     ;; CURRENT : o------o
+                     ;; INTERVAL:   o--o
+                     ;; RESULT  : o------o
+                     ((<= (right interval) (right current))
+                      (rec (cdr intervals) current coalesced))
+                     
+                     ;; CURRENT : o-----o
+                     ;; INTERVAL:    o-----o
+                     ;; RESULT  : o--------o
+                     ((<= (left interval) (right current))
+                      (rec (cdr intervals)
+                           (interval (left current)
+                                     (right interval))
+                           coalesced))
+                     
+                     ;; CURRENT : o---o
+                     ;; INTERVAL:        o---o
+                     ;; RESULT  : o---o  o---o
+                     (t
+                      (rec (cdr intervals)
+                           interval
+                           (cons current coalesced))))))))
+    (let ((sorted (if sorted
+                      intervals
+                      (sort (copy-list intervals)
+                            #'<
+                            :key #'left))))
+      (rec (cdr sorted)
+           (car sorted)
+           nil))))
