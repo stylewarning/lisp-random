@@ -6,6 +6,8 @@
 ;;;;
 ;;;; Example: "Hello my name is:    Bob." ==> "olleH ym eman :si    .boB"
 
+;; We can technically have a single loop variable, counting up to half
+;; the substring length. But I think this is a clearer way.
 (defun reverse-substring! (string start end)
   "Reverse the substring of characters in the string STRING from the
 index START to before the index END."
@@ -23,6 +25,11 @@ index START to before the index END."
       (when (or (= len i) (char= #\Space (aref string i)))
         (reverse-substring! string start i)
         (setf start (1+ i))))))
+
+(defun reverse-words (string)
+  "Reverse the words in the string STRING."
+  (reverse-words! (copy-seq string)))
+
 
 ;; Note that 0 bytes were allocated during the REVERSE-WORDS
 ;; computation.
@@ -44,29 +51,9 @@ index START to before the index END."
 ;;;;
 ;;;; Example: "Hello my name is:    Bob." ==> "Bob.    is: name my Hello"
 
-(defun reverse-sentence (string)
-  "Reverse the order of the words in the sentence STRING."
-  (let ((len (length string))
-        (start 0)
-        (words nil))
-    ;; Collect the words.
-    (dotimes (i (1+ len))
-      (when (or (= len i) (char= #\Space (aref string i)))
-        (push (subseq string start i) words)
-        (setf start (1+ i))))
-    
-    ;; Write them to the result string.
-    (let ((result (make-string len :initial-element #\Space)))
-      (labels ((iter (start)
-                 (if (null words)
-                     result
-                     (let ((word (pop words)))
-                       (replace result word :start1 start)
-                       (iter (+ 1 start (length word)))))))
-        (iter 0)))))
-
-;;; Or using the previous solution.
-
 (defun reverse-sentence! (string)
   "Reverse the order of the words in the sentence STRING in place."
   (reverse-words! (nreverse string)))
+
+(defun reverse-sentence (string)
+  (reverse-sentence! (copy-seq string)))
