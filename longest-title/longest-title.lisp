@@ -100,41 +100,37 @@
 (defun random-elt (seq)
   (elt seq (random (length seq))))
 
-(defun greedy-find-chain (title &optional (length (title-length title))
-                                          (history (list title))
-                                          (depth 0))
-  (let* ((end   (title-end   title))
-         (candidates (set-difference (titles-starting-with end)
-                                     history)))
-    (if (null candidates)
-        (cons length history)
-        #+it
-        (let ((subchains (mapcar (lambda (candidate)
-                                   (greedy-find-chain candidate
-                                                      (+ length (title-added-length candidate))
-                                                      (cons candidate history)
-                                                      (1+ depth)))
-                                 candidates)))
-          (cache-chain! title (car (sort subchains #'> :key #'car))))
-        (let ((candidate (random-elt candidates)))
-          (greedy-find-chain candidate
-                             (+ length (title-added-length candidate))
-                             (cons candidate history))))))
-
 (defun title->string (title)
   (reduce (lambda (x y)
             (concatenate 'string x " " y))
           (title-contents title)
           :key #'index->word))
 
-(defun find-chains ()
+(defun find-chains (title)
   (let ((longest 0)
         (longest-chain nil))
-    (loop :for title := (random-elt *titles*) :then (random-elt *titles*)
-          :for (chain-length . chain) := (greedy-find-chain title)
-          :do (when (> chain-length longest)
-                (setf longest       chain-length
-                      longest-chain chain)
-                (format t "Found chain (~D): ~S~%"
-                        longest
-                        (mapcar #'title->string (reverse longest-chain)))))))
+    (labels ((find-chain (title length history depth)
+               (let* ((end   (title-end   title))
+                      (candidates (set-difference (titles-starting-with end)
+                                                  history)))
+                 (if (null candidates)
+                     (progn
+                       (when (> length longest)
+                         (setf longest length
+                               longest-chain (reverse history))
+                         (format t "Found chain (~D): ~S~%"
+                                 longest
+                                 (mapcar #'title->string longest-chain)))
+                       (cons length history))
+                     (mapc (lambda (candidate)
+                             (find-chain candidate
+                                         (+ length (title-added-length candidate))
+                                         (cons candidate history)
+                                         (1+ depth)))
+                           candidates)))))
+      (find-chain title
+                  (title-length title)
+                  (list title)
+                  0))))
+
+
