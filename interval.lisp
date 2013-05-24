@@ -125,3 +125,5 @@
       (rec (cdr sorted)
            (car sorted)
            nil))))
+
+;;; todo: single interval union
