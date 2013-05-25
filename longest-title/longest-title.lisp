@@ -1,8 +1,7 @@
 ;;;; longest-title.lisp
 ;;;; Copyright (c) 2013 Robert Smith
 
-(quote #.(ql:quickload :recur))
-(quote #.(ql:quickload :split-sequence))
+;;;; Requires :RECUR and :SPLIT-SEQUENCE.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Word Index ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -106,7 +105,11 @@
           (title-contents title)
           :key #'index->word))
 
+(defun title->position (title)
+  (position title *titles*))
+
 (defun find-chains (title)
+  (format t "Trying title: ~S (~S)~%" title (title->string title))
   (let ((longest 0)
         (longest-chain nil))
     (labels ((find-chain (title length history depth)
@@ -114,14 +117,13 @@
                       (candidates (set-difference (titles-starting-with end)
                                                   history)))
                  (if (null candidates)
-                     (progn
-                       (when (> length longest)
-                         (setf longest length
-                               longest-chain (reverse history))
-                         (format t "Found chain (~D): ~S~%"
-                                 longest
-                                 (mapcar #'title->string longest-chain)))
-                       (cons length history))
+                     (when (> length longest)
+                       (setf longest length
+                             longest-chain (reverse history))
+                       (format t "~&Found ~D-chain at depth ~D: ~S~%"
+                               longest
+                               depth
+                               (mapcar #'title->position longest-chain)))
                      (mapc (lambda (candidate)
                              (find-chain candidate
                                          (+ length (title-added-length candidate))
@@ -134,3 +136,5 @@
                   0))))
 
 
+;; #S(TITLE :CONTENTS (738 996 2939 74) :START 738 :END 74 :ADDED-LENGTH 8) ("KILL BILL VOL 2")
+;; #S(TITLE :CONTENTS (4247 105 74) :START 4247 :END 74 :ADDED-LENGTH 7)
