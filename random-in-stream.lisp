@@ -32,5 +32,6 @@ mutable list)."
     (loop :repeat trials
           :do (incf (gethash (random! (range max)) ht)))
     
-    (loop :for i :below max
-          :collect (gethash i ht))))
+    (loop :with expected := (float (/ trials max))
+          :for i :below max
+          :collect (/ (gethash i ht) expected))))
