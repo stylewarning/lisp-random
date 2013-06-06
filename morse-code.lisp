@@ -31,14 +31,14 @@ with a question mark."
                     string)))
     (string-trim
      " "
-     (with-output-to-string (stream)
+     (with-output-to-string (*standard-output*)
        (loop :with space-flag := nil
              :for c :across string
              :do (if (char= #\Space c)
                      (unless space-flag
-                       (princ "/ " stream)
+                       (princ "/ ")
                        (setf space-flag t))
                      (let ((morse (char-to-morse-code c)))
                        (setf space-flag nil)
-                       (princ (or morse "?") stream)
-                       (princ " " stream))))))))
+                       (princ (or morse "?"))
+                       (princ " "))))))))
