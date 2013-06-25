@@ -17,6 +17,14 @@
           :always (= i x))))
 
 (defmacro jump (n &body cases)
+  "Efficiently execute the body of a case in CASES and return
+depending on the value of N.
+
+N should be a non-negative integer below the total number of cases. The syntax of a case is
+
+    (NUM FORM*)
+
+where NUM is an integer having the same values as N."
   (assert (not (null cases))
           (cases)
           "There must be at least one case, but none were given.")
