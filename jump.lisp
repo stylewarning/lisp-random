@@ -5,16 +5,23 @@
 
 ;;;; Implementation of a sort of jump table.
 
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun ensure-list (x)
+    "Ensure that X is a list."
+    (if (listp x)
+        x
+        (list x)))
+
+  (defun contains-below-n (numbers)
+    "Ensure that NUMBERS contains the all of the integers from 0
+  to (1- (LENGTH NUMBERS))."
+    (let ((sorted (sort (copy-list numbers) #'<)))
+      (loop :for i :from 0
+            :for x :in sorted
+            :always (= i x)))))
+
 (defmacro constant-load-time-value (value)
   `(load-time-value ,value t))
-
-(defun contains-below-n (numbers)
-  "Ensure that NUMBERS contains the all of the integers from 0
-  to (1- (LENGTH NUMBERS))."
-  (let ((sorted (sort (copy-list numbers) #'<)))
-    (loop :for i :from 0
-          :for x :in sorted
-          :always (= i x))))
 
 (defmacro jump ((n &optional default) &body cases)
   "Efficiently execute the body of a case in CASES chosen by the
@@ -54,12 +61,7 @@ Example:
   (let ((table    (make-hash-table))
         (bindings nil)
         (maxval   0))
-    (labels ((ensure-list (x)
-               (if (listp x)
-                   x
-                   (list x)))
-             
-             (populate-table ()
+    (labels ((populate-table ()
                (dolist (jump-case cases)
                  (let ((indexes (car jump-case))
                        (binding-var (gensym "CASE-"))
