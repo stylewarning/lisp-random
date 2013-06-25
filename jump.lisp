@@ -24,7 +24,15 @@ N should be a non-negative integer below the total number of cases. The syntax o
 
     (NUM FORM*)
 
-where NUM is an integer having the same values as N."
+where NUM is an integer having the same values as N.
+
+Example:
+
+    (jump (random 3)
+      (0 (print 0) 'zero)
+      (1 (print 1) 'one)
+      (2 (print 2) 'two))
+"
   (assert (not (null cases))
           (cases)
           "There must be at least one case, but none were given.")
