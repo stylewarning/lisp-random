@@ -62,7 +62,7 @@ Example:
              (populate-table ()
                (dolist (jump-case cases)
                  (let ((indexes (car jump-case))
-                       (binding-var (gensym))
+                       (binding-var (gensym "CASE-"))
                        (lambda-form `(lambda () ,@(cdr jump-case))))
                    (push (list binding-var lambda-form) bindings)
                    (dolist (index (ensure-list indexes))
@@ -71,7 +71,7 @@ Example:
                      (setf (gethash index table) binding-var)))))
              
              (table-to-initial-contents ()
-               (let ((default-var (gensym "DEFAULT-VAR-")))
+               (let ((default-var (gensym "DEFAULT-")))
                  `(let* ((,default-var (lambda () ,default))
                         ,@bindings)
                     (declare (ignorable ,default-var))
