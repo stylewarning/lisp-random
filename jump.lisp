@@ -89,12 +89,12 @@ Example:
       
       `(funcall
         (the (function () t)
-             (svref (constant-load-time-value
-                     (make-array ,(1+ maxval)
-                                 :element-type '(function () t)
-                                 :initial-contents
-                                 ,(table-to-initial-contents)))
-                    ,n))))))
+             (aref (constant-load-time-value
+                    (make-array ,(1+ maxval)
+                                :element-type '(function () t)
+                                :initial-contents
+                                ,(table-to-initial-contents)))
+                   ,n))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;; Binary Search ;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
