@@ -156,27 +156,24 @@ Example:
     (labels ((extract-keys ()
                (mapcan (lambda (c)
                          (let ((key (car c)))
-                           (cond
-                             ((listp key) (copy-list key))
-                             ((integerp key) (list key))
+                           (typecase key
+                             (list (copy-list key))
+                             (integer (list key))
                              (t nil))))
                        cases))
              
              (populate-code-dict ()
                (loop :for (keys . body) :in cases
-                     :do (cond
-                           ((or (eql keys t)
-                                (eql keys 'otherwise))
+                     :do (etypecase keys
+                           ((member t otherwise)
                             (setf (gethash t code-dict) body))
                            
-                           ((integerp keys)
+                           (integer
                             (setf (gethash keys code-dict) body))
                            
-                           ((listp keys)
+                           (list
                             (dolist (key keys)
-                              (setf (gethash key code-dict) body)))
-                           
-                           (t (error "Invalid case key: ~S" keys))))))
+                              (setf (gethash key code-dict) body)))))))
       
       (populate-code-dict)
       
