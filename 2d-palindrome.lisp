@@ -1,8 +1,8 @@
-;;(ql:quickload :quickutil)
+;; (ql:quickload :quickutil)
+;; (ql:quickload :cl-string-complete)
 
 (eval-when (:compile-toplevel)
-  (qtlc:utilize :utilities '(:equivalence-classes
-                             :transpose)))
+  (qtlc:utilize :utilities '(:transpose)))
 
 (defvar *words-file* "/usr/share/dict/words")
 
@@ -12,10 +12,14 @@
   (with-open-file (s *words-file* :direction :input)
     (loop :for word := (read-line s nil nil nil) :then (read-line s nil nil nil)
           :for total :from 0
+          :for tree := (cl-string-complete:make-completion-tree)
           :while word
           :do (let ((normalized (string-upcase word)))
-                (push normalized
-                      (gethash (length normalized) *word-table*)))
+                (unless (cl-string-complete:completion-tree-contains-p tree
+                                                                       normalized)
+                  (cl-string-complete:completion-tree-add tree normalized)
+                  (push normalized
+                        (gethash (length normalized) *word-table*))))
           :finally (return total))))
 
 (defun reverse-equal (a b)
@@ -24,22 +28,28 @@
 (defun palindromep (word)
   (reverse-equal word word))
 
+(defun find-reversals (words)
+  (let ((set (make-hash-table :test 'equal)))
+    ;; fill the table
+    (dolist (word words)
+      (setf (gethash word set) t))
+    
+    ;; find reversals
+    (let ((reversals nil))
+      (loop :for word :in words
+            :for rev := (reverse word)
+            :when (and (gethash word set)
+                       (gethash rev set))
+              :do (progn
+                    (push (list word rev) reversals)
+                    (remhash word set)
+                    (remhash rev set))
+            :finally (return reversals)))))
+
 (defun normalize-table ()
   (maphash (lambda (k v)
              (format t ";;; Normalizing entry ~D of length ~D~%" k (length v))
-             (setf (gethash k *word-table*)
-                   (remove-if #'null
-                              (mapcar (lambda (class)
-                                        (let ((len (length class)))
-                                          (if (= 1 len)
-                                              (if (palindromep (first class))
-                                                  (list (first class)
-                                                        (first class))
-                                                  nil)
-                                              class)))
-                                      (qtl:equivalence-classes
-                                       #'reverse-equal
-                                       (delete-duplicates v :test #'string=))))))
+             (setf (gethash k *word-table*) (find-reversals v)))
            *word-table*))
 
 
@@ -126,11 +136,11 @@
         :unless (string= word rev)
           :do (find-2d-palindromes-for-word rev)))
 
-(defun write-solutions-to-file (filename)
+(defun write-solutions-to-file (filename &optional (start 2) (end (hash-table-count *word-table*)))
   (with-open-file (*standard-output* filename :direction :output
                                               :if-exists :supersede
                                               :if-does-not-exist :create)
-    (loop :for length :from 4 :to (hash-table-count *word-table*)
+    (loop :for length :from start :to end
           :do (progn
                 (format t "SOLUTIONS OF LENGTH ~D~%~%" length)
                 (find-2d-palindromes length)
