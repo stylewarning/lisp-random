@@ -4,10 +4,7 @@
   (qtlc:utilize :utilities '(:equivalence-classes
                              :transpose)))
 
-(defvar *words-file*
-  "~/Scratch/ru.txt"
-  ;"/usr/share/dict/words"
-  )
+(defvar *words-file* "/usr/share/dict/words")
 
 (defvar *word-table* (make-hash-table))
 
