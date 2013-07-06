@@ -8,13 +8,25 @@
 
 (defvar *word-table* (make-hash-table))
 
+(defun normalize-word (word)
+  (flet ((strip-accent (char)
+           (case char
+             ((#\Á #\À #\Â #\Ã) #\A)
+             ((#\É #\Ê) #\E)
+             ((#\Í #\Î) #\I)
+             ((#\Ó #\Ô #\Õ) #\O)
+             ((#\Ú #\Û #\Ü) #\U)
+             ((#\Ç) #\C)
+             (otherwise char))))
+    (map 'string #'strip-accent (string-upcase word))))
+
 (defun load-words ()
   (with-open-file (s *words-file* :direction :input)
     (loop :for word := (read-line s nil nil nil) :then (read-line s nil nil nil)
           :for total :from 0
           :for tree := (cl-string-complete:make-completion-tree)
           :while word
-          :do (let ((normalized (string-upcase word)))
+          :do (let ((normalized (normalize-word word)))
                 (unless (cl-string-complete:completion-tree-contains-p tree
                                                                        normalized)
                   (cl-string-complete:completion-tree-add tree normalized)
