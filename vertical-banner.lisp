@@ -28,3 +28,14 @@
       (print-spaces (- len i 1))
       (write-word-with-spaces-at i string)
       (terpri))))
+
+;;; pjb's shorter version:
+#+(or)
+(defun vertical-banner (string)
+  (loop
+    with word = string
+    with len = (length word)
+    for i from 0
+    for letter across word
+    do (format t "~&~V<~>~A ~A ~A~%" (- len i) (subseq word 0 i) letter (subseq word (1+ i)))
+    finally (return (values))))
