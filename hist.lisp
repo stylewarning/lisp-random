@@ -15,9 +15,8 @@
 (defun hist-a (numbers)
   (let ((table (make-hash-table)))
     (dolist (number numbers (hash-table-list table))
-      (if (gethash number table)
-          (incf (gethash number table))
-          (setf (gethash number table) 1)))))
+      (setf (gethash number table)
+            (1+ (gethash number table 0))))))
 
 
 ;;;; Shitty functional way
@@ -38,7 +37,9 @@
 
 (defun test (&optional (amount 1000))
   (let ((randoms (random-numbers amount most-positive-fixnum)))
+    (gc :full t)
     (time (hist-a randoms))
+    (gc :full t)
     (time (hist-b randoms))
     nil))
 
