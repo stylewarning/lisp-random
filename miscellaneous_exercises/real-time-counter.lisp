@@ -50,6 +50,16 @@
                 (- ticks (bisect 0 (1- ticks)))
                 0))))))
 
+(defun prune (rtc interval)
+  (let ((ticks (get-ticks-in-last rtc interval)))
+    (unless (or (zerop ticks) (null ticks))
+      (setf (real-time-counter-ticks rtc)
+            ticks
+
+            (real-time-counter-timestamps rtc)
+            (subseq (real-time-counter-timestamps rtc)
+                    ticks)))))
+
 (defun get-test-rtc ()
   (let ((rtc (make-real-time-counter)))
     (increment rtc)
