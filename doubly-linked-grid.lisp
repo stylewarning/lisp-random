@@ -93,7 +93,7 @@
 ;;;   Directions = NIL
 ;;;              | (Direction . Directions)
 
-(defun map-relative-traversal (f cell directions &optional (initial-direction :N))
+(defun map-relative-traversal (f cell directions &key (initial-direction :N))
   "Traverse the cell CELL (which is a part of some grid system),
 applying F on each cell visited. The path taken by the traversal is
 dictated by DIRECTIONS, which has the following grammar:
@@ -203,10 +203,41 @@ and *not*
           :do (map-row row)
           :finally (return grid))))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Shapes ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;;; Relative directions for particular shapes
+
+;;; o o o
+;;; _ _ _
+;;; _ _ _
+(defvar +h3+ '(:E :N))
+(defvar +h4+ '(:E :N :N))
+(defvar +h5+ '(:E :N :N :N))
+
+;;; o _ _
+;;; o _ _
+;;; o _ _
+(defvar +v3+ '(:S :N))
+(defvar +v4+ '(:S :N :N))
+(defvar +v5+ '(:S :N :N :N))
+
+;;; o o o
+;;; _ o _
+;;; _ o _
+(defvar +t3+ '(:E ((:N) (:E :N))))
+
+
+;;; o o o
+;;; o _ _
+;;; o _ _
+(defvar +l3+ `((,+h3+ ,+v3+)))
+(defvar +l4+ `((,+h4+ ,+v4+)))
+(defvar +l5+ `((,+h5+ ,+v5+)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;; Testing Functions ;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun number-grid (grid)
   (let ((c 0))
-    (map-grid (lambda (cell)
-                (setf (cell-data cell) (incf c)))
+    (map-grid (lambda (cell) (setf (cell-data cell) (incf c)))
               grid)))
