@@ -22,8 +22,20 @@
               (finish-output)
               (sleep 1/20))))
 
+(defun randomize ()
+  (loop :for row := (random 20) :then (random 20)
+        :for col := (random 80) :then (random 80)
+        :do (progn
+              (locate (1+ row) (1+ col))
+              (format t "~D" (random 10))
+              (finish-output)
+              (sleep 1/20))))
+
 
 
 ;;; Execute MAIN.
 
-(main)
+;(main)
+(clear)
+(randomize)
+
