@@ -111,7 +111,7 @@
       (sort (list a b c) #'<))))
 
 
-;;; BOX must me a box whose second column has coprime, odd integers.
+;;; BOX must be a box whose second column has coprime, odd integers.
 (defun triples-for (n box)
   (let ((queue (make-queue)))
     (flet ((enqueue-next-boxes (box)
