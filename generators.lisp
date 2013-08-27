@@ -1,6 +1,12 @@
 ;;;; generators.lisp
 ;;;; Copyright (c) 2012 Robert Smith
 
+;;;; OBSOLETE: See POOR-MANS-GENERATORS
+;;;;
+;;;;    https://bitbucket.org/tarballs_are_good/poor-mans-generators
+
+
+
 ;;;; Some trivial generators
 
 
