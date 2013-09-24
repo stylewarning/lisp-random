@@ -1,6 +1,46 @@
 ;;;; roman-numerals.lisp
 ;;;; Copyright (c) 2012 Robert Smith
 
+;;;; Convert decimal to Roman numerals in O(N).
+
+#+#:ignore
+(defun number->roman (n)
+  (assert (and (integerp n)
+               (plusp n)))
+  (format nil "~@R" n))
+
+(defvar *units* '((1000 . "M")
+                  (900  . "CM")
+                  (500  . "D")
+                  (400  . "CD")
+                  (100  . "C")
+                  (90   . "XC")
+                  (50   . "L")
+                  (40   . "XL")
+                  (10   . "X")
+                  (9    . "IX")
+                  (5    . "V")
+                  (4    . "IV")
+                  (1    . "I")))
+
+(defun roman-floor (number)
+  (loop :with max := nil
+        :for pair :in *units*
+        :when (<= (car pair) number)
+          :do (return (values (car pair) (cdr pair)))
+        :finally (error "invalid number")))
+
+(defun number->roman (number)
+  (labels ((roman-numerals (number letters)
+             (if (zerop number)
+                 (nreverse letters)
+                 (multiple-value-bind (floor letter)
+                     (roman-floor number)
+                   (roman-numerals (- number floor)
+                                   (cons letter letters))))))
+    (with-output-to-string (*standard-output*)
+      (mapc #'write-string (roman-numerals number nil)))))
+
 ;;;; Convert Roman numerals to decimal in O(N).
 
 (defvar *roman-letters* '((#\M . 1000)
@@ -12,16 +52,8 @@
                           (#\I .    1)))
 
 
-(defun number->roman (n)
-  (assert (and (integerp n)
-               (plusp n)))
-  (format nil "~@R" n))
-
 (defun roman-letter->value (letter)
   (cdr (assoc letter *roman-letters*)))
-
-(defun string->list (string)
-  (coerce string 'list))
 
 (defun roman->number (roman)
   (let ((letters (map 'list #'roman-letter->value roman)))
