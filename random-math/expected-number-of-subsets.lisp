@@ -24,6 +24,6 @@
 
 (defun sim-differences (n)
   (let ((sims (run-sims n)))
-    (differences (cdr sims) sims)))
+    (mapcar #'exp (differences (cdr sims) sims))))
 
 ;;; Algebraist says E(n) is f(n)=1+sum_i=0^n (n choose i) 2^{-n} f(i)
