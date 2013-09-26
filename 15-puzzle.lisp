@@ -1,8 +1,8 @@
 ;;;; 15-puzzle.lisp
 ;;;; Copyright (c) 2013 Robert Smith
 
-;;; The board is stored in a 16 element of integers whose values
-;;; correspond to the following solved positions.
+;;; The board is stored in a 16 element vector of integers whose
+;;; values correspond to the following solved positions.
 ;;;
 ;;; +----+----+----+----+
 ;;; |  0 |  1 |  2 |  3 |
