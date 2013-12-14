@@ -4,3 +4,4 @@ syntax: glob
 *.sse2f
 *.fas
 *.lib
+*.dx64fsl
