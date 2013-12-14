@@ -54,6 +54,8 @@
   (let ((dispatch-table    (dispatch-table-name name))
         (dispatch-function (generate-name-from-parameters name parameters)))
     `(progn
+       (unless (boundp ',dispatch-table)
+         (error "Unknown dispatch function ~A." ',name))
        (declaim (inline ,dispatch-function))
        (defun ,dispatch-function (,@args)
          ,@body)
