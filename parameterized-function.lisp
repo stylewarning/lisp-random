@@ -16,14 +16,6 @@
                     (mapcar #'symbol-name params)
                     suffix)))
   
-  (defun parameter-congruent-p (expected-param given-param)
-    (or (string= "_" (symbol-name given-param))
-        (eql expected-param given-param)))
-  
-  (defun parameters-congruent-p (expected-params given-params)
-    (and (= (length expected-params) (length given-params))
-         (every #'parameter-congruent-p expected-params given-params)))
-  
   (defun undispatch-form (form new-function-name)
     (cons new-function-name (cddr form))))
 
@@ -47,7 +39,9 @@
                      (warn "Unknown dispatch function for ~S with parameters ~S" ',name params)
                      form)
                    (undispatch-form form dispatch-function)))))
-       
+
+       ;; TODO: Get a proper lambda list here so it can be
+       ;; introspected. Requires some extra processing.
        (defun ,name (params &rest args)
          (let ((dispatch-function (gethash params ,table-name)))
            (unless dispatch-function
@@ -56,7 +50,7 @@
            (apply dispatch-function args))))))
 
 (defmacro define-parameterized-function (name (&rest parameters) (&rest args) &body body)
-  ;; check PARAMETERS type
+  ;; TODO: Check PARAMETERS type
   (let ((dispatch-table    (dispatch-table-name name))
         (dispatch-function (generate-name-from-parameters name parameters)))
     `(progn
