@@ -1,3 +1,9 @@
+;;;; delay.lisp
+;;;; Copyright (c) 2012-2013 Robert Smith
+
+;;;; A small library for lazy function evaluation, including optional
+;;;; special syntax.
+
 (defun print-promise (object stream depth)
   (declare (ignore depth))
   (print-unreadable-object (object stream :type t :identity t)))
