@@ -4,7 +4,7 @@
 ;;;; This file contains code for computing the Delaunay triangulation
 ;;;; of a set of points.
 
-
+#-capi (error "This code requires LispWorks CAPI.")
 
 ;;;; Utilities
 
