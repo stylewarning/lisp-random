@@ -1,7 +1,8 @@
 ;;;; symbol-macrolet-nonrecursive.lisp
 ;;;; Copyright (c) 2013 Robert Smith
 
-;;; Single binding example for the general idea.
+;;; Single binding example for the general idea of how the more
+;;; general version works.
 #+#:ignore
 (defmacro symbol-macrolet-1 ((x y) &body body)
   (let ((gx (gensym (format nil "~A-" x))))
