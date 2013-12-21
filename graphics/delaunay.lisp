@@ -212,9 +212,9 @@ maximum x and y coordinates, respectively."
   "Make a triangle that contains the rectangle whose min coordinate
   is (a,b) and max coordinate is (p,q)."
   (declare (ignore a b p q offset))
-  (make-triangle (make-point -1000 -1000)
-                 (make-point -1000 5000)
-                 (make-point 5000 -1000)))
+  (make-triangle (make-point -1000.0 -1000.0)
+                 (make-point -1000.0  5000.0)
+                 (make-point  5000.0 -1000.0)))
 
 (defun supertriangle (points)
   "Compute a supertriangle containing the points POINTS."
@@ -365,7 +365,7 @@ triangulation."
 
 ;;; XXX FIXME: Fails with this set of points.
 (defun circular-points ()
-  (loop :for theta :from 0.0 :to (* 2 pi) :by (/ pi 8)
+  (loop :for theta :from 0.0 :to (* 2 pi) :by (/ pi 4)
         :collect (make-point (+ 320 (* 100 (cos theta)))
                              (+ 240 (* 100 (sin theta))))))
 
