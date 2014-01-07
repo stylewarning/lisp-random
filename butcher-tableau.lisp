@@ -1,11 +1,20 @@
 ;;;; butcher-tableau.lisp
 ;;;; Copyright (c) 2014 Robert Smith
 
-(defparameter *rk4-tableau* '((0                  )
-                              (1/2 1/2            )
-                              (1/2 0   1/2        )
-                              (1   0   0   1      )
-                              (nil 1/6 1/3 1/3 1/6)))
+(defparameter *rk4* '((0                  )
+                      (1/2 1/2            )
+                      (1/2 0   1/2        )
+                      (1   0   0   1      )
+                      (nil 1/6 1/3 1/3 1/6)))
+
+(defparameter *3/8-rule* '((0)
+                           (1/3 1/3)
+                           (2/3 1/3  1)
+                           (1   1   -1   1)
+                           (nil 1/8  3/8 3/8 1/8)))
+
+(defparameter *euler* '((0)
+                        (nil 1)))
 
 (defstruct butcher-tableau
   s
@@ -75,3 +84,5 @@
      (values
       (+ ,t0 ,h)
       ,(generate-y bt :yn y0 :tn t0 :h h))))
+
+;;; Example: (pprint (generate-rk-method (parse-tableau *rk4*) 'y0 't0 'h))
