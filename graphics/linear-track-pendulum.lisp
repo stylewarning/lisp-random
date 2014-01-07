@@ -3,6 +3,8 @@
 
 #-capi (error "This code requires LispWorks CAPI.")
 
+(ql:quickload :gp-ext)
+
 ;;;;;;;;;;;;;;;;;;;;;;;; Modeling and Solving ;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defconstant G  -9.8)
