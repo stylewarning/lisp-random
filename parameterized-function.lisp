@@ -1,6 +1,14 @@
 ;;;; parameterized-function.lisp
 ;;;; Copyright (c) 2013 Robert Smith
 
+;;;; THIS HAS MOVED TO ITS OWN DEDICATED PACKAGE CALLED
+;;;;
+;;;;     PARAMETERIZED-FUNCTION
+;;;;
+;;;; IT CAN BE FOUND AT
+;;;;
+;;;;     https://bitbucket.org/tarballs_are_good/parameterized-function
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defun constant-quoted-list-p (l &optional env)
     (and (listp l)
