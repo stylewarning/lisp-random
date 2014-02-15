@@ -4,11 +4,8 @@
 
 ;;;; Postfix composition of expressions.
 
-#+#:ignore
-(flow 5
-      (+ 2 $)
-      (- 4 $)
-      (* $ $))
+
+;;;; TODO: Multiple-value FLOW macro.
 
 (defmacro flow (expr &rest slotted-exprs)
   "Evaluate EXPR, and pass it to the next slotted expression, which itself gets evaluated.
@@ -29,6 +26,8 @@ will be evaluated as follows:
     * Pass 7 to the slotted expression (- 4 $), and evaluate. This results in -3.
 
     * Pass -3 to the slotted expression (* $ $) and evaluate. This results in 9.
+
+If a slotted expression does not contain any $ slots, then the previous value will be ignored.
 
 Similar to Clojure's \"thrush\"."
   (if (null slotted-exprs)
