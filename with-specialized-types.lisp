@@ -1,5 +1,6 @@
-;;;; specialize-type.lisp
-;;;; Copyright (c) 2013 Robert Smith
+;;;; with-specialized-types.lisp
+;;;;
+;;;; Copyright (c) 2013-2014 Robert Smith
 
 ;;; We trade space for speed for space here. Compilers like SBCL can
 ;;; specialize code paths in each branch of the ETYPECASE since it
