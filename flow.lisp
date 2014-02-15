@@ -10,7 +10,7 @@
 (defmacro flow (expr &rest slotted-exprs)
   "Evaluate EXPR, and pass it to the next slotted expression, which itself gets evaluated.
 
-A \"slotted expression\" is an expression which contains the symbol `$' as a free variable. It will be bound to the value previous to the slotted expression.
+A \"slotted expression\" is an expression which possibly contains the symbol `$' as a free variable. The symbol will be bound to the value previous to the slotted expression before it is evaluated.
 
 For example, the flow expression
 
