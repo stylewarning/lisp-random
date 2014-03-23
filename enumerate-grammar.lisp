@@ -18,8 +18,9 @@
 ;;;; limit!) of the arithmetic grammar. The order in which things are
 ;;;; generated seems to be correct (and (probably) easy to prove
 ;;;; correct), but it doesn't produce the most dazzling outputs. If
-;;;; the traversal were better/more efficient, this could be a lot
-;;;; faster and produce prettier output.
+;;;; the traversal were better, for some definition of better, this
+;;;; could be a lot produce prettier output. It can also probably be
+;;;; made more efficient in time and memory significantly.
 ;;;;
 ;;;;
 ;;;; STRATEGY
@@ -27,26 +28,26 @@
 ;;;; This is a very simple-minded approach to CF sentence generation.
 ;;;;
 ;;;; First, the CF grammar is generated. I originally produced a graph
-;;;; representing the grammar which is sort of what is constructed as
-;;;; in Palmer's Haskell code. Though, my graph took advantage of the
-;;;; ability to have cyclic data structures in Lisp. This approach
-;;;; didn't immediately work out well, and it was pretty difficult to
-;;;; debug.
+;;;; representing the grammar which is what is constructed in Palmer's
+;;;; Haskell code lazily. My graph took advantage of the ability to
+;;;; have cyclic data structures in Lisp. This approach didn't
+;;;; immediately work out well, and it was pretty difficult to debug,
+;;;; so I abandonded it.
 ;;;;
-;;;; The next approach I had was just to map non-terminal names to
-;;;; lists of alternations, which simply reference the non-terminals
-;;;; by name. The aforementioned graph can be constructed by
-;;;; "patching" this table. This turned out to be pretty simple and
-;;;; easy to debug.
+;;;; The next approach I had was just to map in a table names of
+;;;; non-terminal to lists of alternations, which simply reference the
+;;;; non-terminals by name. The aforementioned graph can be
+;;;; constructed by "patching" this table up in a post-processing
+;;;; step. This turned out to be pretty simple and easy to debug.
 ;;;;
 ;;;; Terminals and non-terminals are represented by the SYM algebraic
 ;;;; data type, which allows for a TERMINAL string or a NON-TERMINAL
-;;;; reference. I originally went gung-ho on getting everything typed
-;;;; correctly, but then it turned out to be simpler in the end to
-;;;; just use lists for, specifically, alternations and
-;;;; combinations. The lack of type safety ended up biting me in the
-;;;; behind when I started getting list-vertigo, which you'll see
-;;;; below with tons of flattening and consing.
+;;;; reference. I originally went gung-ho on getting everything
+;;;; explicitly type-safe, but then it turned out to be simpler in the
+;;;; end to just use lists for, specifically, alternations and
+;;;; combinations. The haphazard use of types ended up biting me in
+;;;; the behind when I started getting list-vertigo, which you'll see
+;;;; below in the tons of flattening and consing.
 ;;;;
 ;;;; The actual approach to generation is simple. I do a breadth-first
 ;;;; algorithm:
@@ -55,13 +56,13 @@
 ;;;;
 ;;;;    2. Pop the next alternation X.
 ;;;;
-;;;;    3. Expand out all combinations of the alternation.
+;;;;    3. Expand out all combinations of X.
 ;;;;
-;;;;        a. Identify all non-terminals in the alternation and look
-;;;;        up their definition. Call these "sub-alternations".
+;;;;        a. Identify all non-terminals in X and look up their
+;;;;        definition. Call these "sub-alternations".
 ;;;;
-;;;;        b. For each combination of sub-alternation, record an
-;;;;        alternation.
+;;;;        b. For each combination of sub-alternations, record an
+;;;;        expanded alternation.
 ;;;;
 ;;;;    4. For each combination, output if it is a sentence, or add to
 ;;;;    the queue to be expanded further.
