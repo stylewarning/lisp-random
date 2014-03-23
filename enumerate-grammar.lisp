@@ -136,8 +136,8 @@
   (and (listp x)
        (every #'terminal-p x)))
 
-(defun enumerate (grammar &optional (limit 10))
-  "Enumerate all sentences of the context-free language accepted by the grammar GRAMMAR. Limit the number of expansion iterations to LIMIT."
+(defun enumerate (grammar &key (expansion-limit 10))
+  "Enumerate all sentences of the context-free language accepted by the grammar GRAMMAR. Limit the number of expansion iterations to EXPANSION-LIMIT."
   (let ((table (grammar-rules grammar))
         (todo (make-queue)))
     (labels ((print-alternate (alternate)
@@ -149,7 +149,6 @@
                    (_ (error "Not a terminal!"))))
                (terpri))
              
-             ;;
              (output-or-queue (alternate)
                "If ALTERNATE is a (terminal) sentence in the language specified by GRAMMAR, then output it. Otherwise queue it up for further expansion."
                (if (sentencep alternate)
@@ -170,8 +169,9 @@
       (dolist (alternate (gethash (grammar-root grammar) table))
         (enqueue todo alternate))
 
-      ;; Generate strings, up to the specified limit or until the language has been exhausted.
-      (loop :repeat limit
+      ;; Generate strings, up to the specified limit or until the
+      ;; language has been exhausted.
+      (loop :repeat expansion-limit
             :until (queue-empty-p todo)
             :do (mapc #'output-or-queue
                       (compute-combinations (dequeue todo)))))))
@@ -185,7 +185,7 @@
       :digits (alternates (terminal "1") (terminal "2") more)
       :more (alternates (terminal "3") (terminal "4")))))
 
-;; CL-USER> (enumerate *digit-grammar* 100)
+;; CL-USER> (enumerate *digit-grammar* :expansion-limit 100)
 ;; ==> 1
 ;; ==> 2
 ;; ==> 3
@@ -198,7 +198,7 @@
       (make-grammar digits
         :digits (alternates one (list one digits))))))
 
-;; CL-USER> (enumerate *simple-grammar* 10)
+;; CL-USER> (enumerate *simple-grammar* :expansion-limit 10)
 ;; ==> 1
 ;; ==> 11
 ;; ==> 111
@@ -219,7 +219,7 @@
         :digits (alternates digit (list digit digits))
         :digit (alternates zero one)))))
 
-;; CL-USER> (enumerate *binary-grammar* 10)
+;; CL-USER> (enumerate *binary-grammar* :expansion-limit 10)
 ;; ==> 0
 ;; ==> 1
 ;; ==> 10
@@ -243,7 +243,7 @@
       :digit (loop :for i :below 2
                    :collect (list (terminal (prin1-to-string i)))))))
 
-;; CL-USER> (enumerate *simple-arithmetic-grammar* 1000)
+;; CL-USER> (enumerate *simple-arithmetic-grammar* :expansion-limit 1000)
 ;; ==> 0
 ;; ==> 1
 ;; ==> 0+0
