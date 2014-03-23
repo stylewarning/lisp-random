@@ -106,8 +106,7 @@
      ,@body))
 
 (defun alternates (&rest things)
-  "Create a list of alternates specified by THINGS. The elements of THINGS should either be non-terminals, terminals, or a list of non-terminals and terminals.
-"
+  "Create a list of alternates specified by THINGS. The elements of THINGS should either be non-terminals, terminals, or a list of non-terminals and terminals."
   (loop :for thing :in things
         :collect (if (listp thing)
                      thing
