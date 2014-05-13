@@ -4,7 +4,7 @@
 ;;;; Given a password string S and a mapping between letters and
 ;;;; letter variants, produce all variants of the string S.
 ;;;;
-;;;; For example, given "fat", and the dictionary
+;;;; For example, given "fate", and the dictionary
 ;;;; 
 ;;;;   a -> @, 4
 ;;;;   e -> 3
