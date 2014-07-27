@@ -159,7 +159,10 @@
   (defun interface-accessor (intf-name slot)
     (intern (concatenate 'string
                          (interface-conc-name intf-name)
-                         (symbol-name slot)))))
+                         (symbol-name slot))))
+  
+  (defun interface-implementation-constructor-name (intf-name)
+    (intern (format nil "MAKE-~A-IMPLEMENTATION" intf-name))))
 
 (defmacro define-interface (name args &body specs)
   (check-type name symbol)
@@ -168,7 +171,7 @@
         (conc-name (interface-conc-name name)))
     `(progn
        (defstruct (,name (:conc-name ,(intern conc-name))
-                         (:constructor ,(intern (format nil "MAKE-~A-IMPLEMENTATION" name)))
+                         (:constructor ,(interface-implementation-constructor-name name))
                          (:print-function (lambda (obj stream depth)
                                             (declare (ignore depth))
                                             (print-unreadable-object (obj stream :type t :identity t)
@@ -182,18 +185,70 @@
        ;; function definitions
        ,@(loop :for spec :in specs
                :append
-               (destructuring-bind (fn-name &optional args &rest rest)
+               (destructuring-bind (fn-name (&rest lambda-list) &rest rest)
                    spec
                  (declare (ignore rest))
                  `(;progn
                    (declaim (inline ,fn-name))
-                   (defun ,fn-name (,intf ,@args)
-                     (funcall (,(interface-accessor name fn-name) ,intf)
-                              ,@args)))))
+                   (defun ,fn-name (,intf ,@lambda-list)
+                     ,(calling-form `(,(interface-accessor name fn-name) ,intf)
+                                    lambda-list)))))
        ',name)))
 
-;; Example
+(defmacro define-implementation (name (intf-name) &body implementations)
+  ;; We could do a lot more error checking on the IMPLEMENTATIONS
+  ;; list. In particular, we could check that all of the required
+  ;; protocol functions are implemented. We could also ensure that
+  ;; every one of them has conforming lambda lists.
+  `(defparameter
+    ,name
+    (,(interface-implementation-constructor-name intf-name)
+     ,@implementations)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Example ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 (define-interface stack ()
-  (make-stack ())
+  (make-stack (&rest r))
   (push-stack (s x))
+  (peek-stack (s))
   (pop-stack (s)))
+
+(define-implementation list-stack (stack)
+  :make-stack
+  (lambda (&rest r)
+    r)
+
+  :push-stack
+  (lambda (s x)
+    (cons x s))
+
+  :peek-stack
+  (lambda (s)
+    (car s))
+  
+  :pop-stack
+  (lambda (s)
+    (cdr s)))
+
+(define-implementation vector-stack (stack)
+  :make-stack
+  (lambda (&rest r)
+    (let ((length (length r)))
+      (make-array length
+                  :adjustable t
+                  :fill-pointer length
+                  :initial-contents r)))
+  
+  :push-stack
+  (lambda (s x)
+    (vector-push-extend x s)
+    s)
+  
+  :peek-stack
+  (lambda (s)
+    (aref s (1- (length s))))
+  
+  :pop-stack
+  (lambda (s)
+    (vector-pop s)
+    s))
