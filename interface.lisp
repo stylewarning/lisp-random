@@ -59,6 +59,10 @@
 ;;;; formality tying all implementations to a particular interface
 ;;;; with a name.
 ;;;;
+;;;; As I understand, this basic notion is taken to the extreme with
+;;;; Fare's Lisp Interface Library
+;;;; (http://www.cliki.net/lisp-interface-library).
+;;;;
 ;;;;
 ;;;; In this file, however, we take a different approach
 ;;;; entirely. Instead of using a class to represent interfaces and
