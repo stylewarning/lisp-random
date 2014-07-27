@@ -2,6 +2,91 @@
 ;;;;
 ;;;; Copyright (c) 2014 Robert Smith
 
+;;;; This file contains an implementation of interfaces and
+;;;; implementations. They're sometimes called protocols in other
+;;;; languages.
+;;;;
+;;;; Broadly speaking, an "interface" is some collection of function
+;;;; "prototypes" that a valid implementation must implement. For
+;;;; example, something called a "stack" must implement stack
+;;;; creation, pushing, peeking, and popping.
+;;;;
+;;;; The notion of interfaces and implementations aid the distinction
+;;;; between data structures and different implementations of that
+;;;; data structure. This was perhaps pioneered by Modula-3, and
+;;;; became a significant part of other languages like Standard ML and
+;;;; OCaml. In all of the aforementioned languages, interfaces can
+;;;; actually contain more than just functions, such as types and
+;;;; values. Haskell typeclasses are also a form of interface and
+;;;; implementation. They are very general and are even parametric.
+;;;;
+;;;; One way to accomplish the notion of interfaces and
+;;;; implementations in Lisp is to use some "abstract class" and make
+;;;; several (final) subclasses of that class. The interface, in this
+;;;; case, is the abstract class and a collection of generic
+;;;; functions. The implementation would be the final subclass along
+;;;; with method definitions.
+;;;;
+;;;; For example:
+;;;;
+;;;;     (defclass stack () ())
+;;;;     (defgeneric make-stack (impl))
+;;;;     (defgeneric stack-push (impl s x))
+;;;;     (defgeneric stack-pop (impl s))
+;;;;     (defgeneric stack-peek (impl s))
+;;;;
+;;;;     (defclass list-stack (stack) ())
+;;;;     (defmethod make-stack ((impl list-stack))
+;;;;       nil)
+;;;;     (defmethod stack-push ((impl list-stack) s x)
+;;;;       (cons x s))
+;;;;     (defmethod stack-pop ((impl list-stack) s)
+;;;;       (cdr s))
+;;;;     (defmethod stack-peek ((impl list-stack) s)
+;;;;       (car s))
+;;;;
+;;;; This is mostly sufficient, though Lisp makes no guarantee that a
+;;;; class will have any set of methods defined for it. (One could
+;;;; perhaps use the MOP for this.) One can "optimize" implementations
+;;;; by conflating the notion of an implementation with the actual
+;;;; data structure being implemented, and make it a part of the
+;;;; implementation class. In this case, we could have a slot in
+;;;; LIST-STACK holding the list.
+;;;;
+;;;; Since methods are not tied to classes, this implementation allows
+;;;; one to have a class implement several methods. Also, it is
+;;;; entirely possible to do away with the superclass; that is a
+;;;; formality tying all implementations to a particular interface
+;;;; with a name.
+;;;;
+;;;;
+;;;; In this file, however, we take a different approach
+;;;; entirely. Instead of using a class to represent interfaces and
+;;;; implementations, we have a structure whose slots are the
+;;;; implementation functions. The name of the structure (which
+;;;; decides what slots it has) is the interface, and the
+;;;; implementation is the actual slot values.
+;;;;
+;;;; It is cumbersome, however, to use an interface by accessing slots
+;;;; all of the time. Instead, we define functions---which correspond
+;;;; to the slot names---which access the slots of an implementation
+;;;; and pass the arguments to it.
+;;;;
+;;;; In doing this, there's no dispatch on type required, just access
+;;;; on the slots of the structure. It also forces data structures and
+;;;; the interface to be completely disjoint entities.
+;;;;
+;;;; See the end of the file for an example.
+;;;;
+;;;;
+;;;; There's still some work to do, namely optimizing the
+;;;; calls. There's also work in producing better error
+;;;; messages. Lambda list congruence would be a start. Showing all
+;;;; unimplemented functions in an error message would also be nice.
+;;;;
+;;;; I am also not convinced that the DEFINE-IMPLEMENTATION syntax is
+;;;; as good as it can be.
+
 (ql:quickload :alexandria)
 
 ;;; A simple data structure to store argument lists and how it should
@@ -167,7 +252,7 @@
 (defmacro define-interface (name args &body specs)
   (check-type name symbol)
   (assert (null args))
-  (let ((intf (gensym "INTF-"))
+  (let ((intf (gensym "IMPL-"))
         (conc-name (interface-conc-name name)))
     `(progn
        (defstruct (,name (:conc-name ,(intern conc-name))
@@ -180,7 +265,8 @@
                          (:predicate nil))
          ,@(loop :for spec :in specs
                  :collect `(,(first spec)
-                            (error  ,(format nil "Required implementation for ~A in the ~A interface." (first spec) name)))))
+                            (error  ,(format nil "Required implementation for ~A in the ~A interface." (first spec) name))
+                            :read-only t)))
        
        ;; function definitions
        ,@(loop :for spec :in specs
@@ -198,8 +284,10 @@
 (defmacro define-implementation (name (intf-name) &body implementations)
   ;; We could do a lot more error checking on the IMPLEMENTATIONS
   ;; list. In particular, we could check that all of the required
-  ;; protocol functions are implemented. We could also ensure that
-  ;; every one of them has conforming lambda lists.
+  ;; protocol functions are implemented. (This is actually
+  ;; implemented, but it happens when trying to call the
+  ;; implementation constructor.) We could also ensure that every one
+  ;; of them has conforming lambda lists.
   `(defparameter
     ,name
     (,(interface-implementation-constructor-name intf-name)
@@ -252,3 +340,14 @@
   (lambda (s)
     (vector-pop s)
     s))
+
+;;; CL-USER> (pop-stack vector-stack
+;;;                     (push-stack vector-stack
+;;;                                 (make-stack vector-stack 1 2 3)
+;;;                                 5))
+;;; #(1 2 3)
+;;; CL-USER> (pop-stack list-stack
+;;;                     (push-stack list-stack
+;;;                                 (make-stack list-stack 1 2 3)
+;;;                                 5))
+;;; (1 2 3)
