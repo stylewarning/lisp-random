@@ -146,7 +146,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; pi π ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defconstant +chud-decimals-per-term+ 14.181647462d0)
+(defconstant +chud-decimals-per-term+ 14.181647462l0)
 (defconstant +chud-a+ 13591409)
 (defconstant +chud-b+ 545140134)
 (defconstant +chud-c+ 640320)
@@ -180,6 +180,17 @@
     (multiple-value-bind (num den) (computation-numerator/denominator comp)
       (values (floor (* sqrt-c den #.(/ +chud-c+ 12))
                      num)))))
+
+(defun compute-pi-float (prec)
+  (unless (<= prec (ext:long-float-digits))
+    (warn "EXT:LONG-FLOAT-DIGITS, which is ~D, is not large enough to compute to ~D digits." (ext:long-float-digits) prec))
+  (let* ((num-terms (ceiling (+ 2 (/ prec +chud-decimals-per-term+))))
+         ;; √640320 = 8√10005
+         (sqrt-c    (* 8 (sqrt 10005.0l0)))
+         (comp      (binary-split pi-series 0 num-terms)))
+    (multiple-value-bind (num den) (computation-numerator/denominator comp)
+      (/ (* sqrt-c den #.(/ +chud-c+ 12))
+         num))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;; Catalan's Constant G ;;;;;;;;;;;;;;;;;;;;;;;;
 
