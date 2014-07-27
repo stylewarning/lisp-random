@@ -175,7 +175,7 @@
                          (:print-function (lambda (obj stream depth)
                                             (declare (ignore depth))
                                             (print-unreadable-object (obj stream :type t :identity t)
-                                              (format stream "~S" "Interface"))))
+                                              (write-string "Implementation" stream))))
                          (:copier nil)
                          (:predicate nil))
          ,@(loop :for spec :in specs
