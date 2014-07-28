@@ -270,7 +270,8 @@
          ,@(loop :for spec :in specs
                  :collect `(,(first spec)
                             (error  ,(format nil "Required implementation for ~A in the ~A interface." (first spec) name))
-                            :read-only t)))
+                            :read-only t
+                            :type function)))
        
        ;; function definitions
        ,@(loop :for spec :in specs
@@ -281,8 +282,10 @@
                  `(;progn
                    (declaim (inline ,fn-name))
                    (defun ,fn-name (,intf ,@lambda-list)
-                     (declare (dynamic-extent ,intf))
-                     ,(calling-form `(,(interface-accessor name fn-name) ,intf)
+                     ;;(declare (dynamic-extent ,intf))
+                     ,(calling-form `(the function
+                                          (,(interface-accessor name fn-name)
+                                           ,intf))
                                     lambda-list)))))
        ',name)))
 
@@ -299,13 +302,14 @@
      ,@implementations)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Example ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
+#+#:ignore
 (define-interface stack ()
   (make-stack (&rest r))
   (push-stack (s x))
   (peek-stack (s))
   (pop-stack (s)))
 
+#+#:ignore
 (define-implementation list-stack (stack)
   :make-stack
   (lambda (&rest r)
@@ -323,6 +327,7 @@
   (lambda (s)
     (cdr s)))
 
+#+#:ignore
 (define-implementation vector-stack (stack)
   :make-stack
   (lambda (&rest r)
