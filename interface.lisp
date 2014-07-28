@@ -281,6 +281,7 @@
                  `(;progn
                    (declaim (inline ,fn-name))
                    (defun ,fn-name (,intf ,@lambda-list)
+                     (declare (dynamic-extent ,intf))
                      ,(calling-form `(,(interface-accessor name fn-name) ,intf)
                                     lambda-list)))))
        ',name)))
