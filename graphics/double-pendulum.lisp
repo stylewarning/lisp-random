@@ -10,8 +10,8 @@
 (defconstant degrees (/ fpi 180.0))
 
 ;;; TODO: get rid of these in favor of static double-pendulum state.
-(defconstant L1 3.5)
-(defconstant L2 0.5)
+(defconstant L1 2.0)
+(defconstant L2 1.0)
 (defconstant M1 1.0)
 (defconstant M2 1.0)
 
@@ -176,7 +176,7 @@ where DY/DX is an optional vector in which the result will be put."
 
 ;;;; Queue Implementation (taken from stack-queue.lisp)
 
-(defparameter *maximum-queue-size* 100)
+(defparameter *maximum-queue-size* 200)
 
 (defstruct (queue (:constructor %make-queue)
                   (:predicate queuep))
@@ -244,7 +244,8 @@ where DY/DX is an optional vector in which the result will be put."
                             (first p)
                             (fourth p)
                             (third p)
-                            :foreground (color:make-rgb 0.0 0.0 1.0 percent)))))
+                            :foreground (color:make-rgb 0.0 0.0 1.0 percent)
+                            :thickness 2.0))))
 
 (defparameter *display-callback*
   (lambda (self x y width height)
