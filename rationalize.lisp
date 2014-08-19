@@ -1,9 +1,22 @@
 ;;;; rationalize.lisp
 ;;;;
 ;;;; Copyright (c) 2014 Robert Smith
+;;;;
+;;;; This file contains an implementation of
+;;;; NICE-RATIONALIZE. NICE-RATIONALIZE is a function which
+;;;; rationalizes a float, but attempts to find a "nice" rational
+;;;; number which has a small denominator. To do this, of course, the user 
+;;;;
+;;;; For example, consider the truncation of the rational 1/3: 0.33333.
+;;;;
+;;;; CL-USER> (rationalize 0.33333)
+;;;; 33387/100162
+;;;; CL-USER> (nice-rationalize 0.33333 :tolerance 1/10000)
+;;;; 1/3
 
-(defun naive-rationalize (float)
-  "Rationalize the floating point number FLOAT naively."
+
+(defun exact-rationalize (float)
+  "Rationalize the floating point number FLOAT exactly."
   (rationalize float))
 
 (defun rational-split (r)
@@ -39,17 +52,20 @@
   "Map through the convergents of the rational R, calling the function F on each. The convergents will be iterated through in standard order (least precise to most precise)."
   (map-cf-convergents f (rational->cf r)))
 
-(defun nice-rationalize (float &key (tolerance (/ (expt (float-radix float)
-                                                        (float-precision float)))))
+(defun nice-rationalize (float &key tolerance)
   "Find a rational R such that
 
     | R - FLOAT | <= TOLERANCE
 
-and R has a minimal denominator."
+and R has a minimal denominator.
+
+If TOLERANCE is NIL, then standard rationalization will occur."
   (check-type float float)
-  (let ((exact (naive-rationalize float)))
+  (let ((exact (exact-rationalize float)))
     (labels ((select-convergent (c)
                (when (<= (abs (- c exact)) tolerance)
                  (return-from nice-rationalize c))))
       (declare (dynamic-extent #'select-convergent))
-      (map-rational-convergents #'select-convergent exact))))
+      (if (null tolerance)
+          exact
+          (map-rational-convergents #'select-convergent exact)))))
