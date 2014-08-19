@@ -26,6 +26,7 @@
   (truncate r))
 
 (defun rational->cf (r)
+  "Convert a rational number R into its standard continued fraction representation, represented as a vector of integers."
   (declare (optimize speed))
   (let ((num-terms 0)
         (cf-terms '()))
