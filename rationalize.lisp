@@ -13,35 +13,45 @@
 ;;;; 33387/100162
 ;;;; CL-USER> (nice-rationalize 0.33333 :tolerance 1/10000)
 ;;;; 1/3
-
+;;;;
+;;;; This code is written in such a way to attempt not to cons if not
+;;;; necessary.
 
 (defun exact-rationalize (float)
   "Rationalize the floating point number FLOAT exactly."
   (rationalize float))
 
-(defun rational-split (r)
+(defun improper->proper (r)
   "Convert a possibly improper rational R into a proper rational (A P/Q) such that R = A + P/Q and 0 <= P/Q < 1."
-  (multiple-value-list (truncate r)))
+  (truncate r))
 
 (defun rational->cf (r)
-  "Convert a rational number R into its standard continued fraction representation, represented as a vector of integers."
-  (check-type r rational)
-  (loop
-    :for proper := (rational-split r)
-    :collect (first proper) :into cf
-    :sum 1 :into length
-    :until (zerop (second proper))
-    :do (setf r (/ (second proper)))
-    :finally (return (make-array length :element-type 'integer
-                                        :initial-contents cf))))
+  (declare (optimize speed))
+  (let ((num-terms 0)
+        (cf-terms '()))
+    (labels ((compute-cf! (r)           ; Tail recursive.
+               (multiple-value-bind (whole fractional) (improper->proper r)
+                 (push whole cf-terms)
+                 (incf num-terms)
+                 (unless (zerop fractional)
+                   (compute-cf! (/ fractional))))))
+      (declare (dynamic-extent #'compute-cf!))
+      ;; Compute the terms of the continued fraction.
+      (compute-cf! r)
+      
+      ;; Make an array out of the terms and return it.
+      (let ((array (make-array num-terms :element-type 'integer
+                                         :initial-element 0)))
+        (loop :for i :from (1- num-terms) :downto 0
+              :do (setf (aref array i) (pop cf-terms))
+              :finally (return array))))))
 
 (defun cf->rational (cf &key end)
   "Convert a continued fraction CF into a rational."
-  (reduce (lambda (next sum)
-            (+ next (/ sum)))
-          cf
-          :end end
-          :from-end t))
+  (flet ((build-rational (next-term cf)
+           (+ next-term (/ cf))))
+    (declare (dynamic-extent #'build-rational))
+    (reduce #'build-rational cf :end end :from-end t)))
 
 (defun map-cf-convergents (f cf)
   "Map through the convergents of the continued fraction CF, calling the function F on each. The convergents will be iterated through in standard order (least precise to most precise)."
@@ -63,11 +73,11 @@ If TOLERANCE is NIL, then standard rationalization will occur."
   (check-type float float)
   (check-type tolerance (rational (0)))
   (let ((exact (exact-rationalize float)))
-    (labels ((select-convergent (c)
-               ;; This comparison is okay because we are dealing with
-               ;; exact quantities, as opposed to floats.
-               (when (<= (abs (- c exact)) tolerance)
-                 (return-from nice-rationalize c))))
+    (flet ((select-convergent (c)
+             ;; This comparison is okay because we are dealing with
+             ;; exact quantities, as opposed to floats.
+             (when (<= (abs (- c exact)) tolerance)
+               (return-from nice-rationalize c))))
       (declare (dynamic-extent #'select-convergent))
       (if (null tolerance)
           exact
