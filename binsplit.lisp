@@ -1,5 +1,5 @@
 ;;;; binsplit.pdf
-;;;; Copyright (c) 2012 Robert Smith
+;;;; Copyright (c) 2012-2014 Robert Smith
 
 (declaim (optimize speed))
 
@@ -181,6 +181,7 @@
       (values (floor (* sqrt-c den #.(/ +chud-c+ 12))
                      num)))))
 
+#+clisp
 (defun compute-pi-float (prec)
   (unless (<= prec (ext:long-float-digits))
     (warn "EXT:LONG-FLOAT-DIGITS, which is ~D, is not large enough to compute to ~D digits." (ext:long-float-digits) prec))
