@@ -61,8 +61,11 @@ and R has a minimal denominator.
 
 If TOLERANCE is NIL, then standard rationalization will occur."
   (check-type float float)
+  (check-type tolerance (rational (0)))
   (let ((exact (exact-rationalize float)))
     (labels ((select-convergent (c)
+               ;; This comparison is okay because we are dealing with
+               ;; exact quantities, as opposed to floats.
                (when (<= (abs (- c exact)) tolerance)
                  (return-from nice-rationalize c))))
       (declare (dynamic-extent #'select-convergent))
