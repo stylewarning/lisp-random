@@ -44,7 +44,7 @@ Within BODY, the unary function YIELD may be called which will immediately retur
                             ;; After our body has finished executed.
                             (setf ,entry (lambda (,resume-value)
                                            (declare (ignore ,resume-value))
-                                           (cerror "Continue anyway."
+                                           (cerror "Return NIL."
                                                    "Coroutine exhausted."))))))
            ;; Returned coroutine.
            (lambda () (,coroutine nil)))))))
