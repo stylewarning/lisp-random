@@ -115,7 +115,8 @@ Implicit methods are the same except there is a full coefficient matrix as oppos
 (defun generate-k (l bt &key (tn 'tn)
                              (yn 'yn)
                              (h  'h)
-                             (f  'f))
+                             (f  'f)
+                             (use-funcall t))
   (let ((first-arg
           (plus tn (times (aref (butcher-tableau-nodes bt) (1- l)) h)))
         
@@ -127,7 +128,9 @@ Implicit methods are the same except there is a full coefficient matrix as oppos
                                                         (1- i))
                                                   (k-name i)))
                 :finally (return sum))))
-    (times h `(funcall ,f ,first-arg ,second-arg))))
+    (times h (if use-funcall
+                 `(funcall ,f ,first-arg ,second-arg)
+                 `(,f ,first-arg ,second-arg)))))
 
 (defun generate-y (bt &key (tn 'tn)
                            (yn 'yn)
@@ -142,7 +145,8 @@ Implicit methods are the same except there is a full coefficient matrix as oppos
 (defun generate-rk-method (bt &key (yn 'yn)
                                    (tn 'tn)
                                    (h 'h)
-                                   (f 'f))
+                                   (f 'f)
+                                   (use-funcall t))
   "Given a Butcher tableau BT, and values (possibly symbols) for:
 
     1. The current approximation of Y: YN,
@@ -152,15 +156,30 @@ Implicit methods are the same except there is a full coefficient matrix as oppos
 
         dY/dt = F(t, Y),
 
-generated code which will return two values: the next timestep T(N+1), and the approximation of Y at T(N+1)."
+generated code which will return two values: the next timestep T(N+1), and the approximation of Y at T(N+1).
+
+If USE-FUNCALL is NIL, then F will be put in function call position as opposed to being FUNCALL'd."
   `(let* (,@(loop :for l :from 1 :to (butcher-tableau-stages bt)
                   :collect (list (k-name l)
                                  (generate-k l bt :tn tn
                                                   :yn yn
                                                   :h h
-                                                  :f f))))
+                                                  :f f
+                                                  :use-funcall use-funcall))))
      (values
       (+ ,tn ,h)
       ,(generate-y bt :yn yn :tn tn :h h :f f))))
 
-;;; Example: (pprint (generate-rk-method (parse-tableau *rk4*) 'y0 't0 'h))
+;;; Example: (pprint (generate-rk-method (parse-tableau *rk4*)))
+
+(defmacro define-rk-iterator (name bt h)
+  `(defun ,name (f steps y0 t0)
+     (let ((yn y0)
+           (tn t0))
+       (dotimes (i steps)
+         (multiple-value-setq (tn yn)
+           ,(generate-rk-method bt :yn 'yn
+                                   :tn 'tn
+                                   :h h
+                                   :f 'f)))
+       (values yn tn))))
