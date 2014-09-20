@@ -4,7 +4,8 @@ This directory contains a bunch of (mostly) self-contained snippets of
 Lisp code that I've have written. Many of them are simply experiments,
 especially Lisp language experiments. Others are demonstrations.
 
-Some of the files here have grown to be their own library. Examples include:
+Some of the files here have grown to be their own library. Examples
+include:
 
     * defdata.lisp -> CL-ALGEBRAIC-DATA-TYPE
     
