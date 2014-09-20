@@ -74,3 +74,44 @@ number generator FIXED-RANDOM."
           *random-upper-bound*)
   
   (mod (fixed-random) m))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defun successives (list)
+  (loop :for (a b) :on list
+        :for x :on list
+        :when (and (not (endp (cdr x))) (eql a b))
+          :collect a))
+
+;; wacko pseudo-functional version
+(defun successives-2 (list)
+  (mapl (lambda (x)
+          (cond
+            ((endp (cdr x)) (return-from successives nil))
+            ((eql (first x) (second x)) (return-from successives t))))
+        list))
+
+(defun successives-3 (list)
+  (car
+   (reduce (lambda (acc next)
+             (cond
+               ((null acc) (cons nil next))
+               ((car acc) acc)
+               ((eql next (cdr acc)) (rplaca acc t) acc)
+               (t (rplacd acc next))))
+           list
+           :initial-value nil)))
+
+
+(defun successives-4 (list)
+  (let ((cell (cons nil nil)))
+    (declare (dynamic-extent cell))
+    (reduce (lambda (acc next)
+              (cond
+                ((null acc) (rplacd cell next)       cell)
+                ((car acc)                           cell)
+                ((eql next (cdr acc)) (rplaca acc t) cell)
+                (t (rplacd cell next)                cell)))
+            list
+            :initial-value nil)
+    (car cell)))
