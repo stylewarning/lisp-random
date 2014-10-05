@@ -20,4 +20,5 @@ DOCUMENTATION is an optional documentation string for the function NAME."
            ,var))
        (defun (setf ,name) (,new-value)
          (bt:with-lock-held (,var-lock)
-           (setf ,var ,new-value))))))
+           (setf ,var ,new-value)))
+       ',name)))
