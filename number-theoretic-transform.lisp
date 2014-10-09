@@ -199,14 +199,14 @@ Specifically, the following will be printed:
       (loop :for power :in test-powers
             :never (= 1 (expt-mod a power m))))))
 
-;;(1+ (- (expt 2 32) (expt 2 20)))
 (defun find-primitive-root (m)
   "Find the smallest primitive M-th root of unity for the prime modulus M."
   (loop :with primitivep := (primitive-root-test-function m)
         :for p := 2 :then (next-prime p)
-        ;;:when (>= m p) :do (return-from find-primitive-root nil)
+        ;; :when (>= m p) :do (return-from find-primitive-root nil)
         :until (funcall primitivep p)
         :finally (return p)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;; EXAMPLE OUTPUT ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
