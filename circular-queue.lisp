@@ -21,6 +21,18 @@
   "Is the queue Q empty?"
   (null (queue-tail q)))
 
+(defun queue-front (q)
+  "Return the front of the queue Q."
+  (if (queue-empty-p q)
+      nil
+      (cadr (queue-tail q))))
+
+(defun queue-back (q)
+  "Return the back of the queue Q."
+  (if (queue-empty-p q)
+      nil
+      (car (queue-tail q))))
+
 (defun queue-push (obj q)
   "Push an object OBJ onto the tail of the queue Q."
   (if (queue-empty-p q)
