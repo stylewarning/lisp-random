@@ -2,10 +2,14 @@
 ;;;;
 ;;;; Copyright (c) 2015 Robert Smith
 
-;;;; A quick and dirty implementation of list comprehensions. Could be
-;;;; used as a basis for extensible list comprehensions, e.g.,
-;;;;
-;;;;    (define-lc-clause ...)
+(defpackage #:list-comprehensions
+  (:nicknames #:lc)
+  (:use #:cl)
+  (:export #:lc
+           #:define-lc-clause
+           #:continue))
+
+(in-package #:list-comprehensions)
 
 (defmacro with-collector ((var collector) &body body)
   (check-type var symbol)
@@ -28,8 +32,42 @@
                   ,value)))
          ,@body))))
 
-(defun kw (symb)
-  (intern (symbol-name symb) :keyword))
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defun kw (symb)
+    (intern (symbol-name symb) :keyword)))
+
+(defvar *lc-clause-expanders* (make-hash-table :test 'eq))
+
+(defmacro define-lc-clause (name lambda-list &body body)
+  (let ((name (kw name))
+        (continue (gensym "CONTINUE-"))
+        (clause-arguments (gensym "CLAUSE-ARGUMENTS-")))
+    `(progn
+       (setf (gethash ,name *lc-clause-expanders*)
+             (lambda (,clause-arguments ,continue)
+               (flet ((continue ()
+                        (funcall ,continue)))
+                 (destructuring-bind ,lambda-list
+                     ,clause-arguments
+                   ,@body))))
+       ,name)))
+
+(define-lc-clause if (&rest items)
+  `(when ,(list* 'and items)
+     ,(continue)))
+
+(define-lc-clause with (var val)
+  `(let ((,var ,val))
+     ,(continue)))
+
+(define-lc-clause in (var seq)
+  `(map nil
+        (lambda (,var) ,(continue))
+        ,seq))
+
+(define-lc-clause for (var min max)
+  `(loop :for ,var :from ,min :below ,max
+         :do (progn ,(continue))))
 
 (defmacro lc (expr &rest clauses)
   (let ((result (gensym "RESULT-"))
@@ -39,39 +77,11 @@
                    `(,collect ,expr)
                    (destructuring-bind (type &rest clause-items)
                        (car clauses)
-                     (case (kw type)
-                       ((:for)
-                        (process-for (car clause-items) ; variable
-                                     (cdr clause-items) ; bounds, etc.
-                                     (cdr clauses)))
-                       ((:if)
-                        (process-if clause-items ; conjunction
-                                    (cdr clauses)))
-                       ((:with)
-                        (process-with (car clause-items) ; variable
-                                      (cdr clause-items) ; value
-                                      (cdr clauses)))))))
-             (process-for (var items clauses)
-               (ecase (length items)
-                 ((1)
-                  ;; (FOR <var> <seq>)
-                  `(map nil
-                        (lambda (,var)
-                          ,(process-clauses clauses))
-                        ,(first items)))
-                 ((2)
-                  ;; (FOR <var> <min> <max>)
-                  `(loop :for ,var :from ,(first items) :below ,(second items)
-                         :do (progn ,(process-clauses clauses))))))
-             (process-if (items clauses)
-               ;; (IF <predicate form>*)
-               `(when ,(list* 'and items)
-                  ,(process-clauses clauses)))
-             (process-with (var items clauses)
-               ;; FIXME: could do some error checking on ITEMS
-               ;; (WITH <var> <value>)
-               `(let ((,var ,(car items)))
-                  ,(process-clauses clauses))))
+                     (funcall
+                      (gethash (kw type) *lc-clause-expanders*)
+                      clause-items
+                      (lambda ()
+                        (process-clauses (cdr clauses))))))))
       `(with-collector (,result ,collect)
          ,(process-clauses clauses)
          ,result))))
