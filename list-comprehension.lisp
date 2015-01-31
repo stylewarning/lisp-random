@@ -53,7 +53,7 @@
        ,name)))
 
 (define-lc-clause if (&rest items)
-  `(when ,(list* 'and items)
+  `(when (and ,@items)
      ,(continue)))
 
 (define-lc-clause with (var val)
