@@ -12,6 +12,9 @@
 (in-package #:list-comprehensions)
 
 (defmacro with-collector ((var collector) &body body)
+  "Execute BODY with COLLECTOR fbound to a function which will collect its argument to VAR efficiently. VAR will be bound to the list of collected values.
+
+Mutating the list VAR or calling COLLECTOR on VAR has undefined behavior."
   (check-type var symbol)
   (check-type collector symbol)
   (let ((tail     (gensym "TAIL-"))
@@ -39,6 +42,9 @@
 (defvar *lc-clause-expanders* (make-hash-table :test 'eq))
 
 (defmacro define-lc-clause (name lambda-list &body body)
+  "Define a new list comprehension clause named NAME which takes the arguments as specified by the ordinary lambda list LAMBDA-LIST, executing BODY. BODY should have a form similar to that of a macro: a quasiquoted form representing the expansion of the clause.
+
+Within BODY, a local function `CONTINUE' should be called which will expand into the remaining code of the list comprehension."
   (let ((name (kw name))
         (continue (gensym "CONTINUE-"))
         (clause-arguments (gensym "CLAUSE-ARGUMENTS-")))
@@ -70,6 +76,27 @@
          :do (progn ,(continue))))
 
 (defmacro lc (expr &rest clauses)
+  "Compute the list comprehension of the expression EXPR with the clauses CLAUSES.
+
+By default, the following clause types are supported:
+
+    (IF <item>*)
+
+        Only includes EXPR if every one of <item> expressions are satisfied.
+
+    (WITH <var> <val>)
+
+        Binds the variable <var> to the value <val> in the remaining clauses as well as in EXPR.
+
+    (FOR <var> <min> <max>)
+
+        Iterates <var> from the value <min> to below <max>.
+
+    (IN <var> <seq>)
+
+        Iterates <var> through each item of the sequence <seq>.
+
+New clauses can be defined with the macro `DEFINE-LC-CLAUSE'."
   (let ((result (gensym "RESULT-"))
         (collect (gensym "COLLECT-")))
     (labels ((process-clauses (clauses)
