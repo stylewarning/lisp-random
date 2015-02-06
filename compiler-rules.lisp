@@ -22,11 +22,22 @@
         (remhash rule-name rules)
         (setf (gethash rule-name rules) new-value))))
 
+;;; Local macros to DEFINE-COMPILER-RULE.
+
+(defmacro give-up ()
+  (error "GIVE-UP is a local macro to DEFINE-COMPILER-RULE."))
+
+(defmacro environment ()
+  (error "ENVIRONMENT is a local macro to DEFINE-COMPILER-RULE."))
+
+;;; DEFINE-COMPILER-RULE implementation
+
 (defmacro define-compiler-rule (name rule-name arglist &body body)
   (let ((whole (gensym "WHOLE-"))
         (block-name (gensym (format nil "~A ~A-" name rule-name)))
         (environment (gensym "ENVIRONMENT-")))
     `(progn
+       ;; Create a compiler macro if one hasn't been created.
        ,(when (null (compiler-macro-function name))
           `(define-compiler-macro ,name
                (&whole ,whole ,@arglist &environment ,environment)
@@ -41,6 +52,8 @@
                              (return-from rule-loop result)))
                          (format t "Rule failed!~%")
                      :finally (return-from rule-loop ,whole)))))
+       
+       ;; Add the new compiler rule.
        (setf (compiler-rule ',name ',rule-name)
              (lambda (,whole &optional ,environment)
                (block ,block-name
