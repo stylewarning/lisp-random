@@ -5,3 +5,4 @@ syntax: glob
 *.fas
 *.lib
 *.dx64fsl
+*.64xfasl
