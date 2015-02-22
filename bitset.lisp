@@ -119,6 +119,8 @@
   #-sbcl
   (the bit-mask (aref +inverse-mask-table+ bit-position))
   #+sbcl
+  (ldb (byte +bit-count+ 0) (lognot (mask bit-position)))
+  #+#:ignore
   (the bit-mask (logxor +ones+ (mask bit-position))))
 
 (defmacro defun-inlinable (name args &body body)
