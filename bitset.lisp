@@ -71,6 +71,9 @@
   "Representation of a bit set."
   `(simple-array efficient-integer (*)))
 
+(defconstant +ones+ (1- (ash 1 +bit-count+))
+  "A total of +BIT-COUNT+ ones.")
+
 (alexandria:define-constant +mask-table+
   (loop :with table := (make-array +bit-count+
                                    :element-type 'efficient-integer
@@ -103,14 +106,20 @@
 (defun mask (bit-position)
   "A mask for bit position BIT-POSITION."
   (declare (type bit-position bit-position))
-  (the bit-mask (aref +mask-table+ bit-position)))
+  #-sbcl
+  (the bit-mask (aref +mask-table+ bit-position))
+  #+sbcl
+  (the bit-mask (ash 1 (the bit-position bit-position))))
 
 (declaim (ftype (function (bit-position) bit-mask) inverse-mask))
 (declaim (inline inverse-mask))
 (defun inverse-mask (bit-position)
   "A complement of the mask for bit position BIT-POSITION."
   (declare (type bit-position bit-position))
-  (the bit-mask (aref +inverse-mask-table+ bit-position)))
+  #-sbcl
+  (the bit-mask (aref +inverse-mask-table+ bit-position))
+  #+sbcl
+  (the bit-mask (logxor +ones+ (mask bit-position))))
 
 (defmacro defun-inlinable (name args &body body)
   "Defines a function akin to DEFUN, but ensures it is able to be inlined."
