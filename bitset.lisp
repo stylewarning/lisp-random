@@ -14,6 +14,8 @@
 ;;;
 ;;;    * Add out-of-bounds checks.
 
+(ql:quickload :alexandria)
+
 (declaim (optimize speed (safety 0) (debug 0)))
 
 (eval-when (:compile-toplevel :load-toplevel :execute)
@@ -44,8 +46,9 @@
               :do (return upgraded-element-type)
             :finally (return 'cl:fixnum))))
   
-  (defconstant +efficient-array-element-type+ (find-efficient-array-element-type)
-    "A type which has an efficient representation in an array.")
+  (alexandria:define-constant +efficient-array-element-type+ (find-efficient-array-element-type)
+    :test 'equalp
+    :documentation "A type which has an efficient representation in an array.")
   
   (defconstant +bit-count+ (type-length +efficient-array-element-type+)
     "The number of bits that can be held in a single array element.")
@@ -68,16 +71,17 @@
   "Representation of a bit set."
   `(simple-array efficient-integer (*)))
 
-(defconstant +mask-table+
+(alexandria:define-constant +mask-table+
   (loop :with table := (make-array +bit-count+
                                    :element-type 'efficient-integer
                                    :initial-element 0)
         :for i :below +bit-count+
         :do (setf (aref table i) (ash 1 i))
         :finally (return table))
-  "Table storing masks for each bit position accessible within an EFFICIENT-INTEGER.")
+  :test 'equalp
+  :documentation "Table storing masks for each bit position accessible within an EFFICIENT-INTEGER.")
 
-(defconstant +inverse-mask-table+
+(alexandria:define-constant +inverse-mask-table+
   (flet ((complement-mask (n)
            (logxor n (1- (expt 2 +bit-count+)))))
     (loop :with table := (make-array +bit-count+
@@ -87,7 +91,8 @@
           :do (setf (aref table i) 
                     (complement-mask (aref table i)))
           :finally (return table)))
-  "Table storing complements of the masks for each bit position accessible within an EFFICIENT-INTEGER.")
+  :test 'equalp
+  :documentation "Table storing complements of the masks for each bit position accessible within an EFFICIENT-INTEGER.")
 
 (deftype bit-mask ()
   "The type of all EFFICIENT-INTEGER bit masks."
