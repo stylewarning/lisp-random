@@ -44,15 +44,7 @@
               :do (return upgraded-element-type)
             :finally (return 'cl:fixnum))))
   
-  (defconstant +efficient-array-element-type+
-    (if (not (boundp '+efficient-array-element-type+))
-        (find-efficient-array-element-type)
-        (let ((new-type (find-efficient-array-element-type)))
-          (if (equal new-type +efficient-array-element-type+)
-              +efficient-array-element-type+
-              (error "The new value ~S is not EQUAL to the previous value ~S"
-                     new-type
-                     +efficient-array-element-type+))))
+  (defconstant +efficient-array-element-type+ (find-efficient-array-element-type)
     "A type which has an efficient representation in an array.")
   
   (defconstant +bit-count+ (type-length +efficient-array-element-type+)
@@ -77,26 +69,24 @@
   `(simple-array efficient-integer (*)))
 
 (defconstant +mask-table+
-  (if (boundp '+mask-table+)
-      +mask-table+
-      (loop :with table := (make-array +bit-count+
-                                       :element-type 'efficient-integer
-                                       :initial-element 0)
-            :for i :below +bit-count+
-            :do (setf (aref table i) (ash 1 i))
-            :finally (return table)))
+  (loop :with table := (make-array +bit-count+
+                                   :element-type 'efficient-integer
+                                   :initial-element 0)
+        :for i :below +bit-count+
+        :do (setf (aref table i) (ash 1 i))
+        :finally (return table))
   "Table storing masks for each bit position accessible within an EFFICIENT-INTEGER.")
 
 (defconstant +inverse-mask-table+
-  (if (boundp '+inverse-mask-table+)
-      +inverse-mask-table+
-      (flet ((complement-mask (n)
-               (logxor n (1- (expt 2 +bit-count+)))))
-        (loop :with table := (copy-seq +mask-table+)
-              :for i :below +bit-count+
-              :do (setf (aref table i)
-                        (complement-mask (aref table i)))
-              :finally (return table))))
+  (flet ((complement-mask (n)
+           (logxor n (1- (expt 2 +bit-count+)))))
+    (loop :with table := (make-array +bit-count+
+                                     :element-type 'efficient-integer
+                                     :initial-element 0)
+          :for i :below +bit-count+
+          :do (setf (aref table i) 
+                    (complement-mask (aref table i)))
+          :finally (return table)))
   "Table storing complements of the masks for each bit position accessible within an EFFICIENT-INTEGER.")
 
 (deftype bit-mask ()
