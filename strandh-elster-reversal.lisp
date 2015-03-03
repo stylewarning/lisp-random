@@ -92,18 +92,38 @@ Symmetric A and B are not included, and are not needed for most bit-reversal app
                          (all)))
                      (with-reverted-operations ((n (- n 2)))
                        (all)
+                       
+                       ;; We avoid using WITH-REVERTED-OPERATIONS here for
+                       ;; efficiency reasons. If we use that macro, then
+                       ;; some of the reverted operations are then
+                       ;; re-applied needlessly. We coalesce those here.
+                       (progn
+                         (setf a1 (logior a1 b1)
+                               a2 (logior a2 b2))
+                         (all)
+                         
+                         (setf a1 (logior a1 b2)
+                               a2 (logior a2 b1))
+                         (all)
+                         (setf a1 (logxor a1 b1)
+                               a2 (logxor a2 b2))
 
-                       (with-reverted-operations ((a1 (logior a1 b1))
-                                                  (a2 (logior a2 b2)))
-                         (all))
+                         (all)
+                         (setf a1 (logxor a1 b2)
+                               a2 (logxor a2 b1)))
+                       #+#:equivalent
+                       (progn
+                         (with-reverted-operations ((a1 (logior a1 b1))
+                                                    (a2 (logior a2 b2)))
+                           (all))
 
-                       (with-reverted-operations ((a1 (logior a1 b1 b2))
-                                                  (a2 (logior a2 b1 b2)))
-                         (all))
+                         (with-reverted-operations ((a1 (logior a1 b1 b2))
+                                                    (a2 (logior a2 b1 b2)))
+                           (all))
 
-                       (with-reverted-operations ((a1 (logior a1 b2))
-                                                  (a2 (logior a2 b1)))
-                         (all)))))))
+                         (with-reverted-operations ((a1 (logior a1 b2))
+                                                    (a2 (logior a2 b1)))
+                           (all))))))))
          (greater ()
            #+debug
            (format t "GREATER: ~A ~D ~D ~D ~D~%" n a1 a2 b1 b2)
@@ -116,12 +136,30 @@ Symmetric A and B are not included, and are not needed for most bit-reversal app
                    (all))
                  (with-reverted-operations ((n (- n 2)))
                    (greater)
-                   (with-reverted-operations ((a1 (logior a1 b1))
-                                              (a2 (logior a2 b2)))
-                     (all))
-                   (with-reverted-operations ((a1 (logior a1 b1 b2))
-                                              (a2 (logior a2 b1 b2)))
-                     (greater)))))))
+                   
+                   ;; We avoid using WITH-REVERTED-OPERATIONS here for
+                   ;; efficiency reasons. If we use that macro, then
+                   ;; some of the reverted operations are then
+                   ;; re-applied needlessly. We coalesce those here.
+                   (progn
+                     (setf a1 (logior a1 b1)
+                           a2 (logior a2 b2))
+                     (all)
+                     
+                     (setf a1 (logior a1 b2)
+                           a2 (logior a2 b1))
+                     (greater)
+                     
+                     (setf a1 (logxor a1 b1 b2)
+                           a2 (logxor a2 b1 b2)))
+                   #+#:equivalent
+                   (progn
+                     (with-reverted-operations ((a1 (logior a1 b1))
+                                                (a2 (logior a2 b2)))
+                       (all))
+                     (with-reverted-operations ((a1 (logior a1 b1 b2))
+                                                (a2 (logior a2 b1 b2)))
+                       (greater))))))))
       ;; Avoid repeated reverted subtraction-by-2.
       (decf n 2)
       
@@ -221,6 +259,12 @@ Symmetric A and B are not included, and are not needed for most bit-reversal app
 
 ;;; Comparison
 
+(defun house-cleaning ()
+  #+sbcl
+  (sb-ext:gc :full t)
+  #+lispworks
+  (hcl:gc-all))
+
 (defun test-naive (n)
   (assert (<= 4 n 32))
   (let* ((l (expt 2 n))
@@ -232,7 +276,7 @@ Symmetric A and B are not included, and are not needed for most bit-reversal app
             (/ (* l 4) 1024))
     (format t "Naive:~%")
     (dotimes (i 2)
-      (sb-ext:gc :full t)
+      (house-cleaning)
       (time (bit-reversed-permute-naive! x)))
     (print x)
     (loop :for i :below l :always (= i (aref x i)))))
@@ -248,7 +292,7 @@ Symmetric A and B are not included, and are not needed for most bit-reversal app
             (/ (* l 4) 1024))
     (format t "Strandh-Elster:~%")
     (dotimes (i 2)
-      (sb-ext:gc :full t)
+      (house-cleaning)
       (time (bit-reversed-permute! x)))
     (print x)
     (loop :for i :below l :always (= i (aref x i)))))
@@ -264,10 +308,10 @@ Symmetric A and B are not included, and are not needed for most bit-reversal app
             (/ (* l 4) 1024))
     (when test-naive
       (format t "Naive:~%")
-      (sb-ext:gc :full t)
+      (house-cleaning)
       (time (bit-reversed-permute-naive! x)))
     (when test-strandh
       (format t "Strandh-Elster:~%")
-      (sb-ext:gc :full t)
+      (house-cleaning)
       (time (bit-reversed-permute! x)))
     (loop :for i :below l :always (= i (aref x i)))))
