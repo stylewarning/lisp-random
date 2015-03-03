@@ -226,7 +226,7 @@ Symmetric A and B are not included, and are not needed for most bit-reversal app
 
 ;;; Comparison
 
-(defun compare-reversals (n)
+(defun compare-reversals (n &key (test-naive t) (test-strandh t))
   (assert (<= 4 n 32))
   (let* ((l (expt 2 n))
          (x (make-array l :element-type 't
@@ -235,8 +235,12 @@ Symmetric A and B are not included, and are not needed for most bit-reversal app
     (format t "Array size is ~D elements equaling about ~F KiB~%"
             l
             (/ (* l 4) 1024))
-    (sb-ext:gc :full t)
-    (time (bit-reversed-permute-naive! x))
-    (sb-ext:gc :full t)
-    (time (bit-reversed-permute! x))
+    (when test-naive
+      (format t "Naive:~%")
+      (sb-ext:gc :full t)
+      (time (bit-reversed-permute-naive! x)))
+    (when test-strandh
+      (format t "Strandh-Elster:~%")
+      (sb-ext:gc :full t)
+      (time (bit-reversed-permute! x)))
     (loop :for i :below l :always (= i (aref x i)))))
