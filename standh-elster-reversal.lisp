@@ -57,22 +57,22 @@
                :collect `(setf ,var ,(reverted-op value-form)))
        (values))))
 
-(defun map-non-symmetric-bit-reversals-generic (bits f)
+(defun map-non-symmetric-bit-reversals-generic (n f)
   "Call the binary function F on numbers all numbers A and B such that:
 
     * A < B;
     * The bits of B are the reversal of the bits of A;
-    * A and B are BITS or fewer bits wide.
+    * A and B are N or fewer bits wide.
 
 Symmetric A and B are not included, and are not needed for most bit-reversal applications."
-  (declare (type (integer 0 64) bits))
-  (let ((n (- bits 2))                  ; This can be eliminated.
-        (a1 0)
+  (declare (type (integer 0 64) n))
+  (assert (<= 4 n))
+  
+  (let ((a1 0)
         (a2 0)
         (b1 0)
         (b2 0))
-    (declare (type (integer 0 64) n)
-             (type (unsigned-byte 64) a1 a2 b1 b2)
+    (declare (type (unsigned-byte 64) a1 a2 b1 b2)
              (type (function (t t)) f))
     (labels
         ((all ()
@@ -118,6 +118,10 @@ Symmetric A and B are not included, and are not needed for most bit-reversal app
                    (with-reverted-operations ((a1 (logior a1 b1 b2))
                                                   (a2 (logior a2 b1 b2)))
                      (greater)))))))
+      ;; Avoid repeated reverted subtraction-by-2.
+      (decf n 2)
+      
+      ;; Prepare for first call to GREATER.
       (setf a1 0
             a2 0
             b1 1
@@ -125,6 +129,7 @@ Symmetric A and B are not included, and are not needed for most bit-reversal app
       
       (greater)
 
+      ;; Prepare for call to ADD.
       (setf b1 1
             b2 (ash 1 (1+ n))
             a1 b1
@@ -132,6 +137,7 @@ Symmetric A and B are not included, and are not needed for most bit-reversal app
       
       (all)
 
+      ;; Prepare for second call to GREATER.
       (setf b1 1
             b2 (ash 1 (1+ n))
             a1 (logior b1 b2)
