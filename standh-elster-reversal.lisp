@@ -54,7 +54,7 @@
                :collect `(setf ,var ,value-form))
        ,@body
        ,@(loop :for (var value-form) :in bindings
-               :collect `(setf ,var ,(reversed-op value-form)))
+               :collect `(setf ,var ,(reverted-op value-form)))
        (values))))
 
 (defun map-non-symmetric-bit-reversals-generic (bits f)
