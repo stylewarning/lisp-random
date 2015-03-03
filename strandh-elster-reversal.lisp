@@ -64,7 +64,8 @@
     * A and B are N or fewer bits wide.
 
 Symmetric A and B are not included, and are not needed for most bit-reversal applications."
-  (declare (type (integer 0 64) n))
+  (declare (optimize #+lispworks (fixnum-safety 0))
+           (type (integer 0 64) n))
   (assert (<= 4 n))
   
   (let ((a1 0)
@@ -263,7 +264,9 @@ Symmetric A and B are not included, and are not needed for most bit-reversal app
   #+sbcl
   (sb-ext:gc :full t)
   #+lispworks
-  (hcl:gc-all))
+  (hcl:gc-all)
+  #+ccl
+  (ccl:gc))
 
 (defun test-naive (n)
   (assert (<= 4 n 32))
