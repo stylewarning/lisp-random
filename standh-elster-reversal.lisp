@@ -31,6 +31,7 @@
 
 
 (declaim (optimize speed (safety 0) (debug 0) (space 0)))
+;(declaim (optimize (speed 0) (safety 3) (debug 3)))
 
 ;;; Challenge #1 (Local Variable Elimination)
 
@@ -54,6 +55,7 @@
                :collect `(setf ,var ,(reverted-op value-form)))
        (values))))
 
+(declaim (inline map-non-symmetric-bit-reversals-generic))
 (defun map-non-symmetric-bit-reversals-generic (n f)
   "Call the binary function F on numbers all numbers A and B such that:
 
@@ -113,7 +115,7 @@ Symmetric A and B are not included, and are not needed for most bit-reversal app
                                               (a2 (logior a2 b2)))
                      (all))
                    (with-reverted-operations ((a1 (logior a1 b1 b2))
-                                                  (a2 (logior a2 b1 b2)))
+                                              (a2 (logior a2 b1 b2)))
                      (greater)))))))
       ;; Avoid repeated reverted subtraction-by-2.
       (decf n 2)
@@ -144,6 +146,7 @@ Symmetric A and B are not included, and are not needed for most bit-reversal app
       
       ;; Return nothing.
       (values))))
+(declaim (notinline map-non-symmetric-bit-reversals-generic))
 
 (defun print-bit-reversal (n)
   (flet ((print-pair (a b)
@@ -152,7 +155,8 @@ Symmetric A and B are not included, and are not needed for most bit-reversal app
 
 (defun bit-reversed-permute! (x)
   "Permute the simple vector X of length 2^N in bit reversed order."
-  (declare (type simple-vector x))
+  (declare (type simple-vector x)
+           (inline map-non-symmetric-bit-reversals-generic))
   (let* ((length (length x))
          (bits (integer-length (max 0 (1- length)))))
     ;; Check that this is a power of two.
@@ -162,3 +166,77 @@ Symmetric A and B are not included, and are not needed for most bit-reversal app
       (declare (dynamic-extent #'swap))
       (map-non-symmetric-bit-reversals-generic bits #'swap)
       x)))
+
+
+;;; Some tests
+
+(declaim (inline reverse-bits))
+(defun reverse-bits (value width)
+  "Reverse the bits of the unsigned integer VALUE whose width is WIDTH bits."
+  (declare (type (unsigned-byte 64) value)
+           (type (integer 1 64) width))
+  (labels ((rev (value width)
+             (declare (type (unsigned-byte 64) value)
+                      (type (integer 0 64) width))
+             (let* ((half-width (floor width 2))
+                    (mask (1- (ash 1 half-width))))
+               (declare (type (unsigned-byte 64) mask)
+                        (type (integer 0 64) half-width))
+               (if (= 1 width)
+                   value
+                   (logior (rev (ash value (- half-width))
+                                half-width)
+                           (ash (rev (logand value mask)
+                                     half-width)
+                                half-width))))))
+    (declare (ftype (function ((unsigned-byte 64) (integer 0 64))
+                              (unsigned-byte 64))
+                    rev))
+    (rev (ldb (byte width 0) value)
+         width)))
+(declaim (notinline reverse-bits))
+
+(defun map-non-symmetric-bit-reversals-generic-naive (n f)
+  (declare (inline reverse-bits))
+  (loop :for i :of-type (unsigned-byte 64) :below (expt 2 n)
+        :for j :of-type (unsigned-byte 64) := (reverse-bits i n)
+        :when (< i j) :do
+          (funcall f i j))
+  (values))
+
+(defun print-bit-reversal-naive (n)
+  (map-non-symmetric-bit-reversals-generic-naive
+   n
+   (lambda (a b)
+     (format t "~v,'0B   ~v,'0B~%" n a n b))))
+
+(defun bit-reversed-permute-naive! (x)
+  "Permute the simple vector X of length 2^N in bit reversed order."
+  (declare (type simple-vector x))
+  (let* ((length (length x))
+         (bits (integer-length (max 0 (1- length)))))
+    ;; Check that this is a power of two.
+    (assert (zerop (logand length (1- length))))
+    (flet ((swap (a b)
+             (rotatef (aref x a) (aref x b))))
+      (declare (dynamic-extent #'swap))
+      (map-non-symmetric-bit-reversals-generic-naive bits #'swap)
+      x)))
+
+
+;;; Comparison
+
+(defun compare-reversals (n)
+  (assert (<= 4 n 32))
+  (let* ((l (expt 2 n))
+         (x (make-array l :element-type 't
+                          :initial-element 0)))
+    (dotimes (i l) (setf (aref x i) i))
+    (format t "Array size is ~D elements equaling about ~F KiB~%"
+            l
+            (/ (* l 4) 1024))
+    (sb-ext:gc :full t)
+    (time (bit-reversed-permute-naive! x))
+    (sb-ext:gc :full t)
+    (time (bit-reversed-permute! x))
+    (loop :for i :below l :always (= i (aref x i)))))
