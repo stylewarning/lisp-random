@@ -72,9 +72,12 @@ Symmetric A and B are not included, and are not needed for most bit-reversal app
         (b1 0)
         (b2 0))
     (declare (type (unsigned-byte 64) a1 a2 b1 b2)
-             (type (function (t t)) f))
+             (type (function (t t)) f)
+             (dynamic-extent a1 a2 b1 b2))
     (labels
         ((all ()
+           #+debug
+           (format t "ALL: ~A ~D ~D ~D ~D~%" n a1 a2 b1 b2)
            (if (zerop n)
                (progn
                  (funcall f a1 a2)
@@ -102,14 +105,16 @@ Symmetric A and B are not included, and are not needed for most bit-reversal app
                                                   (a2 (logior a2 b1)))
                          (all)))))))
          (greater ()
+           #+debug
+           (format t "GREATER: ~A ~D ~D ~D ~D~%" n a1 a2 b1 b2)
            (with-reverted-operations ((b1 (ash b1 1))
-                                      (b2 (ash b2 -1))
-                                      (n (- n 2)))
+                                      (b2 (ash b2 -1)))
              (if (< n 4)
                  (with-reverted-operations ((a1 (logior a1 b1))
-                                            (a2 (logior a2 b2)))
+                                            (a2 (logior a2 b2))
+                                            (n (- n 2)))
                    (all))
-                 (progn
+                 (with-reverted-operations ((n (- n 2)))
                    (greater)
                    (with-reverted-operations ((a1 (logior a1 b1))
                                               (a2 (logior a2 b2)))
@@ -121,14 +126,14 @@ Symmetric A and B are not included, and are not needed for most bit-reversal app
       (decf n 2)
       
       ;; Prepare for first call to GREATER.
-      (setf a1 0
-            a2 0
-            b1 1
-            b2 (ash 1 (1+ n)))
+      (setf b1 1
+            b2 (ash 1 (1+ n))
+            a1 0
+            a2 0)
       
       (greater)
 
-      ;; Prepare for call to ADD.
+      ;; Prepare for call to ALL.
       (setf b1 1
             b2 (ash 1 (1+ n))
             a1 b1
@@ -169,31 +174,21 @@ Symmetric A and B are not included, and are not needed for most bit-reversal app
 
 
 ;;; Some tests
-
+;;;
+;;; This function doesn't even seem to work.
 (declaim (inline reverse-bits))
 (defun reverse-bits (value width)
   "Reverse the bits of the unsigned integer VALUE whose width is WIDTH bits."
   (declare (type (unsigned-byte 64) value)
            (type (integer 1 64) width))
-  (labels ((rev (value width)
-             (declare (type (unsigned-byte 64) value)
-                      (type (integer 0 64) width))
-             (let* ((half-width (floor width 2))
-                    (mask (1- (ash 1 half-width))))
-               (declare (type (unsigned-byte 64) mask)
-                        (type (integer 0 64) half-width))
-               (if (= 1 width)
-                   value
-                   (logior (rev (ash value (- half-width))
-                                half-width)
-                           (ash (rev (logand value mask)
-                                     half-width)
-                                half-width))))))
-    (declare (ftype (function ((unsigned-byte 64) (integer 0 64))
-                              (unsigned-byte 64))
-                    rev))
-    (rev (ldb (byte width 0) value)
-         width)))
+  (loop :with r :of-type (unsigned-byte 64) := (logand value 1)
+        :with s :of-type (integer 0 64) := (1- width)
+        :for v :of-type (unsigned-byte 64) := (ash value -1) :then (ash v -1)
+        :until (zerop v) :do
+          (setf r (ash r 1))
+          (setf r (logior r (logand v 1)))
+          (decf s)
+        :finally (return (the (unsigned-byte 64) (ash r s)))))
 (declaim (notinline reverse-bits))
 
 (defun map-non-symmetric-bit-reversals-generic-naive (n f)
@@ -225,6 +220,38 @@ Symmetric A and B are not included, and are not needed for most bit-reversal app
 
 
 ;;; Comparison
+
+(defun test-naive (n)
+  (assert (<= 4 n 32))
+  (let* ((l (expt 2 n))
+         (x (make-array l :element-type 't
+                          :initial-element 0)))
+    (dotimes (i l) (setf (aref x i) i))
+    (format t "Array size is ~D elements equaling about ~F KiB~%"
+            l
+            (/ (* l 4) 1024))
+    (format t "Naive:~%")
+    (dotimes (i 2)
+      (sb-ext:gc :full t)
+      (time (bit-reversed-permute-naive! x)))
+    (print x)
+    (loop :for i :below l :always (= i (aref x i)))))
+
+(defun test-strandh (n)
+  (assert (<= 4 n 32))
+  (let* ((l (expt 2 n))
+         (x (make-array l :element-type 't
+                          :initial-element 0)))
+    (dotimes (i l) (setf (aref x i) i))
+    (format t "Array size is ~D elements equaling about ~F KiB~%"
+            l
+            (/ (* l 4) 1024))
+    (format t "Strandh-Elster:~%")
+    (dotimes (i 2)
+      (sb-ext:gc :full t)
+      (time (bit-reversed-permute! x)))
+    (print x)
+    (loop :for i :below l :always (= i (aref x i)))))
 
 (defun compare-reversals (n &key (test-naive t) (test-strandh t))
   (assert (<= 4 n 32))
