@@ -30,9 +30,9 @@
   "Compute A - B (mod M)."
   (mod (- a b) m))
 
-(declaim (inline splice-byte))
-(defun splice-byte (x bits)
-  "Splice the non-negative integer X into two values X0 and X1 such that
+(declaim (inline split-byte))
+(defun split-byte (x bits)
+  "Split the non-negative integer X into two values X0 and X1 such that
 
     X = X1 << bits + X0."
   (values (ldb (byte bits 0) x)
@@ -53,10 +53,10 @@ Ideally BITS is greater than the size of X0."
 Return two values S0 and S1 such that
 
     A+B = S0 + S1 << WIDTH."
-  (multiple-value-bind (a0 a1) (splice-byte a width/2) 
-    (multiple-value-bind (b0 b1) (splice-byte b width/2) 
-      (multiple-value-bind (low carry) (splice-byte (+ a0 b0) width/2) 
-        (multiple-value-bind (high carry) (splice-byte (+ carry a1 b1) width/2) 
+  (multiple-value-bind (a0 a1) (split-byte a width/2) 
+    (multiple-value-bind (b0 b1) (split-byte b width/2) 
+      (multiple-value-bind (low carry) (split-byte (+ a0 b0) width/2) 
+        (multiple-value-bind (high carry) (split-byte (+ carry a1 b1) width/2) 
           (values (join-bytes low high width/2) carry))))))
 
 (defun fixed-width-multiply (a b width &aux (width/2 (ash width -1)))
@@ -66,8 +66,8 @@ Return two values P0 and P1 such that
 
     A*B = P0 + P1 << WIDTH."
   ;; Split operands into half-width components.
-  (multiple-value-bind (a0 a1) (splice-byte a width/2)
-    (multiple-value-bind (b0 b1) (splice-byte b width/2)
+  (multiple-value-bind (a0 a1) (split-byte a width/2)
+    (multiple-value-bind (b0 b1) (split-byte b width/2)
       ;; Compute partial products. If W = 2^WIDTH and W' = W/2, then
       ;;
       ;;   A   = A0 + A1*W'
@@ -79,9 +79,9 @@ Return two values P0 and P1 such that
       ;; Each of these sub-A*B products are of width WIDTH, and are
       ;; broken into half-width components as above, except for the
       ;; product C3 = A1*B1.
-      (multiple-value-bind (c0-lo c0-hi) (splice-byte (* a0 b0) width/2)
-        (multiple-value-bind (c1a-lo c1a-hi) (splice-byte (* a0 b1) width/2)
-          (multiple-value-bind (c1b-lo c1b-hi) (splice-byte (* a1 b0) width/2)
+      (multiple-value-bind (c0-lo c0-hi) (split-byte (* a0 b0) width/2)
+        (multiple-value-bind (c1a-lo c1a-hi) (split-byte (* a0 b1) width/2)
+          (multiple-value-bind (c1b-lo c1b-hi) (split-byte (* a1 b0) width/2)
             (let ((c3 (* a1 b1)))
               ;; Compute columns and carries as in longhand
               ;; multiplication. Each column tracks WIDTH/2 bits.
