@@ -670,3 +670,30 @@ The vector must have a power-of-two length."
     (undigits (map 'vector (lambda (z)
                              (round (realpart z)))
                    a-digits))))
+
+;;;;;;;;;;;;;;;;;;;;; Chinese Remainder Theorem ;;;;;;;;;;;;;;;;;;;;;;
+
+(defun chinese-remainder (congruence-equations)
+"Solves the set of relations
+
+    x = a1  (mod m1)
+    x = a2  (mod m2)
+     ...
+    x = aN  (mod mN)
+
+for x. The congruences are encoded in the list of conses
+
+    CONGRUENCES-EQUATIONS = ((a1 . m1) (a2 . m2) ... (aN . mN)).
+
+All moduli must be pairwise coprime. Note that this requirement is satisfied by primes or powers of primes.
+
+Returns two values: X and the composite modulus m1 * m2 * .. * mN."
+  (loop :with composite-modulus := (reduce #'* congruence-equations :key #'cdr :initial-value 1)
+        :for (a . m) :in congruence-equations
+        :for complement-modulus := (floor composite-modulus m)
+        :sum (* a
+                (inv-mod complement-modulus m)
+                complement-modulus)
+          :into sum
+        :finally (return (values (mod sum composite-modulus)
+                                 composite-modulus))))
