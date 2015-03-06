@@ -2,9 +2,15 @@
 ;;;;
 ;;;; Author: Robert Smith
 
+(declaim (optimize (speed 0) (safety 3) (debug 3)))
+
+;;; Bit Reversal
+(load "strandh-elster-reversal.lisp")
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Utilities ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun power-of-two-p (n)
+  "Is N a power-of-two?"
   (zerop (logand n (1- n))))
 
 (defun next-power-of-two (n)
@@ -17,9 +23,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;; Modular Arithmetic ;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (defun m+ (a b m)
+  "Compute A + B (mod M)."
   (mod (+ a b) m))
 
 (defun m- (a b m)
+  "Compute A - B (mod M)."
   (mod (- a b) m))
 
 (defun m* (a b m)
@@ -38,12 +46,14 @@
     (egcd x m 0 1)))
 
 (defun m/ (a b m)
-  "Compute A/B = A * B^-1 (mod M)."
+  "Compute A / B = A * B^-1 (mod M)."
   (m* a (inv-mod b m) m))
 
 (defun expt-mod (a n m)
-  "Compute A^N (mod M)."
-  (check-type n (integer 0))
+  "Compute A ^ N (mod M) for integer N."
+  (when (minusp n)
+    (setf a (inv-mod a m)))
+  
   (let ((result 1))
     (loop
       (when (oddp n)
@@ -207,6 +217,25 @@ Specifically, the following will be printed:
         :until (funcall primitivep p)
         :finally (return p)))
 
+(defun ordered-root-from-primitive-root (r n m)
+  "Compute a root of order N from the primitive M-th root of unity R.
+
+Note: N should divide M-1."
+  (expt-mod r
+            (floor (1- m) n)
+            m))
+
+(defun naive-primitive-root-p (w m)
+  "Is the number W a primitive root in the (supposed) field of integers mod M?
+
+The method to test is derived from the definition of a primitive root, and as such, is a very expensive computation."
+  (let ((seen (make-array m :element-type 'bit :initial-element 0)))
+    (loop :for i :below m
+          :for x := w :then (m* w x m)
+          :do (print x)
+          :do (setf (bit seen x) 1)
+          :finally (progn (setf (aref seen 0) 1)
+                          (return (notany #'zerop seen))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;; EXAMPLE OUTPUT ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -229,3 +258,415 @@ Specifically, the following will be printed:
 ;;
 ;; > (find-primitive-root 180143985094819841)
 ;; 11
+
+
+;;;;;;;;;;;;;;;;;;;;; Number-Theoretic Transform ;;;;;;;;;;;;;;;;;;;;;
+
+(defun ntt-forward-matrix (N m w)
+  "Compute the NTT matrix of size N x N over Z/mZ using the primitive Mth root of unity W of order N."
+  (let ((matrix (make-array (list N N) :initial-element 1)))
+    (loop :for row :from 0 :below N :do
+      (loop :for col :from 0 :below N 
+            :for exponent := (* col row)
+            :do (setf (aref matrix row col)
+                      (expt-mod w exponent m)))
+          :finally (return matrix))))
+
+(defun ntt-reverse-matrix (N m w)
+  "Compute the inverse NTT matrix of size N x N over Z/mZ using the primitive Mth root of unity W of order N.
+
+This is just the conjugate-transpose of the NTT matrix, scaled by N."
+  (labels ((conjugate-transpose (in)
+             (let ((out (make-array (array-dimensions in))))
+               (loop :for row :below (array-dimension out 0) :do
+                 (loop :for col :below (array-dimension out 1) :do
+                   (setf (aref out col row)
+                         (m/ (inv-mod (aref in row col) m) N m))))
+               out)))
+    (conjugate-transpose (ntt-forward-matrix N m w))))
+
+(defun matmul (A B modulus)
+  "Multiply the matrices A and B over Z/mZ for modulus MODULUS."
+  (let* ((m (car (array-dimensions A)))
+         (n (cadr (array-dimensions A)))
+         (l (cadr (array-dimensions B)))
+         (C (make-array `(,m ,l) :initial-element 0)))
+    (loop :for i :below m :do
+      (loop :for k :below l :do
+        (setf (aref C i k)
+              (mod (loop :for j :below n
+                         :sum (* (aref A i j)
+                                 (aref B j k)))
+                   modulus))))
+    C))
+
+(defun matvecmul (matrix v m)
+  "Multiply the matrix MATRIX by the column vector V over Z/mZ."
+  (let* ((N (length v))
+         (result (copy-seq v)))
+    (loop :for row :below N
+          :do (setf (aref result row)
+                    (loop :for col :below N
+                          :for x := (aref matrix row col)
+                          :for y := (aref v col)
+                          :for x*y := (m* x y m)
+                          :for s := x*y :then (m+ s x*y m)
+                          :finally (return s)))
+          :finally (return result))))
+
+(defun test-matrix (v m w)
+  "Tests inversion property of matrix method."
+  (let* ((N (length v))
+         (mat (ntt-forward-matrix N m w))
+         (invmat (ntt-reverse-matrix N m w)))
+    (equalp v (matvecmul invmat
+                         (matvecmul mat v m)
+                         m))))
+
+(defun ntt-forward-direct (in m w)
+  "Compute the NTT of the vector IN over Z/mZ using the primitive Mth root of unity W of order (LENGTH IN)."
+  (let* ((N (length in))
+         (out (make-array N :initial-element 0)))
+    (loop :for k :below N
+          :for w^k := (expt-mod w k m)
+          :do (setf (aref out k)
+                    (loop :for j :below N
+                          :for w^jk := (expt-mod w^k j m)
+                          :sum (m* w^jk (aref in j) m) :into s
+                          :finally (return (mod s m))))
+          :finally (return out))))
+
+(defun ntt-reverse-direct (in m w)
+  "Compute the inverse NTT of the vector IN over Z/mZ using the primitive Mth root of unity W of order (LENGTH IN)."
+  (setf w (inv-mod w m))
+  (let* ((N (length in))
+         (out (make-array N :initial-element 0)))
+    (loop :for k :below N
+          :for w^k := (expt-mod w k m)
+          :do (setf (aref out k)
+                    (loop :for j :below N
+                          :for w^jk := (expt-mod w^k j m)
+                          :sum (* w^jk (aref in j)) :into s
+                          :finally (return (m/ (mod s m) N m))))
+          :finally (return out))))
+
+(defun test-direct (v m w)
+  "Tests inversion property of the direct NTT's."
+  (equalp v
+          (ntt-reverse-direct (ntt-forward-direct v m w)
+                              m w)))
+
+(defun compute-ntt-using-various-methods (v m w)
+  "Compute the forward and reverse NTT of the vector V over Z/mZ using the primitive Mth root of unity W of order (LENGTH V)."
+  (let ((N (length v)))
+    (format t "Forward:~%")
+    (format t "  matrix: ~A~%"   (matmul (ntt-forward-matrix N m w) v m))
+    (format t "  direct: ~A~%"   (ntt-forward-direct v m w))
+    (format t "  fast  : ~A~%~%" (ntt-forward (copy-seq v) :modulus m :primitive-root w))
+    
+    (format t "Reverse:~%")
+    (format t "  matrix: ~A~%" (matmul (ntt-reverse-matrix N m w) v m))
+    (format t "  direct: ~A~%" (ntt-reverse-direct v m w))
+    (format t "  fast  : ~A~%" (ntt-reverse (copy-seq v) :modulus m :primitive-root w))
+    nil))
+
+(defun ntt-forward (a &key ((:modulus m) (first (find-suitable-moduli (length a))))
+                           ((:primitive-root w) (ordered-root-from-primitive-root
+                                                 (find-primitive-root m)
+                                                 (length a)
+                                                 m)))
+  "Compute the forward number-theoretic transform of the array of integers A, with modulus MODULUS and primitive root PRIMITIVE-ROOT. If they are not provided, a suitable one will be computed.
+
+The array must have a power-of-two length."
+  (format t "m=#x~X (~D)    w=~D~%" m m w)
+
+  (let* ((N  (length a))
+         (ln (1- (integer-length N))))
+    (loop :for lsubn :from ln :downto 2 :do
+      (let* ((subn (ash 1 lsubn))
+             (subn/2 (floor subn 2))
+             (w^j 1))
+        (loop :for j :below subn/2 :do
+          (loop :for r :from 0 :to (- n subn) :by subn :do
+            (let* ((r+j (+ r j))
+                   (r+j+subn/2 (+ r+j subn/2))
+                   (u (aref a r+j))
+                   (v (aref a r+j+subn/2)))
+              (setf (aref a r+j)        (m+ u v m)
+                    (aref a r+j+subn/2) (m* w^j (m- u v m) m))))
+          (setf w^j (m* w w^j m)))
+        (setf w (m* w w m))))
+    
+    (loop :for r :below N :by 2 :do
+      (psetf (aref a r)      (m+ (aref a r) (aref a (1+ r)) m)
+             (aref a (1+ r)) (m- (aref a r) (aref a (1+ r)) m))))
+  
+  (bit-reversed-permute! a)
+  
+  a)
+
+(defun ntt-reverse (a &key ((:modulus m) (first (find-suitable-moduli (length a))))
+                           ((:primitive-root w) (ordered-root-from-primitive-root
+                                                 (find-primitive-root m)
+                                                 (length a)
+                                                 m)))
+  "Compute the inverse number-theoretic transform of the array of integers A, with modulus MODULUS and primitive root PRIMITIVE-ROOT. If they are not provided, a suitable one will be computed.
+
+The array must have a power-of-two length."
+  (format t "m=#x~X (~D)    w=~D~%" m m w)
+  (setf w (inv-mod w m))
+  (let* ((N   (length a))
+         (ln (1- (integer-length N))))
+    (loop :for lsubn :from ln :downto 2 :do
+      (let* ((subn (ash 1 lsubn))
+             (subn/2 (floor subn 2))
+             (w^j 1))
+        (loop :for j :below subn/2 :do
+          (loop :for r :from 0 :to (- n subn) :by subn :do
+            (let* ((r+j (+ r j))
+                   (r+j+subn/2 (+ r+j subn/2))
+                   (u (aref a r+j))
+                   (v (aref a r+j+subn/2)))
+              (setf (aref a r+j)        (m+ u v m)
+                    (aref a r+j+subn/2) (m* w^j (m- u v m) m))))
+          (setf w^j (m* w w^j m)))
+        (setf w (m* w w m))))
+    
+    ;; This includes normalization.
+    (loop :for r :below N :by 2 :do
+      (psetf (aref a r)      (m/ (m+ (aref a r) (aref a (1+ r)) m) N m)
+             (aref a (1+ r)) (m/ (m- (aref a r) (aref a (1+ r)) m) N m))))
+  
+  (bit-reversed-permute! a)
+  
+  a)
+
+(defun test-ntt (v m w)
+  "Tests inversion property of the fast NTTs."
+  (equalp v
+          (ntt-reverse (ntt-forward (copy-seq v)
+                                    :modulus m
+                                    :primitive-root w)
+                       :modulus m
+                       :primitive-root w)))
+
+
+;;;;;;;;;;;;;;;;;;;; Reference DIF FFT algorithm ;;;;;;;;;;;;;;;;;;;;;
+
+(defun dif-forward (a)
+  "Compute the radix-2 decimation-in-frequency FFT of the complex vector A.
+
+The vector must have a power-of-two length."
+  (let* ((N   (length a))
+         (ldn (1- (integer-length N))))
+    (loop :for ldm :from ldn :downto 2 :do
+      (let* ((m (ash 1 ldm))
+             (m/2 (floor m 2)))
+        (loop :for j :below m/2
+              :for w^j := (cis (/ (* 2 pi j) m)) :do
+                (loop :for r :from 0 :to (- n m) :by m :do
+                  (let* ((r+j (+ r j))
+                         (r+j+m/2 (+ r+j m/2))
+                         (u (aref a r+j))
+                         (v (aref a r+j+m/2)))
+                    (setf (aref a r+j)     (+ u v)
+                          (aref a r+j+m/2) (* w^j (- u v))))))))
+    
+    (loop :for r :below N :by 2 :do
+      (psetf (aref a r)      (+ (aref a r) (aref a (1+ r)))
+             (aref a (1+ r)) (- (aref a r) (aref a (1+ r))))))
+  
+  (bit-reversed-permute! a)
+  
+  a)
+
+(defun dif-reverse (a)
+  "Compute the radix-2 decimation-in-frequency inverse FFT of the complex vector A.
+
+The vector must have a power-of-two length."
+  (let* ((N   (length a))
+         (ldn (1- (integer-length N))))
+    (loop :for ldm :from ldn :downto 2 :do
+      (let* ((m (ash 1 ldm))
+             (m/2 (floor m 2)))
+        (loop :for j :below m/2
+              :for w^j := (cis (/ (* -2 pi j) m)) :do
+                (loop :for r :from 0 :to (- n m) :by m :do
+                  (let* ((r+j (+ r j))
+                         (r+j+m/2 (+ r+j m/2))
+                         (u (aref a r+j))
+                         (v (aref a r+j+m/2)))
+                    (setf (aref a r+j)     (+ u v)
+                          (aref a r+j+m/2) (* w^j (- u v))))))))
+    
+    (loop :for r :below N :by 2 :do
+      (psetf (aref a r)      (/ (+ (aref a r) (aref a (1+ r))) N)
+             (aref a (1+ r)) (/ (- (aref a r) (aref a (1+ r))) N))))
+  
+  (bit-reversed-permute! a)
+  
+  a)
+
+#+#:DOESNT-WORK
+(defun dif-forward (f)
+  (labels ((twiddle (k)
+             (cis (/ (* -2 pi k) (length f))))
+           (dif (start-e N)
+             (unless (= N 1)
+               (let* ((N/2 (floor N 2))
+                      (start-o (+ start-e N/2)))
+                 (loop :for k :below n/2
+                       :for e+k := (+ start-e k)
+                       :for o+k := (+ start-o k)
+                       :for f_e+k := (aref f e+k)
+                       :for f_o+k := (aref f o+k)
+                       :for e := (+ f_e+k f_o+k)
+                       :for o := (* (twiddle k)
+                                    (- f_e+k f_o+k))
+                       :do (setf (aref f e+k) e
+                                 (aref f o+k) o))
+                 
+                 (dif start-e N/2)
+                 (dif start-o N/2)))))
+    ;; Perform the FTT via in-pace Decimation in Frequency.
+    (dif 0 (length f))
+
+    ;; Bit reverse
+    (bit-reversed-permute! f)
+    
+    ;; Return the modified array.
+    f))
+
+#+#:DOESNT-WORK
+(defun dit-forward (f)
+  (labels ((twiddle (k)
+             (cis (/ (* -2 pi k) (length f))))
+           (dit (start-t N)
+             (unless (= N 1)
+               (let* ((N/2 (floor N 2))
+                      (start-b (+ start-t N/2)))
+                 (dit start-t N/2)
+                 (dit start-b N/2)
+                 (loop :for k :below n/2
+                       :for t+k := (+ start-t k)
+                       :for b+k := (+ start-b k)
+                       :for top := (aref f t+k)
+                       :for bot := (* (aref f b+k) (twiddle k))
+                       :do (setf (aref f t+k) (+ top bot)
+                                 (aref f b+k) (- top bot)))))))
+    
+    ;; Bit reverse
+    (bit-reversed-permute! f)
+    
+    ;; Perform the FTT via in-pace Decimation in Frequency.
+    (dit 0 (length f))
+    
+    ;; Return the modified array.
+    f))
+
+
+;;;;;;;;;;;;;;; Demonstration Multiplication Algorithm ;;;;;;;;;;;;;;;
+
+(defun digit-count (n)
+  "How many decimal digits does it take to write N?"
+  (if (zerop n)
+      1
+      (let* ((approx   (ceiling (integer-length n) (log 10.0d0 2)))
+             (exponent (expt 10 (1- approx))))
+        (if (> exponent n)
+            (1- approx)
+            approx))))
+
+(defun least-power-of-two->= (n)
+  "What is the least power-of-two greater than or equal to N?"
+  (if (power-of-two-p n)
+      n
+      (ash 1 (integer-length n))))
+
+(defun digits (n &key (size (digit-count n)))
+  "Make an array of the decimal digits of N."
+  (loop :with v := (make-array size :initial-element 0)
+        :for i :from 0
+        :while (plusp n) :do
+          (multiple-value-bind (div rem) (floor n 10)
+            (setf (aref v i) rem)
+            (setf n div))
+        :finally (return v)))
+
+(defun carry (v)
+  "Perform carry propagation on the vector V."
+  (loop :for i :below (1- (length v))
+        :when (<= 10 (aref v i))
+          :do (multiple-value-bind (div rem) (floor (aref v i) 10)
+                (setf (aref v i)      rem)
+                (incf (aref v (1+ i)) div))
+        :finally (return v)))
+
+(defun undigits (v)
+  "Take an array of decimal digits V and create a number N."
+  (loop :for x :across (carry v)
+        :for b := 1 :then (* 10 b)
+        :sum (* b x)))
+
+(defun multiply (a b)
+  "Multiply the integers A and B using NTT's."
+  (let* ((a-count (digit-count a))
+         (b-count (digit-count b))
+         (length (* 2 (least-power-of-two->= (max a-count b-count))))
+         (a-digits (digits a :size length))
+         (b-digits (digits b :size length))
+         (m (first (find-suitable-moduli (max length 101))))
+         (w (ordered-root-from-primitive-root
+             (find-primitive-root m)
+             length
+             m)))
+    (format t "Multiplying ~D * ~D = ~D~%" a b (* a b))
+    
+    (format t "A's digits: ~A~%" a-digits)
+    (format t "B's digits: ~A~%" b-digits)
+    
+    (setf a-digits (ntt-forward a-digits :modulus m :primitive-root w))
+    (setf b-digits (ntt-forward b-digits :modulus m :primitive-root w))
+    
+    (format t "NTT(A): ~A~%" a-digits)
+    (format t "NTT(B): ~A~%" b-digits)
+    
+    (setf a-digits (map-into a-digits (lambda (a b) (m* a b m)) a-digits b-digits))
+    
+    (format t "C = NTT(A)*NTT(B) mod ~D = ~A~%" m a-digits)
+    
+    (setf a-digits (ntt-reverse a-digits :modulus m :primitive-root w))
+    
+    (format t "NTT^-1(C): ~A~%" a-digits)
+    
+    (undigits a-digits)))
+
+(defun fft-multiply (a b)
+  "Multiply two non-negative integers A and B using FFTs."
+  (let* ((a-count (digit-count a))
+         (b-count (digit-count b))
+         (length (* 2 (least-power-of-two->= (max a-count b-count))))
+         (a-digits (digits a :size length))
+         (b-digits (digits b :size length)))
+    (format t "Multiplying ~D * ~D = ~D~%" a b (* a b))
+    
+    (format t "A's digits: ~A~%" a-digits)
+    (format t "B's digits: ~A~%" b-digits)
+    
+    (setf a-digits (dif-forward a-digits))
+    (setf b-digits (dif-forward b-digits))
+    
+    (format t "FFT(A): ~A~%" a-digits)
+    (format t "FFT(B): ~A~%" b-digits)
+    
+    (setf a-digits (map-into a-digits (lambda (a b) (* a b)) a-digits b-digits))
+
+    (format t "C = FFT(A)*FFT(B) = ~A~%" a-digits)
+    
+    (setf a-digits (dif-reverse a-digits))
+
+    (format t "FFT^-1(C): ~A~%" a-digits)
+    
+    (undigits (map 'vector (lambda (z)
+                             (round (realpart z)))
+                   a-digits))))
