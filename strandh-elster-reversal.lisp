@@ -205,11 +205,13 @@ Symmetric A and B are not included, and are not needed for most bit-reversal app
          (bits (integer-length (max 0 (1- length)))))
     ;; Check that this is a power of two.
     (assert (zerop (logand length (1- length))))
-    (flet ((swap (a b)
-             (rotatef (aref x a) (aref x b))))
-      (declare (dynamic-extent #'swap))
-      (map-non-symmetric-bit-reversals-generic bits #'swap)
-      x)))
+    (if (< bits 4)
+        (bit-reversed-permute-naive! x)
+        (flet ((swap (a b)
+                 (rotatef (aref x a) (aref x b))))
+          (declare (dynamic-extent #'swap))
+          (map-non-symmetric-bit-reversals-generic bits #'swap)
+          x))))
 
 
 ;;; Some tests
