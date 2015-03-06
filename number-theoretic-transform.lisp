@@ -68,7 +68,7 @@ Return two values P0 and P1 such that
   ;; Split operands into half-width components.
   (multiple-value-bind (a0 a1) (splice-byte a width/2)
     (multiple-value-bind (b0 b1) (splice-byte b width/2)
-      ;; Compute partial products. If W' = W/2, then
+      ;; Compute partial products. If W = 2^WIDTH and W' = W/2, then
       ;;
       ;;   A   = A0 + A1*W'
       ;;   B   = B0 + B1*W'
