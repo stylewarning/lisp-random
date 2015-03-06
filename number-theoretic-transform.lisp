@@ -1,6 +1,6 @@
 ;;;; number-theoretic-transform.lisp
 ;;;;
-;;;; Author: Robert Smith
+;;;; Copyright (c) 2014-2015 Robert Smith
 
 (declaim (optimize (speed 0) (safety 3) (debug 3)))
 
