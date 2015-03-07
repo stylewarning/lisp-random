@@ -2,10 +2,10 @@
 ;;;;
 ;;;; Copyright (c) 2014-2015 Robert Smith
 
-(declaim (optimize (speed 0) (safety 3) (debug 3)))
-
 ;;; Bit Reversal
 (load "strandh-elster-reversal.lisp")
+
+(declaim (optimize (speed 0) (safety 3) (debug 3)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Utilities ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -98,9 +98,31 @@ Return two values P0 and P1 such that
                                c3
                                col1-carry))))))))))))
 
+;;; FIXME: The computation of (* a b) is very inefficient here when
+;;;
+;;;     0 <= a,b < $WORD_LENGTH.
+;;;
 (defun m* (a b m)
   "Compute A*B (mod M)."
-  (mod (* a b) m))
+  (mod (* a b) m)
+  #+#:possibly-unsafe
+  (let* ((y (floor
+             (+ 0.5d0
+                (/ (* (coerce a 'double-float)
+                      (coerce b 'double-float))
+                   (coerce m 'double-float)))))
+         (y (ldb (byte 64 0) (* y m)))
+         (x (ldb (byte 64 0) (* a b)))
+         (r (ldb (byte 64 0) (- x y))))
+    (declare (type (unsigned-byte 64) y x r))
+    r
+    ;; Normalization is necessary for m >= 2^62
+    ;;
+    ;; We can also easily get the quotient here if we want: y -= 1.
+    #+#:normalization
+    (if (logbitp r 63)
+        (progn (print "YES") (+ r m))
+        r)))
 
 (defun inv-mod (x m)
   "Compute X^-1 (mod M)."
@@ -438,6 +460,7 @@ This is just the conjugate-transpose of the NTT matrix, scaled by N."
     (format t "  fast  : ~A~%" (ntt-reverse (copy-seq v) :modulus m :primitive-root w))
     nil))
 
+;;; Decimation-in-frequency algorithm.
 (defun ntt-forward (a &key ((:modulus m) (first (find-suitable-moduli (length a))))
                            ((:primitive-root w) (ordered-root-from-primitive-root
                                                  (find-primitive-root m)
@@ -445,7 +468,9 @@ This is just the conjugate-transpose of the NTT matrix, scaled by N."
                                                  m)))
   "Compute the forward number-theoretic transform of the array of integers A, with modulus MODULUS and primitive root PRIMITIVE-ROOT. If they are not provided, a suitable one will be computed.
 
-The array must have a power-of-two length."
+The array must have a power-of-two length.
+
+The resulting array (a mutation of the input) will be in bit-reversed order."
   (format t "m=#x~X (~D)    w=~D~%" m m w)
 
   (let* ((N  (length a))
@@ -469,10 +494,46 @@ The array must have a power-of-two length."
       (psetf (aref a r)      (m+ (aref a r) (aref a (1+ r)) m)
              (aref a (1+ r)) (m- (aref a r) (aref a (1+ r)) m))))
   
-  (bit-reversed-permute! a)
-  
   a)
 
+;;; Decimation-in-time algorithm.
+(defun ntt-reverse (a &key ((:modulus m) (first (find-suitable-moduli (length a))))
+                           ((:primitive-root w) (ordered-root-from-primitive-root
+                                                 (find-primitive-root m)
+                                                 (length a)
+                                                 m)))
+  "Compute the inverse number-theoretic transform of the array of integers A, with modulus MODULUS and primitive root PRIMITIVE-ROOT. If they are not provided, a suitable one will be computed.
+
+The array must have a power-of-two length.
+
+The input must be in bit-reversed order."
+  (format t "m=#x~X (~D)    w=~D~%" m m w)
+  (setf w (inv-mod w m))
+  (let* ((N   (length a))
+         (ldn (1- (integer-length N))))
+    (loop :for r :below N :by 2 :do
+      (psetf (aref a r)      (m/ (m+ (aref a r) (aref a (1+ r)) m) N m)
+             (aref a (1+ r)) (m/ (m- (aref a r) (aref a (1+ r)) m) N m)))
+    (loop :for ldm :from 2 :to ldn :do
+      (let* ((subn (ash 1 ldm))
+             (subn/2 (floor subn 2))
+             (dw (expt-mod w (ash 1 (- ldn ldm)) m))
+             (w^j 1))
+        (loop :for j :below subn/2 :do
+          (loop :for r :from 0 :to (- n subn) :by subn :do
+            (let* ((r+j (+ r j))
+                   (r+j+subn/2 (+ r+j subn/2))
+                   (u (aref a r+j))
+                   (v (m* w^j (aref a r+j+subn/2) m)))
+              (setf (aref a r+j)        (m+ u v m)
+                    (aref a r+j+subn/2) (m- u v m))))
+          (setf w^j (m* dw w^j m)))
+        ;(setf w (m* w w m))
+        )))
+    
+  a)
+
+#+#:ignore-DIF
 (defun ntt-reverse (a &key ((:modulus m) (first (find-suitable-moduli (length a))))
                            ((:primitive-root w) (ordered-root-from-primitive-root
                                                  (find-primitive-root m)
@@ -574,6 +635,59 @@ The vector must have a power-of-two length."
   (bit-reversed-permute! a)
   
   a)
+
+(defun dit-forward (a)
+  "Compute the radix-2 decimation-in-time FFT of the complex vector A.
+
+The vector must have a power-of-two length."
+  (let* ((N   (length a))
+         (ldn (1- (integer-length N))))
+    (bit-reversed-permute! a)
+    (loop :for r :below N :by 2 :do
+      (psetf (aref a r)      (+ (aref a r) (aref a (1+ r)))
+             (aref a (1+ r)) (- (aref a r) (aref a (1+ r)))))
+    (loop :for ldm :from 2 :to ldn :do
+      (let* ((m (ash 1 ldm))
+             (m/2 (floor m 2)))
+        (loop :for j :below m/2
+              :for w^j := (cis (/ (* 2 pi j) m)) :do
+                (loop :for r :from 0 :to (- n m) :by m :do
+                  (let* ((r+j (+ r j))
+                         (r+j+m/2 (+ r+j m/2))
+                         (u (aref a r+j))
+                         (v (* w^j (aref a r+j+m/2))))
+                    (setf (aref a r+j)     (+ u v)
+                          (aref a r+j+m/2) (- u v))))))))
+    
+  a)
+
+(defun dit-reverse (a)
+  "Compute the radix-2 decimation-in-time inverse FFT of the complex vector A.
+
+Input must be in bit-reversed order.
+
+The vector must have a power-of-two length."
+  (let* ((N   (length a))
+         (ldn (1- (integer-length N))))
+    (bit-reversed-permute! a)
+    (loop :for r :below N :by 2 :do
+      (psetf (aref a r)      (/ (+ (aref a r) (aref a (1+ r))) N)
+             (aref a (1+ r)) (/ (- (aref a r) (aref a (1+ r))) N)))
+    (loop :for ldm :from 2 :to ldn :do
+      (let* ((m (ash 1 ldm))
+             (m/2 (floor m 2)))
+        (loop :for j :below m/2
+              :for w^j := (cis (/ (* -2 pi j) m)) :do
+                (loop :for r :from 0 :to (- n m) :by m :do
+                  (let* ((r+j (+ r j))
+                         (r+j+m/2 (+ r+j m/2))
+                         (u (aref a r+j))
+                         (v (* w^j (aref a r+j+m/2))))
+                    (setf (aref a r+j)     (+ u v)
+                          (aref a r+j+m/2) (- u v))))))))
+    
+  a)
+
 
 #+#:DOESNT-WORK
 (defun dif-forward (f)
