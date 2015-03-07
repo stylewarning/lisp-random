@@ -315,18 +315,20 @@ This test uses the Miller-Rabin primality procedure. The positive integer K dete
 
 Specifically, the following will be printed:
 
-    * In square brackets, the width of the word needed to represent the modulus and population count of the modulus (i.e., the smallest exponent of 2 such that respective power of 2 is greater than or equal to the modulus),
+    * In square brackets, the width of the word needed to represent the modulus and the number of wasted bits (a \"wasted bit\" is a bit that does not contribute to the transform length, i.e., the difference between the modulus length and the maximum power-of-two that divides the modulus minus 1),
 
     * The modulus M, and
 
     * The printed representation of the factorization of M - 1."
   (let ((moduli (find-suitable-moduli transform-length :count count)))
     (dolist (modulus moduli)
-      (format stream "[~D,~D] ~D = ~A~%"
-              (next-power-of-two modulus)
-              (logcount modulus)
-              modulus
-              (modulus-factorization modulus)))))
+      (let* ((width (next-power-of-two modulus))
+             (waste (- width (nth-value 1 (factor-out (1- modulus) 2)))))
+        (format stream "[~D,~D] ~D = ~A~%"
+                width
+                waste
+                modulus
+                (modulus-factorization modulus))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;; Finding Primitive Roots ;;;;;;;;;;;;;;;;;;;;;;;
@@ -375,20 +377,20 @@ The method to test is derived from the definition of a primitive root, and as su
 
 ;; > (print-suitable-moduli (expt 2 53) 15)
 ;; [58,3] 180143985094819841 = 1 + 2^55 * 5
-;; [59,5] 459367161991790593 = 1 + 2^53 * 3 * 17
+;; [59,6] 459367161991790593 = 1 + 2^53 * 3 * 17
 ;; [60,7] 855683929200394241 = 1 + 2^53 * 5 * 19
-;; [60,4] 882705526964617217 = 1 + 2^54 * 7^2
-;; [60,5] 891712726219358209 = 1 + 2^53 * 3^2 * 11
-;; [61,4] 1261007895663738881 = 1 + 2^55 * 5 * 7
-;; [61,6] 1288029493427961857 = 1 + 2^53 * 11 * 13
-;; [61,4] 1450159080013299713 = 1 + 2^53 * 7 * 23
+;; [60,6] 882705526964617217 = 1 + 2^54 * 7^2
+;; [60,7] 891712726219358209 = 1 + 2^53 * 3^2 * 11
+;; [61,6] 1261007895663738881 = 1 + 2^55 * 5 * 7
+;; [61,8] 1288029493427961857 = 1 + 2^53 * 11 * 13
+;; [61,8] 1450159080013299713 = 1 + 2^53 * 7 * 23
 ;; [61,5] 1945555039024054273 = 1 + 2^56 * 3^3
-;; [61,5] 2053641430080946177 = 1 + 2^55 * 3 * 19
-;; [61,6] 2098677426354651137 = 1 + 2^53 * 233
-;; [61,8] 2287828610704211969 = 1 + 2^54 * 127
-;; [62,5] 2422936599525326849 = 1 + 2^53 * 269
-;; [62,4] 2485986994308513793 = 1 + 2^55 * 3 * 23
-;; [62,5] 2747195772696002561 = 1 + 2^53 * 5 * 61
+;; [61,6] 2053641430080946177 = 1 + 2^55 * 3 * 19
+;; [61,8] 2098677426354651137 = 1 + 2^53 * 233
+;; [61,7] 2287828610704211969 = 1 + 2^54 * 127
+;; [62,9] 2422936599525326849 = 1 + 2^53 * 269
+;; [62,7] 2485986994308513793 = 1 + 2^55 * 3 * 23
+;; [62,9] 2747195772696002561 = 1 + 2^53 * 5 * 61
 ;;
 ;; > (find-primitive-root 180143985094819841)
 ;; 11
