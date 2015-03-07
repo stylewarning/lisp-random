@@ -571,9 +571,7 @@ The input must be in bit-reversed order."
                    (v (m* w^j (aref a r+j+subn/2) m)))
               (setf (aref a r+j)        (m+ u v m)
                     (aref a r+j+subn/2) (m- u v m))))
-          (setf w^j (m* dw w^j m)))
-        ;(setf w (m* w w m))
-        )))
+          (setf w^j (m* dw w^j m))))))
     
   a)
 
@@ -834,38 +832,58 @@ The vector must have a power-of-two length."
         :for b := 1 :then (* 10 b)
         :sum (* b x)))
 
-(defun multiply (a b)
+(defmacro with-timed-region ((var) &body body)
+  "Time the execution of the code CODE in internal time units, and increment VAR by that amount."
+  (let ((start (gensym "START-")))
+    `(let ((,start (get-internal-real-time)))
+       (multiple-value-prog1 (progn ,@body)
+         (incf ,var (- (get-internal-real-time) ,start))))))
+
+;;; A convolution whose length-N input sequences have a maximum value
+;;; of M will have values bounded by N*M^2. Our prime must be larger
+;;; than this.
+(defun multiply (a b &key (verbose t))
   "Multiply the integers A and B using NTT's."
   (let* ((a-count (digit-count a))
          (b-count (digit-count b))
          (length (* 2 (least-power-of-two->= (max a-count b-count))))
          (a-digits (digits a :size length))
          (b-digits (digits b :size length))
-         (m (first (find-suitable-moduli (max length 101))))
+         (m (first (find-suitable-moduli (* length (expt 10 2)))))
          (w (ordered-root-from-primitive-root
              (find-primitive-root m)
              length
-             m)))
-    (format t "Multiplying ~D * ~D = ~D~%" a b (* a b))
+             m))
+         (runtime 0))
+    (when verbose
+      (format t "Multiplying ~D * ~D = ~D~%" a b (* a b))
+      
+      (format t "A's digits: ~A~%" a-digits)
+      (format t "B's digits: ~A~%" b-digits))
     
-    (format t "A's digits: ~A~%" a-digits)
-    (format t "B's digits: ~A~%" b-digits)
+    (with-timed-region (runtime)
+      (setf a-digits (ntt-forward a-digits :modulus m :primitive-root w))
+      (setf b-digits (ntt-forward b-digits :modulus m :primitive-root w)))
+
+    (when verbose
+      (format t "NTT(A): ~A~%" a-digits)
+      (format t "NTT(B): ~A~%" b-digits))
     
-    (setf a-digits (ntt-forward a-digits :modulus m :primitive-root w))
-    (setf b-digits (ntt-forward b-digits :modulus m :primitive-root w))
+    (with-timed-region (runtime)
+      (setf a-digits (map-into a-digits (lambda (a b) (m* a b m)) a-digits b-digits)))
     
-    (format t "NTT(A): ~A~%" a-digits)
-    (format t "NTT(B): ~A~%" b-digits)
+    (when verbose
+      (format t "C = NTT(A)*NTT(B) mod ~D = ~A~%" m a-digits))
     
-    (setf a-digits (map-into a-digits (lambda (a b) (m* a b m)) a-digits b-digits))
+    (with-timed-region (runtime)
+      (setf a-digits (ntt-reverse a-digits :modulus m :primitive-root w)))
     
-    (format t "C = NTT(A)*NTT(B) mod ~D = ~A~%" m a-digits)
+    (when verbose
+      (format t "NTT^-1(C): ~A~%" a-digits))
     
-    (setf a-digits (ntt-reverse a-digits :modulus m :primitive-root w))
-    
-    (format t "NTT^-1(C): ~A~%" a-digits)
-    
-    (undigits a-digits)))
+    (values
+     (undigits a-digits)
+     runtime)))
 
 (defun fft-multiply (a b)
   "Multiply two non-negative integers A and B using FFTs."
