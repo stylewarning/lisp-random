@@ -20,15 +20,7 @@
       (integer-length n)))
 
 
-;;;;;;;;;;;;;;;;;;;;;;;;; Modular Arithmetic ;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defun m+ (a b m)
-  "Compute A + B (mod M)."
-  (mod (+ a b) m))
-
-(defun m- (a b m)
-  "Compute A - B (mod M)."
-  (mod (- a b) m))
+;;;;;;;;;;;;;;;;;;;;;;; Fixed-Width Arithmetic ;;;;;;;;;;;;;;;;;;;;;;;
 
 (declaim (inline split-byte))
 (defun split-byte (x bits)
@@ -98,6 +90,56 @@ Return two values P0 and P1 such that
                                c3
                                col1-carry))))))))))))
 
+
+;;;;;;;;;;;;;;;;;;;;;;;;; Modular Arithmetic ;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; These are NOTINLINE'd below.
+(declaim (inline m+ m- m* m/ m1+ m1- negate-mod inv-mod expt-mod))
+
+(defun m- (a b m)
+  "Compute A - B (mod M).
+
+Assumes 0 <= A,B < M."
+  (if (< a b)
+      (+ (- m b) a)
+      (- a b)))
+(declaim (notinline m-))
+
+(defun m+ (a b m)
+  "Compute A + B (mod M).
+
+Assumes 0 <= A,B < M."
+  (declare (inline m-))
+  (if (zerop b)
+      a
+      (m- a (- m b) m)))
+
+(defun m1+ (a m)
+  "Increment A modulo M.
+
+Assumes 0 <= A < M."
+  (let ((a (1+ a)))
+    (if (= a m)
+        0
+        a)))
+
+(defun m1- (a m)
+  "Decrement A modulo M.
+
+Assumes 0 <= A < M."
+  (if (zerop a)
+      (1- m)
+      (1- a)))
+
+(defun negate-mod (a m)
+  "Negate A modulo M.
+
+Assumes 0 <= A < M."
+  (if (zerop a)
+      0
+      (- m b)))
+
+
 ;;; FIXME: The computation of (* a b) is very inefficient here when
 ;;;
 ;;;     0 <= a,b < $WORD_LENGTH.
@@ -142,7 +184,8 @@ Return two values P0 and P1 such that
 (defun expt-mod (a n m)
   "Compute A ^ N (mod M) for integer N."
   (when (minusp n)
-    (setf a (inv-mod a m)))
+    (setf a (inv-mod a m)
+          n (- n)))
   
   (let ((result 1))
     (loop
@@ -153,6 +196,7 @@ Return two values P0 and P1 such that
         (return-from expt-mod result))
       (setf a (m* a a m)))))
 
+(declaim (notinline m+ m- m* m/ m1+ m1- negate-mod inv-mod expt-mod))
 
 
 ;;;;;;;;;;;;;;;;;;;;;; Primes and Factorization ;;;;;;;;;;;;;;;;;;;;;;
