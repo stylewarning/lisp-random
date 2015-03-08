@@ -310,8 +310,9 @@ This test uses the Miller-Rabin primality procedure. The positive integer K dete
   "Pretty-print the factorization of the modulus MODULUS."
   (concatenate 'string "1 + " (factorization-string (factorize (1- modulus)))))
 
-(defun print-suitable-moduli (transform-length count &optional (stream *standard-output*))
-  "Print out COUNT suitable moduli for a desired transform length of TRANSFORM-LENGTH to the stream STREAM.
+(defun print-suitable-moduli (transform-length count &key (stream *standard-output*)
+                                                          max-waste)
+  "Print out up to COUNT suitable moduli for a desired transform length of TRANSFORM-LENGTH to the stream STREAM.
 
 Specifically, the following will be printed:
 
@@ -319,16 +320,22 @@ Specifically, the following will be printed:
 
     * The modulus M, and
 
-    * The printed representation of the factorization of M - 1."
-  (let ((moduli (find-suitable-moduli transform-length :count count)))
+    * The printed representation of the factorization of M - 1.
+
+If MAX-WASTE is provided, then any moduli which have more than MAX-WASTE bits of waste will not be printed.
+"
+  (let ((moduli (find-suitable-moduli transform-length :count count))
+        (max-waste (or max-waste most-positive-fixnum)))
     (dolist (modulus moduli)
       (let* ((width (next-power-of-two modulus))
              (waste (- width (nth-value 1 (factor-out (1- modulus) 2)))))
-        (format stream "[~D,~D] ~D = ~A~%"
-                width
-                waste
-                modulus
-                (modulus-factorization modulus))))))
+        (unless (> waste max-waste)
+          (format stream "[~D,~D] ~D = ~A~%"
+                  width
+                  waste
+                  modulus
+                  (modulus-factorization modulus)))))))
+
 
 
 ;;;;;;;;;;;;;;;;;;;;;; Finding Primitive Roots ;;;;;;;;;;;;;;;;;;;;;;;
