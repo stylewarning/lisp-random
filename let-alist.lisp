@@ -2,6 +2,14 @@
 ;;;;
 ;;;; Copyright (c) 2015 Robert Smith
 
+;;; This could be generalized in two ways:
+;;;
+;;;    * Allow dissociation between the bound symbol and the actual
+;;;      key being looked up in the alist.
+;;;
+;;;    * Allow any dictionary-like structure to be used by
+;;;      parameterizing key existence and lookup functions.
+
 (defmacro let-alist ((vars &key (not-found :not-found)
                                 (value ''cdr))
                      alist
