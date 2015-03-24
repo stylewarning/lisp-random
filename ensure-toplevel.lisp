@@ -3,13 +3,13 @@
 ;;;; Copyright (c) 2015 Robert Smith
 
 (defmacro ensure-toplevel (&body body)
-  "Ensures that BODY is executed at the top level. Otherwise, an error occurs."
-  (let ((sym (gensym "TOPLEVEL-CHECKER-")))
+  "Checks that BODY will be executed at the top level. Otherwise, an error occurs."
+  (let ((at-toplevel-p (gensym "AT-TOPLEVEL-P-")))
     `(progn
        (eval-when (:compile-toplevel :load-toplevel)
-         (setf (symbol-value ',sym) t))
+         (setf (symbol-value ',at-toplevel-p) t))
        (eval-when (:execute)
-         (unless (boundp ',sym)
+         (unless (boundp ',at-toplevel-p)
            (error "A given form was not found at the top level when it ~
                    was asserted to be. Found:~%~4T~S"
                   '(progn ,@body))))
