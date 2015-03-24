@@ -10,7 +10,9 @@
          (setf (symbol-value ',sym) t))
        (eval-when (:execute)
          (unless (boundp ',sym)
-           (error "A given form was not found at the top level when it was asserted to be. Found:~%~4T~S" '(progn ,@body))))
+           (error "A given form was not found at the top level when it ~
+                   was asserted to be. Found:~%~4T~S"
+                  '(progn ,@body))))
        ,@body)))
 
 #+#:IGNORE
