@@ -2,6 +2,8 @@
 ;;;;
 ;;;; Copyright (c) 2015 Robert Smith
 
+;;; Bug: This should error at compile time, but currently only errors
+;;;      at load time.
 (defmacro ensure-toplevel (&body body)
   "Checks that BODY will be executed at the top level. Otherwise, an error occurs."
   (let ((at-toplevel-p (gensym "AT-TOPLEVEL-P-")))
@@ -9,10 +11,11 @@
        (eval-when (:compile-toplevel :load-toplevel)
          (setf (symbol-value ',at-toplevel-p) t))
        (eval-when (:execute)
-         (unless (boundp ',at-toplevel-p)
-           (error "A given form was not found at the top level when it ~
-                   was asserted to be. Found:~%~4T~S"
-                  '(progn ,@body))))
+         (load-time-value
+          (unless (boundp ',at-toplevel-p)
+            (error "A given form was not found at the top level when it ~
+                    was asserted to be. Found:~%~4T~S"
+                   '(progn ,@body)))))
        ,@body)))
 
 #+#:IGNORE
@@ -32,7 +35,7 @@
       (defun g ()
         (incf counter))))
   
-  ;; ERROR (but it doesn't error; bug!)
+  ;; ERROR
   (defun f (x)
     (ensure-toplevel
       (defun g (x)
