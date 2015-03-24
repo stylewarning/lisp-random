@@ -1,6 +1,6 @@
 ;;;; ensure-toplevel.lisp
 ;;;;
-;;;; Copyright (c) 2013 Robert Smith
+;;;; Copyright (c) 2015 Robert Smith
 
 (defmacro ensure-toplevel (&body body)
   "Ensures that BODY is executed at the top level. Otherwise, an error occurs."
