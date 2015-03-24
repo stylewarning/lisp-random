@@ -30,4 +30,10 @@
   (let ((counter 1))
     (ensure-toplevel
       (defun g ()
-        (incf counter)))))
+        (incf counter))))
+  
+  ;; ERROR (but it doesn't error; bug!)
+  (defun f (x)
+    (ensure-toplevel
+      (defun g (x)
+        (* x x)))))
