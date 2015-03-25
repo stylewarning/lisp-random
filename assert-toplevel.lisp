@@ -1,4 +1,4 @@
-;;;; ensure-toplevel.lisp
+;;;; assert-toplevel.lisp
 ;;;;
 ;;;; Copyright (c) 2015 Robert Smith
 
