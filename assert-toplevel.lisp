@@ -6,7 +6,7 @@
 ;;; this work correctly.
 
 (defmacro assert-toplevel (&body body)
-  "Checks that BODY will be executed at the top level. Otherwise, an error occurs."
+  "Checks that BODY will be executed at the top level. If the BODY is at the top level, then execute as if this macro is a PROGN. Otherwise, a compile time error occurs."
   (let ((at-toplevel-p (gensym "AT-TOPLEVEL-P-")))
     `(progn
        (eval-when (:compile-toplevel :load-toplevel)
