@@ -177,6 +177,11 @@ This simply tests if A's directory list starts with :ABSOLUTE"
   name
   type)
 
+(defmethod make-load-form ((self illogical-pathname) &optional environment)
+  (make-load-form-saving-slots self
+                               :slot-names '(host directory name type)
+                               :environment environment))
+
 (defun illogical-pathname-relative-pathname (illogical-pathname)
   "Convert the illogical pathname ILLOGICAL-PATHNAME to its representative relative pathname."
   (make-pathname
