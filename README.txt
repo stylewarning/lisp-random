@@ -8,24 +8,29 @@ Some of the files here have grown to be their own library. Examples
 include:
 
     * defdata.lisp -> CL-ALGEBRAIC-DATA-TYPE
-    
+
       A library for algebraic data types in Lisp.
-      
+
+    * illogical-pathnames.lisp -> ILLOGICAL-PATHNAMES
+
+      A library for dealing with a somewhat more logical version of
+      logical pathnames.
+
     * interface.lisp -> INTERFACE
-    
+
       A library for creating (programmatic) interfaces.
-      
+
     * locative.lisp -> CL-LOCATIVES
-    
+
       A library for manipulating (a form of) locatives, reminiscent of
       the Lisp Machine.
-      
+
     * symbolic-function.lisp -> SYMBOLIC-FUNCTION
-    
+
       A library for handling so-called "symbolic functions".
-      
+
     * young.lisp -> CL-YOUNG-TABLEAUX
-    
+
       A library for manipulating Young tableaux.
 
 Not all code in this directory is complete or functional. Some files
@@ -38,7 +43,7 @@ there are two exceptions.
 
     1. The sub-directory "miscellaneous_exercises" contains
        interview-style questions or puzzles that I've done.
-       
+
     2. The sub-directory "graphics" contains graphical programs I've
        sometimes shown during talks or demonstrations. They mostly
        make use of LispWorks' CAPI graphics system. As such, they are
@@ -52,4 +57,3 @@ Have fun,
 
 Robert Smith
 quad@symbo1ics.com
-

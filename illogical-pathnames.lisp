@@ -2,6 +2,14 @@
 ;;;;
 ;;;; Version 1.0
 
+;;;; DEPRECATED DEPRECATED DEPRECATED DEPRECATED DEPRECATED
+;;;;
+;;;; Use ILLOGICAL-PATHNAMES instead. It supersedes this.
+;;;;
+;;;; https://bitbucket.org/tarballs_are_good/illogical-pathnames
+;;;;
+;;;; DEPRECATED DEPRECATED DEPRECATED DEPRECATED DEPRECATED
+
 ;;; Copyright (c) 2015, Robert Smith <quad@symbo1ics.com>
 ;;; All rights reserved.
 ;;;
