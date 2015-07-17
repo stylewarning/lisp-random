@@ -255,6 +255,15 @@ Note: It may be smart to cache the arguments and the result matrix itself using 
                                 (declare (ignore r c))
                                 value)))
 
+(defun map-matrix (f m)
+  "Map the unary function F across the matrix M."
+  (bind-lazy-matrix (rows cols ref) m
+    (make-instance 'lazy-matrix
+                   :width cols
+                   :height rows
+                   :element-ref (lambda (r c)
+                                  (funcall f (funcall ref r c))))))
+
 ;;; Example
 
 (defun fft (vec)
