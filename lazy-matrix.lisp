@@ -96,6 +96,22 @@
                                   (assert (zerop row) (row))
                                   (funcall ref col col)))))
 
+(defun cache-matrix (m)
+  "Create a new matrix which caches the elements of the lazy matrix M upon access."
+  (bind-lazy-matrix (rows cols ref) m
+    (let* ((g (gensym "UNCACHED-ITEM-"))
+           (cache (make-array (* rows cols) :initial-element g)))
+      (make-instance 'lazy-matrix
+                     :width cols
+                     :height rows
+                     :element-ref (lambda (row col)
+                                    (let* ((index (+ col (* row rows)))
+                                           (el (aref cache index)))
+                                      (if (eq el g)
+                                          (setf (aref cache index)
+                                                (funcall ref row col))
+                                          el)))))))
+
 (defun matrix-vectorp (m)
   "Is the lazy matrix M a vector? Return T or NIL as the first value, and {:UNIT, :ROW, :COLUMN} as a second value, depending on whether M is a 1x1 matrix, row-vector, or column-vector respectively."
   (let ((unit-height? (= 1 (height m)))
