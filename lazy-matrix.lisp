@@ -32,6 +32,37 @@
        ,matrix
      ,@body))
 
+(defun vector-matrix (cl-vector)
+  "Convert a Common Lisp vector CL-VECTOR into a lazy row vector."
+  (assert (vectorp cl-vector) (cl-vector))
+  (make-instance 'lazy-matrix
+                 :height 1
+                 :width (length cl-vector)
+                 :element-ref (lambda (row col)
+                                (assert (zerop row))
+                                (aref cl-vector col))))
+
+(defun array-matrix (cl-array)
+  "Convert a Common Lisp array CL-ARRAY into a lazy matrix."
+  (assert (arrayp cl-array) (cl-array))
+  (assert (= 2 (array-rank cl-array)) (cl-array)
+          "The array provided must be two dimensional.")
+  (destructuring-bind (height width)
+      (array-dimensions cl-array)
+    (make-instance 'lazy-matrix
+                   :height height
+                   :width width
+                   :element-ref (lambda (row col)
+                                  (aref cl-array row col)))))
+
+(defun matrix-array (m &key (element-type t))
+  "Convert a lazy matrix M to a Common Lisp array."
+  (bind-lazy-matrix (rows cols ref) m
+    (let ((array (make-array (list rows cols) :element-type element-type)))
+      (dotimes (i rows array)
+        (dotimes (j cols)
+          (setf (aref array i j) (funcall ref i j)))))))
+
 (defun diagonal-matrix (height width &rest elements)
   "Construct a rectangular matrix of dimensions HEIGHT x WIDTH whose diagonal are ELEMENTS."
   (check-type height (integer 1))
@@ -181,23 +212,6 @@
   (define-pointwise-operator ./ /
     "Compute the pointwise quotient of two matrices."))
 
-(defun matrix-array (m)
-  "Convert the lazy matrix M into an array."
-  (bind-lazy-matrix (rows cols ref) m
-    (let ((a (make-array (list rows cols))))
-      (loop :for row :below rows :do
-        (loop :for col :below cols :do
-          (setf (aref a row col) (funcall ref row col))))
-      ;; return A
-      a)))
-
-(defun array-matrix (a)
-  "Convert the two dimensional array A to a lazy matrix."
-  (make-instance 'lazy-matrix
-                 :height (array-dimension a 0)
-                 :width (array-dimension a 1)
-                 :element-ref (lambda (r c)
-                                (aref a r c))))
 
 ;;; Example
 
