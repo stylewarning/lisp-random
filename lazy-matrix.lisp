@@ -228,6 +228,22 @@
   (define-pointwise-operator ./ /
     "Compute the pointwise quotient of two matrices."))
 
+(defun matrix-multiply (m1 m2)
+  "Multiply the matrices M1 and M2."
+  (bind-lazy-matrix (rows1 cols1 ref1) m1
+    (bind-lazy-matrix (rows2 cols2 ref2) m2
+      (assert (= cols1 rows2) (m1 m2)
+              "The number of columns of the first matrix must ~
+               be equal to the number of rows of the second ~
+               matrix.")
+      (make-instance 'lazy-matrix
+                     :height rows1
+                     :width cols2
+                     :element-ref (lambda (r c)
+                                    (loop :for k :below cols1
+                                          :sum (* (funcall ref1 r k)
+                                                  (funcall ref2 k c))))))))
+
 (defun constant-matrix (height width value)
   "Make a lazy matrix whose entries are VALUE of height HEIGHT and width WIDTH."
   (make-instance 'lazy-matrix
