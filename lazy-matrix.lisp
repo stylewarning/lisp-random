@@ -79,12 +79,12 @@
 (defun identity-matrix (length)
   "Construct an identity matrix of dimensions LENGTH x LENGTH."
   (make-instance 'lazy-matrix
-                   :width length
-                   :height length
-                   :element-ref (lambda (row col)
-                                  (if (= row col)
-                                      1
-                                      0))))
+                 :width length
+                 :height length
+                 :element-ref (lambda (row col)
+                                (if (= row col)
+                                    1
+                                    0))))
 
 (defun diag (m)
   "Compute the diagonal of the matrix M as a row vector."
@@ -93,7 +93,7 @@
                    :width (min rows cols)
                    :height 1
                    :element-ref (lambda (row col)
-                                  (assert (= 0 row) row)
+                                  (assert (zerop row) (row))
                                   (funcall ref col col)))))
 
 (defun matrix-vectorp (m)
@@ -123,7 +123,7 @@
                    :height 1
                    :width cols
                    :element-ref (lambda (r c)
-                                  (assert (= 0 r))
+                                  (assert (zerop r))
                                   (funcall ref row c)))))
 
 (defun matrix-column (m col)
@@ -138,7 +138,7 @@
                    :height rows
                    :width 1
                    :element-ref (lambda (r c)
-                                  (assert (= 0 c))
+                                  (assert (zerop c))
                                   (funcall ref r col)))))
 
 (defun transpose (m)
