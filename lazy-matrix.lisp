@@ -229,7 +229,9 @@
     "Compute the pointwise quotient of two matrices."))
 
 (defun matrix-multiply (m1 m2)
-  "Multiply the matrices M1 and M2."
+  "Multiply the matrices M1 and M2.
+
+Note: It may be smart to cache the arguments and the result matrix itself using CACHE-MATRIX."
   (bind-lazy-matrix (rows1 cols1 ref1) m1
     (bind-lazy-matrix (rows2 cols2 ref2) m2
       (assert (= cols1 rows2) (m1 m2)
