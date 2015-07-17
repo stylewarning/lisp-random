@@ -228,18 +228,21 @@
   (define-pointwise-operator ./ /
     "Compute the pointwise quotient of two matrices."))
 
+(defun constant-matrix (height width value)
+  "Make a lazy matrix whose entries are VALUE of height HEIGHT and width WIDTH."
+  (make-instance 'lazy-matrix
+                 :width width
+                 :height height
+                 :element-ref (lambda (r c)
+                                (declare (ignore r c))
+                                value)))
 
 ;;; Example
 
 (defun fft (vec)
   "Compute the FFT of the row-vector VEC."
   (labels ((unit (x)
-             (make-instance 'lazy-matrix
-                            :width 1
-                            :height 1
-                            :element-ref (lambda (r c)
-                                           (declare (ignore r c))
-                                           x)))
+             (constant-matrix 1 1 x))
            (roots (n)
              (make-instance 'lazy-matrix
                             :width n
