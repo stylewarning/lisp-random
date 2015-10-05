@@ -22,8 +22,7 @@
   ;; generations.
   ;;
   ;; Leaf cells do not have a RESULT.
-  (result nil :type (or null macrocell))
-  )
+  (result nil :type (or null macrocell)))
 
 (defun macrocell-width (mc)
   "Compute the \"physical\" width of the macrocell MC."
@@ -136,3 +135,81 @@
     (make-macrocell nw-se ne-sw
                     sw-ne se-nw)))
 
+(defun macrocell-sub-center (mc)
+  "Given a macrocell MC, compute the center of its center."
+  (macrocell-center (macrocell-center mc)))
+
+(defun horizontal-center (w e)
+  (let ((w-ne-se (macrocell-se (macrocell-ne w)))
+        (e-nw-sw (macrocell-sw (macrocell-nw e)))
+        (w-se-ne (macrocell-ne (macrocell-se w)))
+        (e-sw-nw (macrocell-nw (macrocell-sw e))))
+    (make-macrocell w-ne-se e-ne-sw
+                    w-se-ne e-sw-nw)))
+
+(defun vertical-center (n s)
+  (let ((n-sw-se (macrocell-se (macrocell-sw n)))
+        (n-se-sw (macrocell-sw (macrocell-se n)))
+        (s-nw-ne (macrocell-ne (macrocell-nw s)))
+        (s-ne-nw (macrocell-nw (macrocell-ne s))))
+    (make-macrocell n-ne-se n-ne-sw
+                    s-se-ne s-sw-nw)))
+
+
+(defun next-generation-base (mc)
+  "Evolve a level-2 macrocell MC one timestep."
+  nil                                   ; stub
+  )
+
+(defun next-generation (mc)
+  "Given a macrocell MC, evolve it one timestep."
+  (if (= 2 (macrocell-level mc))
+      (next-generation-base mc)
+      (let ((n00 (macrocell-center (macrocell-nw mc)))
+            (n01 (horizontal-center (macrocell-nw mc)
+                                    (macrocell-ne mc)))
+            (n02 (macrocell-center (macrocell-ne mc)))
+            (n10 (vertical-center (macrocell-nw mc)
+                                  (macrocell-sw mc)))
+            (n11 (macrocell-center (macrocell-center mc)))
+            (n12 (vertical-center (macrocell-ne mc)
+                                  (macrocell-se mc)))
+            (n20 (macrocell-center (macrocell-sw mc)))
+            (n21 (horizontal-center (macrocell-sw mc)
+                                    (macrocell-se mc)))
+            (n22 (macrocell-center (macrocell-se mc))))
+        (make-macrocell
+         (next-generation (make-macrocell n00 n01 n10 n11))
+         (next-generation (make-macrocell n01 n02 n11 n12))
+         (next-generation (make-macrocell n10 n11 n20 n21))
+         (next-generation (make-macrocell n11 n12 n21 n22))))))
+
+(defun hyper-next-generation (mc)
+  "Given a macrocell MC at level L, compute 2^(L-2) generations into the future."
+  (labels ((compute-hyper (mc)
+             (if (= 2 (macrocell-level mc))
+                 (next-generation-base mc)
+                 (hyper-general-case mc)))
+           (hyper-general-case (mc)
+             (let ((n00 (hyper-next-generation (macrocell-nw mc)))
+                   (n01 (hyper-next-generation (horizontal-center (macrocell-nw mc)
+                                                                  (macrocell-ne mc))))
+                   (n02 (hyper-next-generation (macrocell-ne mc)))
+                   (n10 (hyper-next-generation (vertical-center (macrocell-nw mc)
+                                                                (macrocell-sw mc))))
+                   (n11 (hyper-next-generation (macrocell-center mc)))
+                   (n12 (hyper-next-generation (vertical-center (macrocell-ne mc)
+                                                                (macrocell-se mc))))
+                   (n20 (hyper-next-generation (macrocell-sw mc)))
+                   (n21 (hyper-next-generation (horizontal-center (macrocell-sw mc)
+                                                                  (macrocell-se mc))))
+                   (n22 (hyper-next-generation (macrocell-se mc))))
+               (make-macrocell
+                (hyper-next-generation (make-macrocell n00 n01 n10 n11))
+                (hyper-next-generation (make-macrocell n01 n02 n11 n12))
+                (hyper-next-generation (make-macrocell n10 n11 n20 n21))
+                (hyper-next-generation (make-macrocell n11 n12 n21 n22))))))
+    (let ((result (macrocell-result mc)))
+      (if (null result)
+          (setf (hypercell-result mc) (compute-hyper mc))
+          result))))
