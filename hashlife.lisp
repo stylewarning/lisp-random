@@ -63,12 +63,12 @@
 
 (sb-ext:define-hash-table-test macrocell-equal macrocell-hash)
 
-(declare (type hash-table **macrocells**))
+(declaim (type hash-table **macrocells**))
 (sb-ext:defglobal **macrocells** (make-hash-table :test 'macrocell-equal
                                                   :weakness ':key-and-value)
     "EQ-identity map (mapping macrocells to macrocells) for caching.")
 
-(declare (type simple-vector) **leaves**)
+(declaim (type simple-vector **leaves**))
 (sb-ext:defglobal **leaves** (make-array 16)
     "Simple vector containing the leaves. They are indexed by the bits they contaiin, namely, in MSB to LSB order, NW : NE : SW : SE.")
 
@@ -135,3 +135,4 @@
         (se-nw (macrocell-nw (macrocell-se mc))))
     (make-macrocell nw-se ne-sw
                     sw-ne se-nw)))
+
