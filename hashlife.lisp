@@ -155,11 +155,58 @@
     (make-macrocell n-sw-se n-se-sw
                     s-nw-ne s-ne-nw)))
 
+(defun macrocell-cell (mc x y)
+  "Get the cell located at (X, Y) of the macrocell MC.
+
+The coordinate system is defined to start at (-2^LEVEL, 2^LEVEL) in the northwesternmost corner."
+  (let ((level (macrocell-level mc)))
+    (if (= 1 level)
+        (cond
+          ((and (= -1 x) (= 0 y))
+           (macrocell-nw mc))
+          ((and (= 0 x) (= 0 y))
+           (macrocell-ne mc))
+          ((and (= 0 x) (= -1 y))
+           (macrocell-se mc))
+          ((and (= -1 x) (= -1 y))
+           (macrocell-sw mc)))
+        (let ((offset (expt 2 (- level 2))))
+          (if (minusp x)
+              (if (minusp y)
+                  (macrocell-cell (macrocell-nw mc) (+ x offset) (+ y offset))
+                  (macrocell-cell (macrocell-sw mc) (+ x offset) (- y offset)))
+              (if (minusp y)
+                  (macrocell-cell (macrocell-ne mc) (- x offset) (+ y offset))
+                  (macrocell-cell (macrocell-se mc) (- x offset) (- y offset))))))))
+
+(defconstant +neighborhood-mask+ #b000011101010111
+  "The bits of the neighborhood of a cell. The cell would be located at the 5th bit (zero indexed). See the documentation for #'NEXT-GENERATION-CELL for more information.")
+
+(defun next-generation-cell (bits)
+  "Given an integer BITS which whose MSB to LSB ordering is
+
+    15 14 13 12
+    11 10  9  8
+     7  6  5  4
+     3  2  1  0,
+
+compute whether the cell location in `5' is on or off."
+  (let ((neighborhood-alives (logcount (logand +neighborhood-mask+ bits)))
+        (alive? (logbitp 4 bits)))
+    (or (= 3 neighborhood-alives)
+        (and alive? (= 2 neighborhood-alives)))))
+
+(defun level-two-bits (mc)
+  (let ((bits 0))
+    (loop :for y :from -2 :below 2 :do
+      (loop :for x :from -2 :below 2 :do
+        (setf bits (logior (ash bits 1) (macrocell-cell mc x y)))))))
 
 (defun next-generation-base (mc)
   "Evolve a level-2 macrocell MC one timestep."
-  nil                                   ; stub
-  )
+  (let ((bits (level-two-bits mc)))
+    (make-macrocell (next-generation-cell (ash bits -5)) (next-generation-cell (ash bits -4))
+                    (next-generation-cell (ash bits -1)) (next-generation-cell (ash bits  0)))))
 
 (defun next-generation (mc)
   "Given a macrocell MC, evolve it one timestep."
