@@ -144,7 +144,7 @@
         (e-nw-sw (macrocell-sw (macrocell-nw e)))
         (w-se-ne (macrocell-ne (macrocell-se w)))
         (e-sw-nw (macrocell-nw (macrocell-sw e))))
-    (make-macrocell w-ne-se e-ne-sw
+    (make-macrocell w-ne-se e-nw-sw
                     w-se-ne e-sw-nw)))
 
 (defun vertical-center (n s)
@@ -152,8 +152,8 @@
         (n-se-sw (macrocell-sw (macrocell-se n)))
         (s-nw-ne (macrocell-ne (macrocell-nw s)))
         (s-ne-nw (macrocell-nw (macrocell-ne s))))
-    (make-macrocell n-ne-se n-ne-sw
-                    s-se-ne s-sw-nw)))
+    (make-macrocell n-sw-se n-se-sw
+                    s-nw-ne s-ne-nw)))
 
 
 (defun next-generation-base (mc)
@@ -211,5 +211,5 @@
                 (hyper-next-generation (make-macrocell n11 n12 n21 n22))))))
     (let ((result (macrocell-result mc)))
       (if (null result)
-          (setf (hypercell-result mc) (compute-hyper mc))
+          (setf (macrocell-result mc) (compute-hyper mc))
           result))))
