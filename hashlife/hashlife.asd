@@ -16,4 +16,7 @@
                (:file "display")
                (:file "timestep")
                (:file "hyperstep")
+               
+               (:file "plaintext-format")
+               
                (:file "hashlife")))
