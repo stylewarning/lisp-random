@@ -45,7 +45,7 @@
     "EQ-identity map (mapping macrocells to macrocells) for caching.")
 
 (declaim (type simple-vector **leaves**))
-(sb-ext:defglobal **leaves** (make-array 16)
+(sb-ext:defglobal **leaves** (make-array 16 :initial-element nil)
     "Simple vector containing the leaves. They are indexed by the bits they contaiin, namely, in MSB to LSB order, NW : NE : SW : SE.")
 
 (defun initialize-leaves ()
@@ -68,7 +68,7 @@
                                       :ne ne
                                       :sw sw
                                       :se se)))))
-    (unless (null (svref **leaves** 0)) ; Initialize once.
+    (when (null (svref **leaves** 0)) ; Initialize once.
       (dotimes (i 16)
         (initialize-leaf i)))))
 
