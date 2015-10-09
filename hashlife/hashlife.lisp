@@ -125,19 +125,19 @@
           (setf (gethash mc **macrocells**) mc)
           cached-mc))))
 
-(defun empty-cell (level)
+(defun empty-macrocell (level)
   "Create an empty cell of level LEVEL."
   (assert (<= 0 level))
   (if (zerop level)
       0
-      (let ((sub-empty (empty-cell (1- level))))
+      (let ((sub-empty (empty-macrocell (1- level))))
         (make-macrocell sub-empty sub-empty
                         sub-empty sub-empty))))
 
 (defun pad-macrocell (mc)
   "Pad the macrocell MC with one additional level of empty cells."
   (let* ((level (macrocell-level mc))
-         (empty (empty-cell (1- level))))
+         (empty (empty-macrocell (1- level))))
     (make-macrocell
      (make-macrocell empty empty
                      empty (macrocell-nw mc))
