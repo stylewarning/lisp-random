@@ -1,0 +1,12 @@
+References
+==========
+
+Original paper:
+
+    Gosper, Bill. Exploiting Regularities in Large Cellular Spaces.
+    https://www.lri.fr/~filliatr/m1/gol/gosper-84.pdf
+
+Discussion on implementation in Java:
+
+    Rokicki, Tomas. An Algorithm for Compressing Space and Time
+    http://www.drdobbs.com/jvm/an-algorithm-for-compressing-space-and-t/184406478
