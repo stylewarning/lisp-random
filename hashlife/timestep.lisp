@@ -80,9 +80,9 @@ Note that the height extension in the above diagram is just an artifact of using
                     s-nw-ne s-ne-nw)))
 
 (defconstant +neighborhood-mask+ #b000011101010111
-  "The bits of the neighborhood of a cell. The cell would be located at the 5th bit (zero indexed). See the documentation for #'NEXT-GENERATION-CELL for more information.")
+  "The bits of the neighborhood of a cell. The cell would be located at the 5th bit (zero indexed). See the documentation for #'TIMESTEP-CELL for more information.")
 
-(defun next-generation-cell (bits)
+(defun timestep-cell (bits)
   "Given an integer BITS which whose MSB to LSB ordering is
 
     15 14 13 12
@@ -99,7 +99,7 @@ compute whether the cell location in `5' is on or off after an iteration."
         0)))
 
 (defun level-two-bits (mc)
-  "Given a level-2 macrocell MC, give the bitwise representation of the macrocell. The bit ordering is described in the documentation of the function #'NEXT-GENERATION-CELL."
+  "Given a level-2 macrocell MC, give the bitwise representation of the macrocell. The bit ordering is described in the documentation of the function #'TIMESTEP-CELL."
   (assert (= 2 (macrocell-level mc)) (mc) "Can only get the bits of a cell at level 2.")
   (let ((bits 0))
     (loop :for y :from -2 :below 2 :do
@@ -108,16 +108,16 @@ compute whether the cell location in `5' is on or off after an iteration."
     ;; Return the bits.
     bits))
 
-(defun next-generation-base (mc)
+(defun timestep-base (mc)
   "Evolve a level-2 macrocell MC one timestep."
   (let ((bits (level-two-bits mc)))
-    (make-macrocell (next-generation-cell (ash bits -5)) (next-generation-cell (ash bits -4))
-                    (next-generation-cell (ash bits -1)) (next-generation-cell (ash bits  0)))))
+    (make-macrocell (timestep-cell (ash bits -5)) (timestep-cell (ash bits -4))
+                    (timestep-cell (ash bits -1)) (timestep-cell (ash bits  0)))))
 
-(defun next-generation (mc)
+(defun timestep (mc)
   "Given a macrocell MC, evolve it one timestep."
   (if (= 2 (macrocell-level mc))
-      (next-generation-base mc)
+      (timestep-base mc)
       (let ((n00 (center (macrocell-nw mc)))
             (n01 (horizontal-center (macrocell-nw mc)
                                     (macrocell-ne mc)))
@@ -132,11 +132,11 @@ compute whether the cell location in `5' is on or off after an iteration."
                                     (macrocell-se mc)))
             (n22 (center (macrocell-se mc))))
         (make-macrocell
-         (next-generation (make-macrocell n00 n01 n10 n11))
-         (next-generation (make-macrocell n01 n02 n11 n12))
-         (next-generation (make-macrocell n10 n11 n20 n21))
-         (next-generation (make-macrocell n11 n12 n21 n22))))))
+         (timestep (make-macrocell n00 n01 n10 n11))
+         (timestep (make-macrocell n01 n02 n11 n12))
+         (timestep (make-macrocell n10 n11 n20 n21))
+         (timestep (make-macrocell n11 n12 n21 n22))))))
 
-(defun padded-next-generation (mc)
+(defun padded-timestep (mc)
   "Compute the next generation, ignoring cells not in the center of the result."
-  (pad-macrocell (next-generation mc)))
+  (pad-macrocell (timestep mc)))

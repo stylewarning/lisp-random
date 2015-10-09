@@ -8,7 +8,7 @@
 
 (defun center* (mc)
   "Given a non-leaf macrocell MC, compute the hyperstep of its center."
-  (hyper-next-generation
+  (hyperstep
    (make-macrocell
     (macrocell-se (macrocell-nw mc))
     (macrocell-sw (macrocell-ne mc))
@@ -17,7 +17,7 @@
 
 (defun horizontal-center* (w e)
   "Given two horizontally adjacent cells, compute the hyperstep of their center."
-  (hyper-next-generation
+  (hyperstep
    (make-macrocell
     (macrocell-ne w)
     (macrocell-nw e)
@@ -26,20 +26,20 @@
 
 (defun vertical-center* (n s)
   "Given two vertically adjacent cells, compute the hyperstep of their center."
-  (hyper-next-generation
+  (hyperstep
    (make-macrocell
     (macrocell-sw n)
     (macrocell-se n)
     (macrocell-nw s)
     (macrocell-ne s))))
 
-(defun hyper-next-generation (mc)
+(defun hyperstep (mc)
   "Given a macrocell MC at level L, compute 2^(L-2) generations into the future."
-  (labels ((compute-hyper (mc)
+  (labels ((compute-hyperstep (mc)
              (if (= 2 (macrocell-level mc))
-                 (next-generation-base mc)
-                 (hyper-general-case mc)))
-           (hyper-general-case (mc)
+                 (timestep-base mc)
+                 (hyperstep-general-case mc)))
+           (hyperstep-general-case (mc)
              (let ((n00 (hyper-next-generation (macrocell-nw mc)))
                    (n01 (horizontal-center* (macrocell-nw mc)
                                             (macrocell-ne mc)))
@@ -60,5 +60,5 @@
                 (hyper-next-generation (make-macrocell n11 n12 n21 n22))))))
     (let ((result (macrocell-result mc)))
       (if (null result)
-          (setf (macrocell-result mc) (compute-hyper mc))
+          (setf (macrocell-result mc) (compute-hyperstep mc))
           result))))
