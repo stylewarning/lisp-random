@@ -133,6 +133,21 @@
       (let ((sub-empty (empty-cell (1- level))))
         (make-macrocell sub-empty sub-empty
                         sub-empty sub-empty))))
+
+(defun pad-macrocell (mc)
+  "Pad the macrocell MC with one additional level of empty cells."
+  (let* ((level (macrocell-level mc))
+         (empty (empty-cell (1- level))))
+    (make-macrocell
+     (make-macrocell empty empty
+                     empty (macrocell-nw mc))
+     (make-macrocell empty empty
+                     (macrocell-ne mc) empty)
+     (make-macrocell empty (macrocell-sw mc)
+                     empty empty)
+     (make-macrocell (macrocell-se mc) empty
+                     empty empty))))
+
 (defun macrocell-center (mc)
   "Given a non-leaf macrocell MC, compute its center."
   (assert (not (macrocell-leaf-p mc)) (mc) "Leaf macrocells don't have centers.")
