@@ -29,6 +29,12 @@
      (make-macrocell (macrocell-se mc) empty
                      empty empty))))
 
+(defun pad-macrocell-until (mc level)
+  "Pad MC so that its level is at least level."
+  (if (< level (macrocell-level mc))
+      mc
+      (pad-macrocell-until (pad-macrocell mc) level)))
+
 (defun center (mc)
   "Given a non-leaf macrocell MC, compute its center."0
   (assert (not (macrocell-leaf-p mc)) (mc) "Leaf macrocells don't have centers.")
