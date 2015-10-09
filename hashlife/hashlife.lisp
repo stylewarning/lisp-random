@@ -91,7 +91,7 @@
                                       :ne ne
                                       :sw sw
                                       :se se)))))
-    (let ((*random-state* #.(make-random-state t)))
+    (unless (null (svref **leaves** 0)) ; Initialize once.
       (dotimes (i 16)
         (initialize-leaf i)))))
 
