@@ -297,6 +297,8 @@ compute whether the cell location in `5' is on or off after an iteration."
         0)))
 
 (defun level-two-bits (mc)
+  "Given a level-2 macrocell MC, give the bitwise representation of the macrocell. The bit ordering is described in the documentation of the function #'NEXT-GENERATION-CELL."
+  (assert (= 2 (macrocell-level mc)) (mc) "Can only get the bits of a cell at level 2.")
   (let ((bits 0))
     (loop :for y :from -2 :below 2 :do
       (loop :for x :from -2 :below 2 :do
