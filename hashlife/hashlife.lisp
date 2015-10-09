@@ -125,6 +125,14 @@
           (setf (gethash mc **macrocells**) mc)
           cached-mc))))
 
+(defun empty-cell (level)
+  "Create an empty cell of level LEVEL."
+  (assert (<= 0 level))
+  (if (zerop level)
+      0
+      (let ((sub-empty (empty-cell (1- level))))
+        (make-macrocell sub-empty sub-empty
+                        sub-empty sub-empty))))
 (defun macrocell-center (mc)
   "Given a non-leaf macrocell MC, compute its center."
   (assert (not (macrocell-leaf-p mc)) (mc) "Leaf macrocells don't have centers.")
