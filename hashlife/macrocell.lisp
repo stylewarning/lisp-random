@@ -38,6 +38,8 @@
   "Is the macrocell MC a leaf?"
   (= 1 (macrocell-level mc)))
 
+;;; The corresponding "set" function, #'MACROCELL-SET-CELL, can be
+;;; found in cache.lisp.
 (defun macrocell-cell (mc x y)
   "Get the cell located at (X, Y) of the macrocell MC.
 
