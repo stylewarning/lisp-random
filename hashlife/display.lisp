@@ -29,3 +29,25 @@
     (loop :repeat width :do (write-char #\- stream))
     (write-char #\+ stream)
     (terpri stream)))
+
+(defun write-pbm (mc stream)
+  "Write MACROCELL to the stream STREAM as a .pbm."
+  (let* ((width (macrocell-width mc))
+         (width/2 (/ width 2)))
+    ;; Header.
+    (format stream "P1~%")
+    (format stream "~D ~D~%" width width)
+    
+    ;; Draw pattern.
+    (loop :for y :from (- width/2) :below width/2 :do
+      (loop :for x :from (- width/2) :below width/2 :do
+        (format stream "~D " (macrocell-cell mc x y)))
+      (terpri stream))))
+
+(defun write-pbm-to-file (mc filespec &key (if-exists ':supersede))
+  (let ((path (pathname filespec)))
+    (with-open-file (s path :direction ':output
+                            :if-exists if-exists
+                            :if-does-not-exist ':create)
+      (write-pbm mc s)
+      path)))
