@@ -286,6 +286,10 @@ compute whether the cell location in `5' is on or off."
          (next-generation (make-macrocell n10 n11 n20 n21))
          (next-generation (make-macrocell n11 n12 n21 n22))))))
 
+(defun next-generation* (mc)
+  "Compute the next generation, ignoring cells not in the center of the result."
+  (pad-macrocell (next-generation mc)))
+
 (defun hyper-next-generation (mc)
   "Given a macrocell MC at level L, compute 2^(L-2) generations into the future."
   (labels ((compute-hyper (mc)
