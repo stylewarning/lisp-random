@@ -2,6 +2,9 @@
 ;;;;
 ;;;; Copyright (c) 2015 Robert Smith
 
+#-sbcl
+(error "HASHLIFE currently requires SBCL.")
+
 (asdf:defsystem #:hashlife
   :description "An implementation of the Hashlife algorithm."
   :author "Robert Smith <quad@symbo1ics.com>"
