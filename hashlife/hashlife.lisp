@@ -288,9 +288,9 @@ Note that the height extension in the above diagram is just an artifact of using
      7  6  5  4
      3  2  1  0,
 
-compute whether the cell location in `5' is on or off."
+compute whether the cell location in `5' is on or off after an iteration."
   (let ((neighborhood-alives (logcount (logand +neighborhood-mask+ bits)))
-        (alive? (logbitp 4 bits)))
+        (alive? (logbitp 5 bits)))
     (if (or (= 3 neighborhood-alives)
             (and alive? (= 2 neighborhood-alives)))
         1
