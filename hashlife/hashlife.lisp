@@ -158,18 +158,20 @@
 (defun macrocell-cell (mc x y)
   "Get the cell located at (X, Y) of the macrocell MC.
 
-The coordinate system is defined to start at (-2^LEVEL, 2^LEVEL) in the northwesternmost corner."
+The coordinate system is defined to start at (-2^(LEVEL - 1), 2^(LEVEL - 1)) in the northwesternmost corner."
   (let ((level (macrocell-level mc)))
     (if (= 1 level)
         (cond
-          ((and (= -1 x) (= 0 y))
-           (macrocell-nw mc))
-          ((and (= 0 x) (= 0 y))
-           (macrocell-ne mc))
-          ((and (= 0 x) (= -1 y))
-           (macrocell-se mc))
           ((and (= -1 x) (= -1 y))
-           (macrocell-sw mc)))
+           (macrocell-nw mc))
+          ((and (= 0 x) (= -1 y))
+           (macrocell-ne mc))
+          ((and (= -1 x) (= 0 y))
+           (macrocell-sw mc))
+          ((and (= 0 x) (= 0 y))
+           (macrocell-se mc))
+          (t
+           (error "Invalid coordinate: (~A, ~A)" x y)))
         (let ((offset (expt 2 (- level 2))))
           (if (minusp x)
               (if (minusp y)
