@@ -195,8 +195,10 @@ The coordinate system is defined to start at (-2^(LEVEL - 1), 2^(LEVEL - 1)) in 
 compute whether the cell location in `5' is on or off."
   (let ((neighborhood-alives (logcount (logand +neighborhood-mask+ bits)))
         (alive? (logbitp 4 bits)))
-    (or (= 3 neighborhood-alives)
-        (and alive? (= 2 neighborhood-alives)))))
+    (if (or (= 3 neighborhood-alives)
+            (and alive? (= 2 neighborhood-alives)))
+        1
+        0)))
 
 (defun level-two-bits (mc)
   (let ((bits 0))
