@@ -204,7 +204,9 @@ compute whether the cell location in `5' is on or off."
   (let ((bits 0))
     (loop :for y :from -2 :below 2 :do
       (loop :for x :from -2 :below 2 :do
-        (setf bits (logior (ash bits 1) (macrocell-cell mc x y)))))))
+        (setf bits (logior (ash bits 1) (macrocell-cell mc x y)))))
+    ;; Return the bits.
+    bits))
 
 (defun next-generation-base (mc)
   "Evolve a level-2 macrocell MC one timestep."
