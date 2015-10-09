@@ -9,8 +9,9 @@
 (defun read-plaintext-file (filespec)
   (labels ((parse-line (line)
              (cond
-               ;; Empty line... skip.
-               ((zerop (length line)) ':skip)
+               ;; Empty line... considered to be a line of all off
+               ;; cells.
+               ((zerop (length line)) nil)
                ;; Comment line... skip.
                ((char= #\! (char line 0)) ':skip)
                ;; Row spectification, with lax error conditions.
