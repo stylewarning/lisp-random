@@ -1,6 +1,8 @@
-;;;; hashlife.lisp
+;;;; hashlife/hashlife.lisp
 ;;;;
 ;;;; Copyright (c) 2015 Robert Smith
+
+;;; Currently requires SBCL.
 
 (deftype hash-code ()
   `(and fixnum unsigned-byte))
