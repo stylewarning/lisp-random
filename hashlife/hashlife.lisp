@@ -174,8 +174,8 @@ The coordinate system is defined to start at (-2^(LEVEL - 1), 2^(LEVEL - 1)) in 
      (make-macrocell (macrocell-se mc) empty
                      empty empty))))
 
-(defun macrocell-center (mc)
-  "Given a non-leaf macrocell MC, compute its center."
+(defun center (mc)
+  "Given a non-leaf macrocell MC, compute its center."0
   (assert (not (macrocell-leaf-p mc)) (mc) "Leaf macrocells don't have centers.")
   (let ((nw-se (macrocell-se (macrocell-nw mc)))
         (ne-sw (macrocell-sw (macrocell-ne mc)))
@@ -184,11 +184,28 @@ The coordinate system is defined to start at (-2^(LEVEL - 1), 2^(LEVEL - 1)) in 
     (make-macrocell nw-se ne-sw
                     sw-ne se-nw)))
 
-(defun macrocell-sub-center (mc)
+(defun center* (mc)
+  "Given a non-leaf macrocell MC, compute the hyperstep of its center."
+  (hyper-next-generation
+   (make-macrocell
+    (macrocell-se (macrocell-nw mc))
+    (macrocell-sw (macrocell-ne mc))
+    (macrocell-ne (macrocell-sw mc))
+    (macrocell-nw (macrocell-se mc)))))
+
+(defun sub-center (mc)
   "Given a macrocell MC, compute the center of its center."
-  (macrocell-center (macrocell-center mc)))
+  (center (center mc)))
 
 (defun horizontal-center (w e)
+  "Given two horizontally adjacent cells, compute the center of these.
+
+    +----+----+        +--+====+--+
+    |    |    |        |  |    |  |
+    | W  | E  |  ===>  |  | ** |  |
+    |    |    |        |  |    |  |
+    +----+----+        +--+====+--+
+"
   (let ((w-ne-se (macrocell-se (macrocell-ne w)))
         (e-nw-sw (macrocell-sw (macrocell-nw e)))
         (w-se-ne (macrocell-ne (macrocell-se w)))
@@ -196,7 +213,28 @@ The coordinate system is defined to start at (-2^(LEVEL - 1), 2^(LEVEL - 1)) in 
     (make-macrocell w-ne-se e-nw-sw
                     w-se-ne e-sw-nw)))
 
+(defun horizontal-center* (w e)
+  "Given two horizontally adjacent cells, compute the hyperstep of their center."
+  (hyper-next-generation
+   (make-macrocell
+    (macrocell-ne w)
+    (macrocell-nw e)
+    (macrocell-se w)
+    (macrocell-sw e))))
+
 (defun vertical-center (n s)
+  "Given two vertically adjacent cells, compute the center of these.
+
+    +--+       +--+
+    |N |       |  |
+    |  |       +==+
+    +--+  ===> |**|
+    |  |       |  |
+    |S |       +==+
+    +--+       |  |
+               +--+
+
+Note that the height extension in the above diagram is just an artifact of using ASCII art."
   (let ((n-sw-se (macrocell-se (macrocell-sw n)))
         (n-se-sw (macrocell-sw (macrocell-se n)))
         (s-nw-ne (macrocell-ne (macrocell-nw s)))
@@ -204,6 +242,14 @@ The coordinate system is defined to start at (-2^(LEVEL - 1), 2^(LEVEL - 1)) in 
     (make-macrocell n-sw-se n-se-sw
                     s-nw-ne s-ne-nw)))
 
+(defun vertical-center* (n s)
+  "Given two vertically adjacent cells, compute the hyperstep of their center."
+  (hyper-next-generation
+   (make-macrocell
+    (macrocell-sw n)
+    (macrocell-se n)
+    (macrocell-nw s)
+    (macrocell-ne s))))
 
 (defun show (mc &optional (stream *standard-output*))
   "Pretty print a macrocell MC to the stream STREAM, which is *STANDARD-OUTPUT* by default."
@@ -268,26 +314,26 @@ compute whether the cell location in `5' is on or off."
   "Given a macrocell MC, evolve it one timestep."
   (if (= 2 (macrocell-level mc))
       (next-generation-base mc)
-      (let ((n00 (macrocell-center (macrocell-nw mc)))
+      (let ((n00 (center (macrocell-nw mc)))
             (n01 (horizontal-center (macrocell-nw mc)
                                     (macrocell-ne mc)))
-            (n02 (macrocell-center (macrocell-ne mc)))
+            (n02 (center (macrocell-ne mc)))
             (n10 (vertical-center (macrocell-nw mc)
                                   (macrocell-sw mc)))
-            (n11 (macrocell-center (macrocell-center mc)))
+            (n11 (center (center mc)))
             (n12 (vertical-center (macrocell-ne mc)
                                   (macrocell-se mc)))
-            (n20 (macrocell-center (macrocell-sw mc)))
+            (n20 (center (macrocell-sw mc)))
             (n21 (horizontal-center (macrocell-sw mc)
                                     (macrocell-se mc)))
-            (n22 (macrocell-center (macrocell-se mc))))
+            (n22 (center (macrocell-se mc))))
         (make-macrocell
          (next-generation (make-macrocell n00 n01 n10 n11))
          (next-generation (make-macrocell n01 n02 n11 n12))
          (next-generation (make-macrocell n10 n11 n20 n21))
          (next-generation (make-macrocell n11 n12 n21 n22))))))
 
-(defun next-generation* (mc)
+(defun padded-next-generation (mc)
   "Compute the next generation, ignoring cells not in the center of the result."
   (pad-macrocell (next-generation mc)))
 
@@ -299,17 +345,17 @@ compute whether the cell location in `5' is on or off."
                  (hyper-general-case mc)))
            (hyper-general-case (mc)
              (let ((n00 (hyper-next-generation (macrocell-nw mc)))
-                   (n01 (hyper-next-generation (horizontal-center (macrocell-nw mc)
-                                                                  (macrocell-ne mc))))
+                   (n01 (horizontal-center* (macrocell-nw mc)
+                                            (macrocell-ne mc)))
                    (n02 (hyper-next-generation (macrocell-ne mc)))
-                   (n10 (hyper-next-generation (vertical-center (macrocell-nw mc)
-                                                                (macrocell-sw mc))))
-                   (n11 (hyper-next-generation (macrocell-center mc)))
-                   (n12 (hyper-next-generation (vertical-center (macrocell-ne mc)
-                                                                (macrocell-se mc))))
+                   (n10 (vertical-center* (macrocell-nw mc)
+                                          (macrocell-sw mc)))
+                   (n11 (center* mc))
+                   (n12 (vertical-center* (macrocell-ne mc)
+                                          (macrocell-se mc)))
                    (n20 (hyper-next-generation (macrocell-sw mc)))
-                   (n21 (hyper-next-generation (horizontal-center (macrocell-sw mc)
-                                                                  (macrocell-se mc))))
+                   (n21 (horizontal-center* (macrocell-sw mc)
+                                            (macrocell-se mc)))
                    (n22 (hyper-next-generation (macrocell-se mc))))
                (make-macrocell
                 (hyper-next-generation (make-macrocell n00 n01 n10 n11))
