@@ -28,9 +28,7 @@
 
 (defun macrocell-width (mc)
   "Compute the \"physical\" width of the macrocell MC."
-  ;; Side length is 2^LEVEL.
-  ;; Area is (2^LEVEL)^2 = 2^(2*LEVEL).
-  (expt 2 (* 2 (macrocell-level mc))))
+  (expt 2 (macrocell-level mc)))
 
 (defun macrocell-leaf-p (mc)
   "Is the macrocell MC a leaf?"
