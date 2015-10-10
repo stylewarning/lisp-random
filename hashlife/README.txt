@@ -46,3 +46,19 @@ Notes on Implementation
 * Using bitwise arithmetic for computing neighbor counts was inspired
   by Tomas Rokicki, as was the internal variable naming conventions
   within TIMESTEP and HYPERSTEP.
+
+
+CHARMLIFE Viewer
+----------------
+
+CHARMLIFE is a very simple viewer for the Game of Life universe using
+the CL-CHARMS library.
+
+To start, load the CHARMLIFE system and run #'CHARMLIFE:MAIN.
+
+Keys:
+
+    w a s d : Move up, left, down, right.
+    SPACE   : Toggle cell on or off.
+    q or Q  : Quit.
+    !       : Run HASHLIFE on the universe.
