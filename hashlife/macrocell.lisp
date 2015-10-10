@@ -17,18 +17,23 @@
   ;; Hash - Computed upon creation of the macrocell in
   ;; MAKE-MACROCELL. Depends solely on the children.
   (hash 0 :type hash-code :read-only t)
-  ;; Corners: Each of these are either a bit when LEVEL = 1, or are
+  ;; Corners - Each of these are either a bit when LEVEL = 1, or are
   ;; macrocells of level LEVEL - 1.
   (nw nil :type (or bit macrocell) :read-only t)
   (ne nil :type (or bit macrocell) :read-only t)
   (sw nil :type (or bit macrocell) :read-only t)
   (se nil :type (or bit macrocell) :read-only t)
-  ;; RESULT: This is a macrocell of level LEVEL - 1 situated at the
+  ;; RESULT - This is a macrocell of level LEVEL - 1 situated at the
   ;; center, which is the result of evolving 2^(LEVEL - 2)
   ;; generations.
   ;;
   ;; Leaf cells do not have a RESULT.
-  (result nil :type (or null macrocell)))
+  (result nil :type (or null macrocell))
+  ;; Next - This is a macrocell of level LEVEL - 1 situated at the
+  ;; center, which is the result of evolving 1 generation.
+  ;;
+  ;; Leaf cells don't have a "next".
+  (next nil :type (or null macrocell)))
 
 (defun macrocell-width (mc)
   "Compute the \"physical\" width of the macrocell MC."

@@ -76,7 +76,6 @@
                      (toggle-cell (- x (floor width 2))
                                   (- y (floor height 2))))
                    (paint-universe))
-                  #+#:broken
                   ((#\1)
                    (setf *universe* (pad-macrocell (timestep *universe*)))
                    (incf *generation* 1)
