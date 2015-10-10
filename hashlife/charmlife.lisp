@@ -8,7 +8,7 @@
 
 (in-package #:charmlife)
 
-(defconstant +universe-level+ 16)
+(defconstant +universe-level+ 60)
 
 (defvar *universe* (empty-macrocell +universe-level+))
 
