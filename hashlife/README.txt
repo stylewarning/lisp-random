@@ -61,4 +61,6 @@ Keys:
     w a s d : Move up, left, down, right.
     SPACE   : Toggle cell on or off.
     q or Q  : Quit.
-    !       : Run HASHLIFE on the universe.
+    1       : Evolve 1 generation.
+    !       : Run HASHLIFE on the universe (evolving around
+              300 quadrillion generations).
