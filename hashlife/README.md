@@ -5,7 +5,7 @@
 
 
 This directory contains an implementation of Bill Gosper's HASHLIFE
-algorithm.
+algorithm. [Video](https://www.youtube.com/watch?v=YO3KIHjcrrs).
 
 
 Notes on Implementation
