@@ -1,27 +1,24 @@
-                               HASHLIFE
-                               ========
+# HASHLIFE
 
-                           By Robert Smith
-
+By Robert Smith
 
 This directory contains an implementation of Bill Gosper's HASHLIFE
 algorithm. [Video](https://www.youtube.com/watch?v=YO3KIHjcrrs).
 
 
-Notes on Implementation
------------------------
+## Notes on Implementation
 
 * The code is not portable; it is SBCL specific. In particular, it
   uses:
 
-      - SB-EXT:MIXF for hash code mixing
+      - `SB-EXT:MIXF` for hash code mixing
 
-      - SB-EXT:DEFGLOBAL for non-special, fast-access global variables
+      - `SB-EXT:DEFGLOBAL` for non-special, fast-access global variables
 
-      - SB-EXT:DEFINE-HASH-TABLE-TEST for telling MAKE-HASH-TABLE
+      - `SB-EXT:DEFINE-HASH-TABLE-TEST` for telling `MAKE-HASH-TABLE`
         about our custom hash function and test function
       
-      - SBCL's weak extensions to MAKE-HASH-TABLE
+      - SBCL's weak extensions to `MAKE-HASH-TABLE`
 
   In principle, all of these things exist in most other
   implementations of Common Lisp, so porting should be easy.
@@ -32,7 +29,7 @@ Notes on Implementation
   a "leaf node", hence the quotation marks.)
 
 * Hashing is a recursive function of the quadtree children. Hash
-  values are mixed using SBCL's MIX(F) function.
+  values are mixed using SBCL's `MIX`(`F`) function.
 
 * Caching is done with a weak hash table. The hash table is used to
   implement a set data structure. Querying the hash table requires
@@ -45,16 +42,15 @@ Notes on Implementation
 
 * Using bitwise arithmetic for computing neighbor counts was inspired
   by Tomas Rokicki, as was the internal variable naming conventions
-  within TIMESTEP and HYPERSTEP.
+  within `TIMESTEP` and `HYPERSTEP`.
 
 
-CHARMLIFE Viewer
-----------------
+## CHARMLIFE Viewer
 
 CHARMLIFE is a very simple viewer for the Game of Life universe using
-the CL-CHARMS library.
+the `CL-CHARMS` library.
 
-To start, load the CHARMLIFE system and run #'CHARMLIFE:MAIN.
+To start, load the `CHARMLIFE` system and run `#'CHARMLIFE:MAIN`.
 
 Keys:
 
