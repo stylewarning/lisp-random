@@ -66,10 +66,12 @@
                                    (+ ,(slot-entry-offset entry)
                                       (* idx ,(slot-entry-record-length entry))))))
                    (list
+                    `(declaim (inline ,name (setf ,name)))
                     `(defun ,name (obj idx)
                        ,accessor)
                     `(defun (setf ,name) (new-value obj idx)
-                       (setf ,accessor new-value))))))
+                       (setf ,accessor new-value))
+                    `(declaim (notinline ,name (setf ,name)))))))
         `(progn
            ;; Define the structure to hold the vectors.
            (defstruct (,name (:constructor ,%make-name ,array-slots))
