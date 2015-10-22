@@ -82,6 +82,11 @@
                      :for type := (slot-entry-upgraded-type (first (gethash array-slot array-table)))
                      :collect `(,array-slot nil :type (simple-array ,type (*)))))
 
+           ;; Define a printer
+           (defmethod print-object ((object ,name) stream)
+             (print-unreadable-object (object stream :type t :identity t)
+               (format stream "of ~D elements" (slot-value object (quote ,length-slot)))))
+
            ;; Define the getters.
            ,@(loop :for slot-name :being :the :hash-keys :of slot-table
                      :using (hash-value entry)
