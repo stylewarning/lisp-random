@@ -2,14 +2,15 @@
 ;;;;
 ;;;; Copyright (c) 2015 Robert Smith
 
-(defstruct slot-entry
-  initial-value-form
-  type
-  upgraded-type
-  array-slot
-  offset
-  record-length
-  accessor-name)
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (defstruct slot-entry
+    initial-value-form
+    type
+    upgraded-type
+    array-slot
+    offset
+    record-length
+    accessor-name))
 
 (defmacro define-struct-array (name &body slots &environment env)
   (let (
