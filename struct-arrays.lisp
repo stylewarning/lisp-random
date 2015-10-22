@@ -61,7 +61,7 @@
       (labels ((getter/setter-for-entry (slot-name entry)
                  (declare (ignore slot-name))
                  (let ((name (slot-entry-accessor-name entry))
-                       (accessor `(svref
+                       (accessor `(aref
                                    (slot-value obj ',(slot-entry-array-slot entry))
                                    (+ ,(slot-entry-offset entry)
                                       (* idx ,(slot-entry-record-length entry))))))
