@@ -2,6 +2,14 @@
 ;;;;
 ;;;; Copyright (c) 2015 Robert Smith
 
+;;; TODO:
+;;;
+;;; Check array size bounds
+;;;
+;;; Syntax checking
+;;;
+;;; type decls where appropriate
+
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defstruct slot-entry
     initial-value-form
