@@ -2,24 +2,22 @@
 ;;;;
 ;;;; Copyright (c) 2015 Robert Smith
 
-(defun valid-type-p (purported-type)
-  (handler-case (typep 0 purported-type)
-    (error (c)
-      (declare (ignore c))
-      (return-from valid-type-p nil)))
-  t)
-
 (defstruct slot-entry
   initial-value-form
   type
   upgraded-type
   array-slot
   offset
-  record-length)
+  record-length
+  accessor-name)
 
 (defmacro define-struct-array (name &body slots &environment env)
-  (let ((slot-table (make-hash-table :test 'eq))
+  (let (
+        ;; Map from slot name -> SLOT-ENTRY
+        (slot-table (make-hash-table :test 'eq))
+        ;; Map from upgraded type -> list of SLOT-ENTRY
         (type-table (make-hash-table :test 'equal))
+        ;; Map from array slot name -> list of SLOT-ENTRY
         (array-table (make-hash-table :test 'eq)))
     ;; Fill out the table with all the info about each slot.
     ;;
@@ -33,7 +31,7 @@
                 (push slot-name (gethash upgraded-type type-table))))
     
     ;; Fill out the offsets and generate array slot names.
-    (flet ((foo (k v)
+    (flet ((frob (k v)
              (declare (ignore k))
              (let ((array-slot-name (gensym (symbol-name name)))
                    (length (length v)))
@@ -42,23 +40,27 @@
                      :for entry := (gethash slot-name slot-table)
                      :do (setf (slot-entry-array-slot entry) array-slot-name
                                (slot-entry-offset entry) offset
-                               (slot-entry-record-length entry) length)
+                               (slot-entry-record-length entry) length
+                               (slot-entry-accessor-name entry)
+                               (intern (concatenate 'string
+                                                    (symbol-name name)
+                                                    "-"
+                                                    (symbol-name slot-name))))
                          (push entry (gethash array-slot-name array-table))))))
-      (maphash #'foo type-table))
+      (maphash #'frob type-table))
 
     ;; Generate code.
     (let ((%make-name (gensym (concatenate 'string "MAKE-" (symbol-name name))))
           (make-name (intern (concatenate 'string "MAKE-" (symbol-name name))))
           (array-slots (loop :for k :being :the :hash-keys :of array-table
                              :collect k))
-          (num-elements (gensym "NUM-ELEMENTS"))
-          (initialize (gensym "INITIALIZE"))
-          (vec (gensym "VEC")))
+          (num-elements (gensym "NUM-ELEMENTS-"))
+          (keep-uninitialized (gensym "KEEP-UNINITIALIZED-"))
+          (vec (gensym "VEC"))
+          (i (gensym "I")))
       (labels ((getter/setter-for-entry (slot-name entry)
-                 (let ((name (intern (concatenate 'string
-                                                  (symbol-name name)
-                                                  "-"
-                                                  (symbol-name slot-name))))
+                 (declare (ignore slot-name))
+                 (let ((name (slot-entry-accessor-name entry))
                        (accessor `(svref
                                    (slot-value obj ',(slot-entry-array-slot entry))
                                    (+ ,(slot-entry-offset entry)
@@ -75,23 +77,31 @@
                      :for type := (slot-entry-upgraded-type (first (gethash array-slot array-table)))
                      :collect `(,array-slot nil :type (simple-array ,type (*)))))
 
+           ;; Define the getters.
+           ,@(loop :for slot-name :being :the :hash-keys :of slot-table
+                     :using (hash-value entry)
+                   :append (getter/setter-for-entry slot-name entry))
+
            ;; Define the constructor.
-           (defun ,make-name (,num-elements &optional (,initialize t))
+           (defun ,make-name (,num-elements &key ((:keep-uninitialized ,keep-uninitialized) nil))
              (let ((,vec (,%make-name
                           ,@(loop :for array-slot :in array-slots
                                   :for type := (slot-entry-upgraded-type (first (gethash array-slot array-table)))
                                   :collect `(make-array ,num-elements :element-type (quote ,type))))))
-               (when ,initialize
-                 (warn "Not implemented"))
-               ,vec))
-
-           ;; Define the getters.
-           ,@(loop :for slot-name :being :the :hash-keys :of slot-table
-                     :using (hash-value entry)
-                   :append (getter/setter-for-entry slot-name entry)))))))
+               (unless ,keep-uninitialized
+                 (dotimes (,i ,num-elements)
+                   (psetf ,@(loop :for entry :being :the :hash-values :of slot-table
+                                  :append `((,(slot-entry-accessor-name entry) ,vec ,i)
+                                            ,(slot-entry-initial-value-form entry))))))
+               ,vec)))))))
 
 #+example
-(define-struct-array point
-  (x 0 single-float)
-  (y 0 single-float)
-  (z 0 single-float))
+(define-struct-array vertexes
+  ;; Position
+  (x 0.0 single-float)
+  (y 0.0 single-float)
+  (z 0.0 single-float)
+  ;; Color
+  (r 0 (integer 0 255))
+  (g 0 (integer 0 255))
+  (b 0 (integer 0 255)))
