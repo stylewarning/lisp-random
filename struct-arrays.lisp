@@ -97,8 +97,10 @@
              (let ((,vec (,%make-name
                           ,num-elements
                           ,@(loop :for array-slot :in array-slots
-                                  :for type := (slot-entry-upgraded-type (first (gethash array-slot array-table)))
-                                  :collect `(make-array ,num-elements :element-type (quote ,type))))))
+                                  :for entry := (first (gethash array-slot array-table))
+                                  :for type := (slot-entry-upgraded-type entry)
+                                  :collect `(make-array (* ,(slot-entry-record-length entry) ,num-elements)
+                                                        :element-type (quote ,type))))))
                (unless ,keep-uninitialized
                  (dotimes (,i ,num-elements)
                    (psetf ,@(loop :for entry :being :the :hash-values :of slot-table
