@@ -58,6 +58,7 @@
           (num-elements (gensym "NUM-ELEMENTS-"))
           (keep-uninitialized (gensym "KEEP-UNINITIALIZED-"))
           (vec (gensym "VEC"))
+          (length-slot (intern "LENGTH"))
           (i (gensym "I")))
       (labels ((getter/setter-for-entry (slot-name entry)
                  (declare (ignore slot-name))
@@ -75,7 +76,8 @@
                     `(declaim (notinline ,name (setf ,name)))))))
         `(progn
            ;; Define the structure to hold the vectors.
-           (defstruct (,name (:constructor ,%make-name ,array-slots))
+           (defstruct (,name (:constructor ,%make-name (,length-slot ,@array-slots)))
+             (,length-slot 0 :type unsigned-byte)
              ,@(loop :for array-slot :in array-slots
                      :for type := (slot-entry-upgraded-type (first (gethash array-slot array-table)))
                      :collect `(,array-slot nil :type (simple-array ,type (*)))))
@@ -88,6 +90,7 @@
            ;; Define the constructor.
            (defun ,make-name (,num-elements &key ((:keep-uninitialized ,keep-uninitialized) nil))
              (let ((,vec (,%make-name
+                          ,num-elements
                           ,@(loop :for array-slot :in array-slots
                                   :for type := (slot-entry-upgraded-type (first (gethash array-slot array-table)))
                                   :collect `(make-array ,num-elements :element-type (quote ,type))))))
