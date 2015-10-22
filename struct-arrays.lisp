@@ -95,7 +95,10 @@
                    (psetf ,@(loop :for entry :being :the :hash-values :of slot-table
                                   :append `((,(slot-entry-accessor-name entry) ,vec ,i)
                                             ,(slot-entry-initial-value-form entry))))))
-               ,vec)))))))
+               ,vec))
+
+           ;; Return the structure name.
+           ',name)))))
 
 #+example
 (define-struct-array vertexes
