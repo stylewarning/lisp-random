@@ -81,8 +81,8 @@ Return two values P0 and P1 such that
               ;; Column 0   = C0-LO
               ;; Column 1   = C0-HI + C1A-LO + C1B-LO
               ;; Column 2,3 = C1A-HI + C1B-HI + C3 + COL1-CARRY
-              (multiple-value-bind (col11 col1-carry1) (add c1a-lo c1b-lo width/2)
-                (multiple-value-bind (col1 col1-carry2) (add col11 c0-hi width/2)
+              (multiple-value-bind (col11 col1-carry1) (fixed-width-add c1a-lo c1b-lo width/2)
+                (multiple-value-bind (col1 col1-carry2) (fixed-width-add col11 c0-hi width/2)
                   (let ((col1-carry (+ col1-carry1 col1-carry2)))
                     (values (join-bytes c0-lo col1 width/2)
                             (+ c1a-hi
@@ -137,7 +137,7 @@ Assumes 0 <= A < M."
 Assumes 0 <= A < M."
   (if (zerop a)
       0
-      (- m b)))
+      (- m a)))
 
 
 ;;; FIXME: The computation of (* a b) is very inefficient here when
