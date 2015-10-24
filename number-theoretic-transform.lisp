@@ -177,6 +177,15 @@ Assumes 0 <= A < M."
                    (egcd r x u (- a (* u q)))))))
     (egcd x m 0 1)))
 
+(defun inv-mod-unsafe (x m)
+  "Compute X^-1 (mod M). Assumes X is invertible."
+  (labels ((egcd (x b a u)
+             (if (zerop x)
+                 (mod a m)
+                 (multiple-value-bind (q r) (floor b x)
+                   (egcd r x u (- a (* u q)))))))
+    (egcd x m 0 1)))
+
 (defun m/ (a b m)
   "Compute A / B = A * B^-1 (mod M)."
   (m* a (inv-mod b m) m))
