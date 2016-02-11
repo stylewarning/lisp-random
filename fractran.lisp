@@ -85,3 +85,5 @@ FUNCTION will be applied to each integer value found during the procedure. By de
                (funcall f (extract-prime n)))))
     ;; Does not terminate.
     (fractran +primes+ 2 :function #'frob)))
+
+;; TODO: Compile FRACTRAN.
