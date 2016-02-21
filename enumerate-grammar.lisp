@@ -135,23 +135,28 @@
   (and (listp x)
        (every (lambda (x) (typep x 'terminal)) x)))
 
-(defun enumerate (grammar &key (expansion-limit 10))
-  "Enumerate all sentences of the context-free language accepted by the grammar GRAMMAR. Limit the number of expansion iterations to EXPANSION-LIMIT."
+(defun enumerate (grammar &key (expansion-limit 100))
+  "Print out EXPANSION-LIMIT sentences of the grammar GRAMMAR."
+  (flet ((output-sentence (sentence)
+           "Print a sentence specified by the list of terminal symbols SENTENCE."
+           (write-string "==> ")
+           (dolist (terminal sentence)
+             (adt:match sym terminal
+               ((terminal x) (write-string x))
+               (_ (error "Not a terminal!"))))
+           (terpri)
+           (unless (plusp (decf expansion-limit))
+             (return-from enumerate))))
+    (map-sentences #'output-sentence grammar)))
+
+(defun map-sentences (f grammar)
+  "Enumerate all sentences of the context-free language accepted by the grammar GRAMMAR, calling the unary function F on each sentence."
   (let ((table (grammar-rules grammar))
         (todo (make-queue)))
-    (labels ((print-alternate (alternate)
-               "Print a sentence specified by the list of terminal symbols ALTERNATE."
-               (write-string "==> ")
-               (dolist (terminal alternate)
-                 (adt:match sym terminal
-                   ((terminal x) (write-string x))
-                   (_ (error "Not a terminal!"))))
-               (terpri))
-             
-             (output-or-queue (alternate)
-               "If ALTERNATE is a (terminal) sentence in the language specified by GRAMMAR, then output it. Otherwise queue it up for further expansion."
+    (labels ((output-or-queue (alternate)
+               "If ALTERNATE is a (terminal) sentence in the language specified by GRAMMAR, then process it by calling F. Otherwise queue it up for further expansion."
                (if (sentencep alternate)
-                   (print-alternate alternate)
+                   (funcall f alternate)
                    (enqueue todo alternate)))
 
              (compute-combinations (alternate)
@@ -168,10 +173,9 @@
       (dolist (alternate (gethash (grammar-root grammar) table))
         (enqueue todo alternate))
 
-      ;; Generate strings, up to the specified limit or until the
-      ;; language has been exhausted.
-      (loop :repeat expansion-limit
-            :until (queue-empty-p todo)
+      ;; Generate strings until the language has been exhausted. (This
+      ;; may not terminate.)
+      (loop :until (queue-empty-p todo)
             :do (mapc #'output-or-queue
                       (compute-combinations (dequeue todo)))))))
 
