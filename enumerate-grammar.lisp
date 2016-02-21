@@ -133,7 +133,7 @@
 (defun sentencep (x)
   "Does A represent a sentence?"
   (and (listp x)
-       (every #'terminal-p x)))
+       (every (lambda (x) (typep x 'terminal)) x)))
 
 (defun enumerate (grammar &key (expansion-limit 10))
   "Enumerate all sentences of the context-free language accepted by the grammar GRAMMAR. Limit the number of expansion iterations to EXPANSION-LIMIT."
