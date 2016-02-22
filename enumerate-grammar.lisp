@@ -47,7 +47,11 @@
 ;;;; end to just use lists for, specifically, alternations and
 ;;;; combinations. The haphazard use of types ended up biting me in
 ;;;; the behind when I started getting list-vertigo, which you'll see
-;;;; below in the tons of flattening and consing.
+;;;; below in the tons of consing.
+;;;;
+;;;; Some of this has been made more efficient by mapping over
+;;;; combinations (using "mixed radix" combinatorial specifications of
+;;;; CL-PERMUTATION) instead of generating them all.
 ;;;;
 ;;;; The actual approach to generation is simple. I do a breadth-first
 ;;;; algorithm:
@@ -62,12 +66,13 @@
 ;;;;        definition. Call these "sub-alternations".
 ;;;;
 ;;;;        b. For each combination of sub-alternations, record an
-;;;;        expanded alternation.
+;;;;        expanded alternation. This is essentially a Cartesian
+;;;;        product computation.
 ;;;;
 ;;;;    4. For each combination, output if it is a sentence, or add to
 ;;;;    the queue to be expanded further.
 ;;;;
-;;;;    5. If the queue is not empty, go bto step 2. Otherwise, the
+;;;;    5. If the queue is not empty, go to step 2. Otherwise, the
 ;;;;    language has been fully enumerated.
 
 (ql:quickload :cl-algebraic-data-type)
