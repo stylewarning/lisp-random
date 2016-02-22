@@ -71,6 +71,7 @@
 ;;;;    language has been fully enumerated.
 
 (ql:quickload :cl-algebraic-data-type)
+(ql:quickload :cl-permutation)
 
 (load "stack-queue.lisp")
 
@@ -112,23 +113,20 @@
                      thing
                      (list thing))))
 
-(defun combinations (lists)
+(defun map-combinations (f lists)
   "Given a list of lists LISTS, produce all possible combinations of elements, picking once from each list."
-  (if (null (cdr lists))
-      (mapcar #'list (car lists))
-      (mapcan (lambda (item)
-                (mapcar (lambda (combo)
-                          (cons item combo))
-                        (combinations (cdr lists))))
-              (car lists))))
-
-(defun flatten (list)
-  "Flatten the list LIST one level."
-  (loop :for x :in list
-        :if (listp x)
-          :append x
-        :else
-          :collect x))
+  (let ((spec (perm:vector-to-mixed-radix-spec
+               (map 'vector #'length lists))))
+    (flet ((g (ur r)
+             (declare (ignore ur))
+             (funcall f (loop :for n :across r
+                              :for l :in lists
+                              :for nth := (nth n l)
+                              :if (listp nth)
+                                :append nth
+                              :else
+                                :collect nth))))
+      (perm:map-spec #'g spec))))
 
 (defun sentencep (x)
   "Does A represent a sentence?"
@@ -159,15 +157,15 @@
                    (funcall f alternate)
                    (enqueue todo alternate)))
 
-             (compute-combinations (alternate)
-               "Takes a list of terminals and non-terminals ALTERNATE, and \"expands\" all combinations of the non-terminals in the list. The result is a list of the Cartesian product of all possible non-terminal expansions."
+             (map-expansions (f alternate)
+               "Takes a list of terminals and non-terminals ALTERNATE, and \"expands\" all combinations of the non-terminals in the list. The unary function F is called on each non-terminal expansion."
                (let ((thing (mapcar (lambda (sym)
                                       (adt:match sym sym
                                         ((terminal _) (list sym))
                                         ((non-terminal x) (copy-list (gethash x table)))))
                                     alternate)))
                  
-                 (mapcar #'flatten (combinations thing)))))
+                 (map-combinations f thing))))
 
       ;; Enqueue initial alternates.
       (dolist (alternate (gethash (grammar-root grammar) table))
@@ -176,8 +174,7 @@
       ;; Generate strings until the language has been exhausted. (This
       ;; may not terminate.)
       (loop :until (queue-empty-p todo)
-            :do (mapc #'output-or-queue
-                      (compute-combinations (dequeue todo)))))))
+            :do (map-expansions #'output-or-queue (dequeue todo))))))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Examples ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -218,7 +215,7 @@
         (one  (terminal "1")))
     (with-non-terminals (num digits digit)
       (make-grammar num
-        :num (alternates zero (list one) (list one digits))
+        :num (alternates zero one (list one digits))
         :digits (alternates digit (list digit digits))
         :digit (alternates zero one)))))
 
