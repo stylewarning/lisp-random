@@ -37,8 +37,6 @@
           :o-cmd (alternates o (list o prefix-expr)))))
   "Optimized grammar defining a subset of the Deadfish language which produce meaningful output.")
 
-
-
 (defun execute-sentence (sentence)
   "Given a sentence SENTENCE from the Deadfish language, execute it to produce an integer result."
   (labels ((normalize-register (register)
@@ -80,6 +78,10 @@
     (apply #'concatenate 'string (mapcar #'strip sentence))))
 
 (defun challenge ()
+  ;; this function depends on the way in which sentences of the
+  ;; grammar are enumerated. they should be generated in
+  ;; length-increasing order, which isn't always guaranteed for any
+  ;; grammar.
   (let ((sentences (make-array 256 :initial-element nil))
         (numbers-left 256))
     (flet ((fish (sentence)
