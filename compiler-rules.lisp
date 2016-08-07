@@ -41,6 +41,7 @@
        ,(when (null (compiler-macro-function name))
           `(define-compiler-macro ,name
                (&whole ,whole ,@arglist &environment ,environment)
+             (declare (ignore ,@arglist))
              (let ((rules (gethash ',name *compiler-rules* (make-hash-table))))
                (loop :named rule-loop
                      :for rule-name :being :the :hash-keys :of rules
@@ -56,11 +57,12 @@
        ;; Add the new compiler rule.
        (setf (compiler-rule ',name ',rule-name)
              (lambda (,whole &optional ,environment)
+               (declare (ignorable ,environment))
                (block ,block-name
                  (macrolet ((give-up ()
                               `(return-from ,',block-name ,',whole))
                             (environment ()
-                              ,environment))
+                              ',environment))
                    (destructuring-bind ,arglist (cdr ,whole)
                      ,@body))))))))
 
