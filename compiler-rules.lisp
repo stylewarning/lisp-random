@@ -82,3 +82,9 @@
     ((eql x 2) `(+ ,y ,y))
     ((eql y 2) `(+ ,x ,x))
     (t (give-up))))
+
+(defun test ()
+  (let ((f (compile nil (lambda (x) (multiply 1 x))))
+        (g (compile nil (lambda (x) (multiply 2 x)))))
+    (assert (= 5 (funcall f 5)))
+    (assert (= 10 (funcall g 5)))))
