@@ -14,7 +14,8 @@
         (q (gensym "Q-")))
     `(loop :with ,reduced-n :of-type non-negative-fixnum := ,n
            :do (multiple-value-bind (,q ,d) (floor ,reduced-n 10)
-                 (declare (type non-negative-fixnum ,q ,d))
+                 (declare (type non-negative-fixnum ,q)
+                          (type (integer 0 9) ,d))
                  (setf ,reduced-n ,q)
                  ,@body)
            :until (zerop ,reduced-n))))
