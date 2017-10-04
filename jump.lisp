@@ -1,7 +1,10 @@
 ;;;; jump.lisp
-;;;; Copyright (c) 2013 Robert Smith
+;;;;
+;;;; Copyright (c) 2013-2017 Robert Smith
 
-(declaim (optimize speed (safety 0) (debug 0) (space 0)))
+;(declaim (optimize speed (safety 0) (debug 0) (space 0)))
+
+(declaim (optimize (speed 0) safety debug))
 
 ;;;; Implementation of a sort of jump table.
 
@@ -73,7 +76,7 @@ Example:
                      (when (> index maxval)
                        (setf maxval index))
                      (setf (gethash index table) binding-var)))))
-             
+
              (table-to-initial-contents ()
                (let ((default-var (gensym "DEFAULT-")))
                  `(let* ((,default-var (lambda () ,default))
@@ -84,9 +87,9 @@ Example:
                                  :collect (if (gethash i table)
                                               (gethash i table)
                                               default-var)))))))
-      
+
       (populate-table)
-      
+
       `(funcall
         (the (function () t)
              (aref (constant-load-time-value
@@ -104,12 +107,12 @@ Example:
           (otherwise (gensym "OTHERWISE-")))
       (labels ((lookup (n)
                  (gethash n code-dict))
-               
+
                (split (numbers)
                  (let ((len/2 (ceiling (length numbers) 2)))
                    (values (subseq numbers 0 len/2)
                            (subseq numbers len/2))))
-               
+
                (rec (numbers)
                  (cond
                    ((null numbers)
@@ -119,7 +122,7 @@ Example:
                     `(if (= ,var ,(first numbers))
                          (progn ,@(lookup (first numbers)))
                          (,otherwise)))
-                   
+
                    (t
                     (multiple-value-bind (left right)
                         (split numbers)
@@ -161,64 +164,156 @@ Example:
                              (integer (list key))
                              (t nil))))
                        cases))
-             
+
              (populate-code-dict ()
                (loop :for (keys . body) :in cases
                      :do (etypecase keys
                            ((member t otherwise)
                             (setf (gethash t code-dict) body))
-                           
+
                            (integer
                             (setf (gethash keys code-dict) body))
-                           
+
                            (list
                             (dolist (key keys)
                               (setf (gethash key code-dict) body)))))))
-      
+
       (populate-code-dict)
-      
+
       (unless (gethash t code-dict)
         (setf (gethash t code-dict) (list nil)))
-      
+
       `(funcall ,(generate-search (extract-keys) code-dict)
                 ,n))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;; GO-Dispatch Table ;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(eval-when (:compile-toplevel :load-toplevel :execute)
+  (#+sbcl sb-ext:defglobal
+   #+ccl defstatic **dispatchers** (make-array 15 :adjustable t
+                                                   :fill-pointer 0)))
+
+(defmacro hop (n &body cases)
+  (let* ((block-name (gensym "BLOCK-"))
+         (table-name (gensym "TABLE-"))
+         (static-store (gensym "STATIC-STORE-"))
+         (num-cases (length cases))
+         (case-labels (loop :repeat num-cases :collect (gensym "LABEL-"))))
+    `(block ,block-name
+       (tagbody
+          (let ((,table-name
+                  (let* ((,static-store (load-time-value
+                                         (make-array ,num-cases
+                                                     :initial-element nil))))
+                    (declare (type (simple-vector ,num-cases) ,static-store))
+                    (when (null (svref ,static-store 0))
+                      ,@(loop :for i :from 0
+                              :for label :in case-labels
+                              :collect `(setf (svref ,static-store ,i)
+                                              (lambda () (go ,label)))))
+                    ,static-store)))
+            (declare (type (simple-vector ,num-cases)))
+            (funcall (the (function ()) (svref ,table-name ,n))))
+          ,@(loop :for case :in cases
+                  :for label :in case-labels
+                  :append `(,label
+                            (return-from ,block-name
+                              (progn
+                                ,@case))))))))
+
+
+(defun test-small-hop (x)
+  (let ((s 0))
+    (hop x
+      ((setf s 0))
+      ((setf s 1))
+      ((setf s 2)))
+    s))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Tests ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(declaim (type fixnum *trials*))
 (defparameter *trials* 10000000)
 
-(defmacro generate-jump-form (num-cases)
-  `(jump ((random ,num-cases))
+(defmacro generate-jump-form (var x num-cases)
+  `(jump (,x)
      ,@(loop :for i :below num-cases
-             :collect (list i i))))
+             :collect (list i `(setf ,var ,i)))))
 
-(defmacro generate-case-form (num-cases)
-  `(case (random ,num-cases)
+(defmacro generate-case-form (var x num-cases)
+  `(case ,x
      ,@(loop :for i :below num-cases
-             :collect (list i i))))
+             :collect (list i `(setf ,var ,i)))))
 
-(defmacro generate-binary-case-form (num-cases)
-  `(binary-case (random ,num-cases)
+(defmacro generate-binary-case-form (var x num-cases)
+  `(binary-case ,x
      ,@(loop :for i :below num-cases
-             :collect (list i i))))
+             :collect (list i `(setf ,var ,i)))))
 
+(defmacro generate-hop-case-form (var x num-cases)
+  `(hop ,x
+     ,@(loop :for i :below num-cases
+             :collect (list `(setf ,var ,i)))))
+
+
+#+ignore
+(defun big-jump (x)
+  (declare (type fixnum x))
+  (let ((i 0))
+    (generate-jump-form i x 100)
+    i))
+
+(defun big-case (x)
+  (declare (type fixnum x))
+  (let ((i 0))
+    (generate-case-form i x 100)
+    i))
+
+(defun big-binary-case (x)
+  (declare (type fixnum x))
+  (let ((i 0))
+    (generate-binary-case-form i x 100)
+    i))
+
+(defun big-hop (x)
+  (declare (type fixnum x))
+  (let ((i 0))
+    (generate-hop-case-form i x 100)
+    i))
+
+#+ignore
 (defun test-jump ()
-  (loop :repeat *trials*
-        :do (generate-jump-form 1000)))
+  (big-jump 0)
+  (dotimes (j *trials*)
+    (declare (type fixnum j))
+    (big-jump (random 100))))
+
+(defun init ()
+  (big-case 0)
+  (big-binary-case 0)
+  (big-hop 0))
 
 (defun test-case ()
-  (loop :repeat *trials*
-        :do (generate-case-form 1000)))
+  (dotimes (j *trials*)
+    (declare (type fixnum j))
+    (big-case (random 5))))
 
 (defun test-binary-case ()
-  (loop :repeat *trials*
-        :do (generate-binary-case-form 1000)))
+  (dotimes (j *trials*)
+    (declare (type fixnum j))
+    (big-binary-case (random 5))))
+
+(defun test-hop ()
+  (dotimes (j *trials*)
+    (declare (type fixnum j))
+    (big-hop (random 5))))
 
 
 ;; CL-USER> (progn
 ;;            (time (test-jump))
 ;;            (time (test-case))
-;;            (time (test-binary-case)))
+;;            (time (test-binary-case))
+;;            (time (test-hop)))
 ;; Evaluation took:
 ;;   0.600 seconds of real time
 ;;   0.601523 seconds of total run time (0.599077 user, 0.002446 system)
