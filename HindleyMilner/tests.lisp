@@ -1,7 +1,13 @@
 ;;;; Some tests for `infer.lisp'.
 
 (defmacro try (x)
-  `(format t "~A~% :: ~A~%~%" ',x (derive-type ',x)))
+  `(multiple-value-bind (derived-type type-expr env)
+       (derive-type ',x)
+     (format t "~A~% :: ~A~% ;; TyExp: ~A~% ;; Env: ~A~2%"
+             ',x
+             derived-type
+             type-expr
+             env)))
 
 
 (try

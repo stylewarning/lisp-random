@@ -1,11 +1,11 @@
 ;;;; Hindley-Milner type inference
-;;;; (c) 2010-2012 Robert Smith
+;;;; (c) 2010-2012, 2018 Robert Smith
 
 ;;;; This is an implementation of Robin Milner's "Algorithm J" from
 ;;;; his 1978 paper `A Theory of Type Polymorphism in Programming'
 ;;;; from the Journal of Computer and System Sciences, Volume 17,
 ;;;; pages 348--375. It is available (as of December 17, 2010) from
-;;;; <http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.67.5276>
+;;;; <http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.67.5276v>
 ;;;; for free.
 
 ;;;; This implementation is geared toward a Scheme-like language. See
@@ -13,6 +13,9 @@
 
 ;;;; Also, this needs some cleaning up.
 
+(ql:quickload :optima)
+
+(declaim (optimize (speed 0) safety debug space))
 
 ;;; Environment routines.
 ;;; An environment is just an association list.
@@ -26,7 +29,10 @@
   (acons var val env))
 
 (defun env-join (env1 env2)
-  "Concatenate ENV1 and ENV2"
+  "Concatenate ENV1 and ENV2."
+  #+ignore
+  (assert (null (intersection (mapcar #'car env1)
+                              (mapcar #'car env2))))
   (append env1 env2))
 
 (defun env-bound-p (var env)
@@ -66,11 +72,43 @@
       (variable-val (env-value var env) env)
       var))
 
-(defun unify (x y type-env)
-  "Return the values that must be substituted for the variables in X
-and Y so that they unify."
+;;; Type Grammar
+;;;
+;;; Type := (-> Type Type)
+;;;       | (* Type Type)
+;;;       | (LIST Type)
+;;;       | Var
+;;;       | BOOL
+;;;       | NUM
+;;;       | CHAR
+;;;       | NIL (unit)
+
+(defun unify (x y &optional (type-env (env-empty)))
+  "Unify the types X and Y in the context of the type environment TYPE-ENV. Return a map of unified type variables."
   (let ((xv (variable-val x type-env))
         (yv (variable-val y type-env)))
+    (optima:ematch (list xv yv)
+      ((list 'NUM 'NUM)   type-env)
+      ((list 'BOOL 'BOOL) type-env)
+      ((list 'CHAR 'CHAR) type-env)
+      ((list '() '())     type-env)
+      ;; Always bind later vars to earlier vars.
+      ((list (satisfies variablep) (satisfies variablep))
+       (cond
+         ((variable< xv yv) (env-update yv xv type-env))
+         ((variable< yv xv) (env-update xv yv type-env))))
+      ((list (satisfies variablep) _) (env-update xv yv type-env))
+      ((list _ (satisfies variablep)) (env-update yv xv type-env))
+      ((list (list '-> xa xb)
+             (list '-> ya yb))
+       (unify xb yb (unify xa ya type-env)))
+      ((list (list '* xa xb)
+             (list '* ya yb))
+       (unify xb yb (unify xa ya type-env)))
+      ((list (list 'LIST xa)
+             (list 'LIST ya))
+       (unify xa ya type-env)))
+    #+ignore
     (cond
       ((equalp xv yv)
        type-env)
@@ -83,12 +121,30 @@ and Y so that they unify."
       (t
        (error "Cannot unify structures.")))))
 
-(defun genericp (var symbol-table)
-  "Is VAR a generic variable in SYMBOL-TABLE?"
+(defun search-tree (x tree &key (test 'eql))
   (cond
-    ((null symbol-table) t)
-    ((and (eql (cadar symbol-table) var)
-          (not (eql (caar symbol-table) :let))) nil)
+    ((consp tree) (or (search-tree x (car tree))
+                      (search-tree x (cdr tree))))
+    (t (funcall test x tree))))
+
+(defun let/letrec-kind-p (x)
+  (or (eql x ':let)
+      (eql x ':letrec)))
+
+(defun lambda-kind-p (x)
+  (eql x ':lambda))
+
+(defun genericp (var symbol-table)
+  "Is the type variable VAR a generic variable in SYMBOL-TABLE?"
+  (cond
+    ((null symbol-table)
+     t)
+    ((and (not (let/letrec-kind-p (second (car symbol-table))))
+          ;; (search-tree var (third (car symbol-table)))
+          ;; ?????????
+          (eql var (third (car symbol-table)))
+          )
+     nil)
     (t (genericp var (cdr symbol-table)))))
 
 (defun instance (x symbol-table counter)
@@ -107,17 +163,17 @@ in place of the generic variables defined in SYMBOL-TABLE."
                       (funcall cont tyvar (env-update x tyvar type-env)))))
                ((consp x)
                 (instance-aux (car x) type-env
-                              #'(lambda (a env)
-                                  (instance-aux (cdr x) env
-                                                #'(lambda (b env)
-                                                    (funcall cont (cons a b) env))))))
+                              (lambda (a env)
+                                (instance-aux (cdr x) env
+                                              (lambda (b env)
+                                                (funcall cont (cons a b) env))))))
                (t
                 (funcall cont x type-env)))))
     (instance-aux x
                   (env-empty)
-                  #'(lambda (a env)
-                      (declare (ignore env))
-                      a))))
+                  (lambda (a env)
+                    (declare (ignore env))
+                    a))))
 
 
 ;;; Inference.
@@ -125,7 +181,7 @@ in place of the generic variables defined in SYMBOL-TABLE."
 (defparameter *global-var-types* (make-hash-table :test 'equal))
 
 (defmacro declare-type (var type &rest var-type-pairs)
-  "Declare the type of a variable."  
+  "Declare the type of a variable."
   `(progn
      (setf (gethash ',var *global-var-types*) ',type)
      ,(when var-type-pairs
@@ -136,42 +192,46 @@ in place of the generic variables defined in SYMBOL-TABLE."
 (defun find-type (prim)
   "Find the type of PRIM. This will not compute the type, it will look
 to see if he type of the symbol PRIM is registered."
-  (gethash prim *global-var-types*))
+  (multiple-value-bind (type found?)
+      (gethash prim *global-var-types*)
+    (if found?
+        type
+        (error "Don't know about ~A" prim))))
 
-(declare-type +         (-> num num num)
-              -         (-> num num num)
-              *         (-> num num num)
-              /         (-> num num num)
-              <         (-> num num bool)
-              <=        (-> num num bool)
-              =         (-> num num bool)
-              >=        (-> num num bool)
-              char>?    (-> char char bool)
-              char<?    (-> char char bool)
-              char<=?   (-> char char bool)
-              char=?    (-> char char bool)
-              char>=?   (-> char char bool)
-              char>?    (-> char char bool)
-              cons      (-> Ta (list Ta) (list Ta))
+(declare-type +         (-> (* num num) num)
+              -         (-> (* num num) num)
+              *         (-> (* num num) num)
+              /         (-> (* num num) num)
+              <         (-> (* num num) bool)
+              <=        (-> (* num num) bool)
+              =         (-> (* num num) bool)
+              >=        (-> (* num num) bool)
+              char>?    (-> (* char char) bool)
+              char<?    (-> (* char char) bool)
+              char<=?   (-> (* char char) bool)
+              char=?    (-> (* char char) bool)
+              char>=?   (-> (* char char) bool)
+              char>?    (-> (* char char) bool)
+              cons      (-> (* Ta (list Ta)) (list Ta))
               car       (-> (list Ta) Ta)
               cdr       (-> (list Ta) (list Ta))
-              set-car!  (-> (list Ta) Ta ())
-              set-cdr!  (-> (list Ta) (list Ta) ())
+              set-car!  (-> (* (list Ta) Ta) ())
+              set-cdr!  (-> (* (list Ta) (list Ta)) ())
               null?     (-> (list Ta) bool)
               length    (-> (list Ta) num)
-              append    (-> (list Ta) (list Ta) (list Ta))
+              append    (-> (* (list Ta) (list Ta)) (list Ta))
               reverse   (-> (list Ta) (list Ta))
-              map       (-> (-> Ta Tb) (list Ta) (list Tb))
+              map       (-> (* (-> Ta Tb) (list Ta)) (list Tb))
               not       (-> bool bool)
               call/cc   (-> (-> (-> Ta Tb) Tc) Ta)
-              apply     (-> (-> Ta Tb) (list Ta) Tb)
+              apply     (-> (* (-> Ta Tb) (list Ta)) Tb)
               display   (-> Ta ())
               write     (-> Ta ())
               true      bool
               false     bool)
 
 (defun constant-type (x)
-  "Determine the type of a constant X."
+  "Determine the type of a constant X with a counter to produce fresh type variables CTR."
   (cond
     ((numberp x)            'num)
     ((characterp x)         'char)
@@ -180,11 +240,12 @@ to see if he type of the symbol PRIM is registered."
     ((null x)               '(list Ta))
     ((consp x)
      (let ((element-type (constant-type (car x))))
-       (mapcar #'(lambda (y)
-                   (if (not (equal (constant-type y) element-type))
-                       (error "List is not homogeneous.")))
-               (cdr x))
-       (list 'list element-type)))
+       (mapc (lambda (y)
+               ;; XXX is this EQUAL ok for function types?
+               (unless (equal element-type (constant-type y))
+                 (error "List is not homogeneous.")))
+             (cdr x))
+       `(list ,element-type)))
     (t (error "Unknown constant type."))))
 
 (defun substitute-type-variables (x env)
@@ -215,13 +276,11 @@ Algorithm W."
                          (kind (first x))
                          (type (second x)))
                     ;; something is bugging out here.
-                    (if (eql kind :let)
+                    (if (eql ':let kind)
                         (instance type symbol-table ctr)
                         type))
-                  
+
                   ;; Not in symbol table, so must be global.
-                  ;;
-                  ;; TODO: Error check here.
                   (instance (find-type f) (env-empty) ctr)))
 
              ;; Constant expression
@@ -249,7 +308,7 @@ Algorithm W."
                       (unify conseq-type
                              alternate-type
                              (unify predicate-type 'bool type-env)))
-                
+
                 ;; Return the type of either branch (as they are the
                 ;; same).
                 conseq-type))
@@ -265,28 +324,31 @@ Algorithm W."
                                               (declare (ignore x))
                                               (funcall ctr))
                                             lambda-args))
-                       
+
                        ;; Compute the type of the body expression,
                        ;; augmenting the environment with the types of
                        ;; the parameters.
                        (body-type (algorithm-j
                                    (env-join
-                                    (mapcar (lambda (x y) (list x :lambda y))
+                                    (mapcar (lambda (x y) (list x ':lambda y))
                                             lambda-args
                                             param-types)
                                     symbol-table)
                                    lambda-body)))
-                  
+
                   ;; Construct and return the function type.
-                  (cons '-> (append param-types (list body-type))))))
-             
+                  (cons '->
+                        (list (reduce (lambda (x y) `(* ,x ,y)) param-types
+                                      :from-end t)
+                              body-type)))))
+
              ;; LET expression
              ;; j(let([[x1,y1], [x2, y2],...], body)) =>
              ;; with j(x1) := j(y1)
              ;;      j(x2) := j(y2)
              ;;      ...
              ;;      j(xn) := j(yn)
-             ;;  j(body)             
+             ;;  j(body)
              ((eql (car f) 'let)
               (let ((let-bindings (second f))
                     (let-body     (third f)))
@@ -295,10 +357,10 @@ Algorithm W."
                 ;; individually.
                 (algorithm-j
                  (env-join
-                  (mapcar (lambda (x) 
-                            (list (car x) 
-                                  :let
-                                  (algorithm-j symbol-table (cadr x))))
+                  (mapcar (lambda (binding)
+                            (list (first binding)
+                                  ':let
+                                  (algorithm-j symbol-table (second binding))))
                           let-bindings)
                   symbol-table)
                  let-body)))
@@ -313,29 +375,32 @@ Algorithm W."
              ;;  unify( j(y2), T2 )
              ;;  ...
              ;;  unify( j(yn), Tn )
-             ;;  j(body)             
+             ;;  j(body)
              ((eql (car f) 'letrec)
               (let ((letrec-bindings (second f))
                     (letrec-body     (third f)))
                 ;; First we augment our symbol table with generated
                 ;; type variables for each of the bindings' variables.
                 (let ((symbol-table* (env-join
-                                      (mapcar (lambda (x)
-                                                (list (car x) :letrec (funcall ctr)))
+                                      (mapcar (lambda (binding)
+                                                (list (first binding)
+                                                      ':letrec
+                                                      (funcall ctr)))
                                               letrec-bindings)
                                       symbol-table)))
-                  
+
                   ;; Next, for each expression being bound, compute
                   ;; the type of the expression, and then augment the
                   ;; type environment by unifying the just computed
                   ;; type with our previously generated type variable.
                   (dolist (binding letrec-bindings)
-                    (let ((val (algorithm-j symbol-table* (cadr binding))))
+                    (let ((val (algorithm-j symbol-table* (second binding))))
                       (setf type-env
-                            (unify (cadr (env-value (car binding) symbol-table*))
+                            (unify (second (env-value (first binding)
+                                                      symbol-table*))
                                    val
                                    type-env))))
-                  
+
                   ;; Finally, compute the type of the body.
                   (algorithm-j symbol-table* letrec-body))))
 
@@ -354,7 +419,7 @@ Algorithm W."
 
              ;; Function combination
              ;; j( g(x1, x2, ..., xn) ) =>
-             ;; unify( j(g), (j(x1), j(x2), ..., j(xn)) -> Ta)             
+             ;; unify( j(g), (j(x1), j(x2), ..., j(xn)) -> Ta)
              (t
               (let ((operator (first f))
                     (arguments (rest f)))
@@ -366,16 +431,19 @@ Algorithm W."
                       ;; Compute the type of each argument. Call them (A B ...)
                       (arg-types (mapcar (lambda (x) (algorithm-j symbol-table x))
                                          arguments))
-                      
+
                       ;; Generate a type variable for the entire result. Call it T.
                       (result-type (funcall ctr)))
-                  
+
                   ;; Unify F with (A B ...) -> T.
                   (setf type-env
                         (unify operator-type
-                               (cons '-> (append arg-types (list result-type)))
+                               (list '->
+                                     (reduce (lambda (x y) `(* ,x ,y)) arg-types
+                                             :from-end t)
+                                     result-type)
                                type-env))
-                  
+
                   ;; Simply return F. This will be expanded with its
                   ;; actual type at the very end.
                   result-type))))))
@@ -383,4 +451,7 @@ Algorithm W."
       ;; Compute the type of F, and then substitute all type-variables
       ;; in.
       (let ((type-expr (algorithm-j (env-empty) f)))
-        (substitute-type-variables type-expr type-env)))))
+        (values
+         (substitute-type-variables type-expr type-env)
+         type-expr
+         type-env)))))
