@@ -2,7 +2,7 @@
 ;;;; Copyright (c) 2012 Robert Smith
 
 ;;;; An implementation of lattice reduction with the PSLQ algorithm.
-;;;; 
+;;;;
 ;;;; Problem: Given a vector u in Rⁿ, find a vector v in Zⁿ such that
 ;;;; such that u.v = 0 and |v| is minimal.
 
@@ -21,7 +21,7 @@
                   (map 'vector
                        (lambda (,x) (funcall ,binary-fn ,s ,x))
                        ,v))))
-           
+
            (define-vector-scalar-operation (name binary-fn)
              (let ((v (gensym "V-"))
                    (s (gensym "S-"))
@@ -30,24 +30,24 @@
                   (map 'vector
                        (lambda (,x) (funcall ,binary-fn ,x ,s))
                        ,v))))
-           
+
            (define-pointwise-operation (name binary-fn)
              (let ((u (gensym "U-"))
                    (v (gensym "V-")))
                `(defun ,name (,u ,v)
                   (map 'vector ,binary-fn ,u ,v)))))
-  
+
   (define-vector-scalar-operation v/s #'/)
-  
+
   (define-scalar-vector-operation s*v #'*)
-  
+
   (define-pointwise-operation .+ #'+)
   (define-pointwise-operation .- #'-)
   (define-pointwise-operation .* #'*)
   (define-pointwise-operation ./ #'/)
   )
 
-(defun square (x) 
+(defun square (x)
   "Compute the square of X."
   (* x x))
 
@@ -192,37 +192,37 @@ Perform up to MAX-ITERATIONS iterations, or infinitely many when null.
                                        ; case precision changes
         (n (length x))
         a b s y tt h bound)
-    
+
     ;; Initialization
-    
+
     ;; Step Init.1: Initialize matrices.
 
     (setf a (identity-matrix n)
           b (identity-matrix-int n))
-    
-    
+
+
     ;; Step Init.2: Initialize S and Y vector.
 
     (setf s (make-array n :initial-element 0.0L0))
-    
+
     (dotimes (k n)
       (setf (aref s k)
             (sqrt (loop :for j :from k :below n
                         :sum (square (aref x j))))))
-    
+
     (setf tt (aref s 0))
     (setf y (v/s x tt))
     (setf s (v/s s tt))
-    
+
 
     ;; Step Init.3: Initialize H.
 
     (setf h (zero-matrix n (1- n)))
-    
+
     (dotimes (i n)
       ;; Upper triangle = 0.
-      
-      ;; Diagonal is H[i,i] = s[i+1]/s[i] 
+
+      ;; Diagonal is H[i,i] = s[i+1]/s[i]
       (when (< i (1- n))
         (setf (aref h i i)
               (/ (aref s (1+ i))
@@ -235,8 +235,8 @@ Perform up to MAX-ITERATIONS iterations, or infinitely many when null.
         (setf (aref h i j)
               (- (/ (* (aref y i) (aref y j))
                     (* (aref s j) (aref s (1+ j))))))))
-    
-    
+
+
     ;; Step Init.4: Reduce H.
 
     (loop
@@ -245,45 +245,45 @@ Perform up to MAX-ITERATIONS iterations, or infinitely many when null.
                 :do (progn
                       (setf tt (round (aref h i j)
                                       (aref h j j)))
-                      
+
                       (incf (aref y j) (* tt (aref y i)))
-                      
+
                       (dotimes (k (1+ j))
                         (decf (aref h i k) (* tt (aref h j k))))
-                      
+
                       (dotimes (k n)
                         (decf (aref a i k)
                               (* tt (aref a j k)))
-                        
+
                         (incf (aref b k j)
                               (* tt (aref b k i)))))))
-    
+
     ;; Loop
-    
+
     (prog (m (iterations 0) (old nil))
-       
+
      :start
-       
+
        (incf iterations)
-       
+
        ;; Step Loop.1: Compute M.
-       
+
        (setf m (max-index
                 (tr h :key (lambda (x i)
                              (* (expt gamma (1+ i))
                                 (abs x))))))
-       
+
 
        ;; Step Loop.2: Swap entries.
-       
+
        (rotatef (aref y m) (aref y (1+ m)))
        (swap-rows a m (1+ m))
        (swap-rows h m (1+ m))
        (swap-cols b m (1+ m))
 
-       
+
        ;; Step Loop.3
-       
+
        (when (< m (- n 2))
          (let* ((t0 (dist (aref h m m)
                           (aref h m (1+ m))))
@@ -296,47 +296,47 @@ Perform up to MAX-ITERATIONS iterations, or infinitely many when null.
              :do (progn
                    (setf t3 (aref h i m)
                          t4 (aref h i (1+ m)))
-                   
+
                    (setf (aref h i m) (+ (* t1 t3)
                                          (* t2 t4))
                          (aref h i (1+ m)) (- (* t1 t4)
                                               (* t2 t3)))))))
-       
-       
+
+
        ;; Step Loop.4
-       
+
        (loop
          :for i :from (1+ m) :below n
          :do (loop :for j :from (min (1- i) (1+ m)) :downto 0
                    :do (progn
                          (setf tt (round (aref h i j)
                                          (aref h j j)))
-                         
+
                          (incf (aref y j) (* tt (aref y i)))
-                         
+
                          (dotimes (k (1+ j))
                            (decf (aref h i k) (* tt (aref h j k))))
-                         
+
                          (dotimes (k n)
                            (decf (aref a i k)
                                  (* tt (aref a j k)))
-                           
+
                            (incf (aref b k j)
                                  (* tt (aref b k i)))))))
-       
-       
+
+
        ;; Step Loop.5
-       
+
        (loop :for row :below (array-dimension h 0)
              :maximize (row-norm h row) :into max-norm
              :finally (setf bound (/ max-norm)))
-       
-       
+
+
        ;; Step Loop.6
-       
+
        ;; If Max(A) exceeds precision => bad
        ;; If Min(Y) less than threshold => relation detected!
-       
+
        (let* ((max-a (max-entry a))
               (min-y-idx (max-index y :key 'abs :predicate '<))
               (min-y (aref y min-y-idx))
@@ -344,7 +344,7 @@ Perform up to MAX-ITERATIONS iterations, or infinitely many when null.
               (new (min-max-exponent y)))
          (when *pslq-verbose*
            (format t "~6,' D: ~S~%" iterations relation)
-           
+
            (progn
              (format t "Max of A: ~A~%" max-a)
              (format t "Min of Y: Y[~A] = ~A~%"
@@ -356,32 +356,32 @@ Perform up to MAX-ITERATIONS iterations, or infinitely many when null.
                (format t "MAX/MIN = ~A~%" (float (/ maxi mini))))
              (format t "Relation R: ~A~%" relation)
              (format t "R.X = ~A~%" (dot relation x)))
-           
+
            ;(terpri)
            (force-output))
-         
-         
-         
+
+
+
          (cond
            ;; XXX: Check Max(A)
            ((<= (abs min-y) tolerance)
             (return relation))
-           
+
            #+#:ignore
            ((and old (>= (* 0.5 (abs new)) (abs old)))
             (warn "Probable relation found: ~S" relation)
             (if (y-or-n-p "Continue?")
                 (go :start)
                 (return relation)))
-           
+
            ((and max-iterations
                  (>= iterations max-iterations))
             (progn
               (when *pslq-verbose*
                 (format t "Max iterations exceeded."))
               nil))
-           
-           (t (progn 
+
+           (t (progn
                 (setf old new)
                 (go :start))))))))
 
@@ -400,13 +400,13 @@ Perform up to MAX-ITERATIONS iterations, or infinitely many when null.
                  (find-integer-relation (vector (- pi)
                                                 (atan (/ 5.0L0))
                                                 (atan (/ 239.0L0))))))
-  
+
   (assert (equal '(1 0 -10 0 1)
                  (find-poly (+ (sqrt 2.0L0) (sqrt 3.0L0)) 4)))
-  
+
   ;; This needs at least 326 iterations at 100 digits of precision
   (assert (equal '(-576 0 960 0 -352 0 40 0 -1)
-                 (find-poly (+ (sqrt 2.0L0) 
+                 (find-poly (+ (sqrt 2.0L0)
                                (sqrt 3.0L0)
                                (sqrt 5.0L0))
                             8)))
