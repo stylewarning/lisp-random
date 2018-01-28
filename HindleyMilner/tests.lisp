@@ -8,14 +8,14 @@
  (cdr '(1 2 3)))
 ;; :: (LIST NUM)
 
-(try 
+(try
  (lambda (x y)
    (if (car x)
        (car y)
        (length y))))
 ;; :: (-> (LIST BOOL) (LIST NUM) NUM)
 
-(try 
+(try
  (letrec ((fact (lambda (x)
                   (if (< x 2)
                       1
@@ -23,29 +23,34 @@
          fact))
 ;; :: (-> NUM NUM)
 
-(try 
+(try
+ ((lambda (I) (I I)) (lambda (x) x)))
+;; :: (-> T4 T4)
+
+(try
  (let ((ident (lambda (x) x)))
    (ident ident)))
 ;; :: (-> T4 T4)
 
-(try 
- (letrec ((length (lambda (l)
-                    (if (null? l)
-                        0
-                        (+ 1 (length (cdr l)))))))
-         length))
+
+(try
+ (letrec ((my-length (lambda (l)
+                       (if (null? l)
+                           0
+                           (+ 1 (my-length (cdr l)))))))
+         my-length))
 ;; :: (-> (LIST T4) NUM)
 
-(try 
- (letrec ((map (lambda (f l)
-                 (if (null? l)
-                     'nil
-                     (cons (f (car l))
-                           (map f (cdr l)))))))
-         map))
+(try
+ (letrec ((my-map (lambda (f l)
+                    (if (null? l)
+                        'nil
+                        (cons (f (car l))
+                              (my-map f (cdr l)))))))
+         my-map))
 ;; :: (-> (-> T10 T6) (LIST T10) (LIST T6))
 
-(try 
+(try
  (lambda (x)
    (+ 4 (call/cc (lambda (exit)
                    (if (null? x)
