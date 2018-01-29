@@ -6,12 +6,14 @@
 ;;;; Problem: Given a vector u in Rⁿ, find a vector v in Zⁿ such that
 ;;;; such that u.v = 0 and |v| is minimal.
 
+(require :sb-mpfr)
+
 (declaim (optimize (speed 0) safety debug))
 
-#+clisp
-(setf (ext:long-float-digits) 500)
-
 ;;;;;;;;;;;;;;;;;;;;; Matrix & Vector Arithmetic ;;;;;;;;;;;;;;;;;;;;;
+
+(defun mpfr (x)
+  (sb-mpfr:coerce x 'sb-mpfr:mpfr-float))
 
 (macrolet ((define-scalar-vector-operation (name binary-fn)
              (let ((v (gensym "V-"))
@@ -37,28 +39,28 @@
                `(defun ,name (,u ,v)
                   (map 'vector ,binary-fn ,u ,v)))))
 
-  (define-vector-scalar-operation v/s #'/)
+  (define-vector-scalar-operation v/s #'sb-mpfr:div)
 
-  (define-scalar-vector-operation s*v #'*)
+  (define-scalar-vector-operation s*v #'sb-mpfr:mul)
 
-  (define-pointwise-operation .+ #'+)
-  (define-pointwise-operation .- #'-)
-  (define-pointwise-operation .* #'*)
-  (define-pointwise-operation ./ #'/)
+  (define-pointwise-operation .+ #'sb-mpfr:add)
+  (define-pointwise-operation .- #'sb-mpfr:sub)
+  (define-pointwise-operation .* #'sb-mpfr:mul)
+  (define-pointwise-operation ./ #'sb-mpfr:div)
   )
 
 (defun square (x)
   "Compute the square of X."
-  (* x x))
+  (sb-mpfr:mul x x))
 
 (defun dist (a b)
   "Compute the norm of A and B (the length of the hypotenuse of a
 right triangle with legs A and B)."
-  (sqrt (+ (square a) (square b))))
+  (sb-mpfr:sqrt (sb-mpfr:add (square a) (square b))))
 
 (defun dot (u v)
   "Compute the dot product of vectors U and V."
-  (reduce #'+ (map 'vector #'* u v)))
+  (reduce #'sb-mpfr:add (map 'vector #'sb-mpfr:mul u v)))
 
 (defun norm (v)
   "Compute the norm (or magnitude) of the vector V."
@@ -66,9 +68,10 @@ right triangle with legs A and B)."
 
 (defun row-norm (m row)
   "Compute the norm of the ROWth row of M."
-  (loop :for col :below (array-dimension m 1)
-        :sum (square (aref m row col)) :into norm^2
-        :finally (return (sqrt norm^2))))
+  (loop :with norm^2 := (mpfr 0)
+        :for col :below (array-dimension m 1)
+        :do (setf norm^2 (sb-mpfr:add norm^2 (square (aref m row col))))
+        :finally (return (sb-mpfr:sqrt norm^2))))
 
 (defun normalize (v)
   "Normalize the vector V."
@@ -86,8 +89,8 @@ being the index of the elements of V."
 
 (defun zero-matrix (n &optional (m n))
   "Create an N by M floating-point zero matrix."
-  (make-array (list n m) :initial-element 0.0L0
-                         :element-type 'long-float))
+  (make-array (list n m) :initial-element (mpfr 0)
+                         :element-type 'sb-mpfr:mpfr-float))
 
 (defun zero-matrix-int (n &optional (m n))
   "Create an N by M integer zero matrix."
@@ -106,7 +109,7 @@ being the index of the elements of V."
   "Create a floating-point identity matrix of size N."
   (let ((m (zero-matrix n)))
     (dotimes (i n m)
-      (setf (aref m i i) 1.0L0))))
+      (setf (aref m i i) (mpfr 1)))))
 
 (defun identity-matrix-int (n)
   "Create an integer identity matrix of size N."
@@ -154,9 +157,13 @@ and metric function KEY."
 
 (defun max-entry (m)
   "Find the maximum element in the matrix M."
-  (loop :for row :below (array-dimension m 0)
-        :maximize (loop :for col :below (array-dimension m 1)
-                        :maximize (aref m row col))))
+  (loop :with max := (aref m 0 0)
+        :for row :below (array-dimension m 0)
+        :do (loop :for col :below (array-dimension m 1)
+                  :for el := (aref m row col)
+                  :do  (when (sb-mpfr:> el max)
+                         (setf max el)))
+        :finally (return max)))
 
 (defun column (m col)
   "Return column COL of the matrix M."
@@ -165,7 +172,9 @@ and metric function KEY."
 
 (defun float-exponent (f)
   "Compute the binary exponent of the floating point value F."
-  (nth-value 1 (decode-float f)))
+  (sb-mpfr:coerce  (sb-mpfr:log2 (sb-mpfr:abs f)) 'double-float)
+  ;; (nth-value 1 (decode-float f))
+  )
 
 (defun min-max-exponent (vec)
   (loop :for x :across vec
@@ -179,7 +188,7 @@ and metric function KEY."
   "Switch to control the printing of extra information during lattice
   reduction.")
 
-(defun find-integer-relation (x &key (tolerance (* 2 long-float-epsilon))
+(defun find-integer-relation (x &key tolerance
                                      (max-iterations nil))
   "Given a vector X of floating point values, attempt to find an
   integer relation vector Y such that
@@ -188,8 +197,20 @@ and metric function KEY."
 
 Perform up to MAX-ITERATIONS iterations, or infinitely many when null.
 "
-  (let ((gamma (sqrt (/ 4.0L0 3.0L0))) ; we must recompute this in
-                                       ; case precision changes
+  (setf tolerance
+        (etypecase tolerance
+          (null
+           (sb-mpfr:mul-2-raised (mpfr 1) (- (max 1 (1- sb-mpfr:+mpfr-precision+)))))
+          (real
+           (sb-mpfr:coerce tolerance 'sb-mpfr:mpfr-float))
+          (sb-mpfr:mpfr-float
+           tolerance)))
+  (when *pslq-verbose*
+    (format t "Tolerance: ~A" tolerance))
+
+  (let ((gamma (sb-mpfr:sqrt (sb-mpfr:div (mpfr 4) (mpfr 3))))
+                                        ; we must recompute this in
+                                        ; case precision changes
         (n (length x))
         a b s y tt h bound)
 
@@ -203,12 +224,16 @@ Perform up to MAX-ITERATIONS iterations, or infinitely many when null.
 
     ;; Step Init.2: Initialize S and Y vector.
 
-    (setf s (make-array n :initial-element 0.0L0))
+    (setf s (make-array n :initial-element (mpfr 0)))
 
     (dotimes (k n)
       (setf (aref s k)
-            (sqrt (loop :for j :from k :below n
-                        :sum (square (aref x j))))))
+            (sb-mpfr:sqrt (loop :with ss := (mpfr 0)
+                                :for j :from k :below n
+                                :do (setf ss
+                                          (sb-mpfr:add ss
+                                                       (square (aref x j))))
+                                :finally (return ss)))))
 
     (setf tt (aref s 0))
     (setf y (v/s x tt))
@@ -225,16 +250,16 @@ Perform up to MAX-ITERATIONS iterations, or infinitely many when null.
       ;; Diagonal is H[i,i] = s[i+1]/s[i]
       (when (< i (1- n))
         (setf (aref h i i)
-              (/ (aref s (1+ i))
-                 (aref s i))))
+              (sb-mpfr:div (aref s (1+ i))
+                           (aref s i))))
 
       ;;                                y[i]y[j]
       ;; Lower triangle is H[i,j] = - ------------
       ;;                               s[j]s[j+1]
       (dotimes (j i)
         (setf (aref h i j)
-              (- (/ (* (aref y i) (aref y j))
-                    (* (aref s j) (aref s (1+ j))))))))
+              (sb-mpfr:negate (sb-mpfr:div (sb-mpfr:mul (aref y i) (aref y j))
+                                           (sb-mpfr:mul (aref s j) (aref s (1+ j))))))))
 
 
     ;; Step Init.4: Reduce H.
@@ -243,20 +268,26 @@ Perform up to MAX-ITERATIONS iterations, or infinitely many when null.
       :for i :from 1 :below n
       :do (loop :for j :from (1- i) :downto 0
                 :do (progn
-                      (setf tt (round (aref h i j)
-                                      (aref h j j)))
+                      (setf tt (sb-mpfr:round (sb-mpfr:div (aref h i j)
+                                                           (aref h j j))))
 
-                      (incf (aref y j) (* tt (aref y i)))
+                      (setf (aref y j)
+                            (sb-mpfr:add (aref y j)
+                                         (sb-mpfr:mul tt (aref y i))))
 
                       (dotimes (k (1+ j))
-                        (decf (aref h i k) (* tt (aref h j k))))
+                        (setf (aref h i k)
+                              (sb-mpfr:sub (aref h i k)
+                                           (sb-mpfr:mul tt (aref h j k)))))
 
                       (dotimes (k n)
-                        (decf (aref a i k)
-                              (* tt (aref a j k)))
+                        (setf (aref a i k)
+                              (sb-mpfr:sub (aref a i k)
+                                           (sb-mpfr:mul tt (aref a j k))))
 
                         (incf (aref b k j)
-                              (* tt (aref b k i)))))))
+                              (* (sb-mpfr:coerce tt 'integer)
+                                 (aref b k i)))))))
 
     ;; Loop
 
@@ -270,8 +301,9 @@ Perform up to MAX-ITERATIONS iterations, or infinitely many when null.
 
        (setf m (max-index
                 (tr h :key (lambda (x i)
-                             (* (expt gamma (1+ i))
-                                (abs x))))))
+                             (sb-mpfr:mul (sb-mpfr:power gamma (1+ i))
+                                          (sb-mpfr:abs x))))
+                :predicate 'sb-mpfr:>))
 
 
        ;; Step Loop.2: Swap entries.
@@ -287,20 +319,20 @@ Perform up to MAX-ITERATIONS iterations, or infinitely many when null.
        (when (< m (- n 2))
          (let* ((t0 (dist (aref h m m)
                           (aref h m (1+ m))))
-                (t1 (/ (aref h m m) t0))
-                (t2 (/ (aref h m (1+ m)) t0))
-                (t3 0.0L0)
-                (t4 0.0L0))
+                (t1 (sb-mpfr:div (aref h m m) t0))
+                (t2 (sb-mpfr:div (aref h m (1+ m)) t0))
+                (t3 (mpfr 0))
+                (t4 (mpfr 0)))
            (loop
              :for i :from m :below n
              :do (progn
                    (setf t3 (aref h i m)
                          t4 (aref h i (1+ m)))
 
-                   (setf (aref h i m) (+ (* t1 t3)
-                                         (* t2 t4))
-                         (aref h i (1+ m)) (- (* t1 t4)
-                                              (* t2 t3)))))))
+                   (setf (aref h i m) (sb-mpfr:add (sb-mpfr:mul t1 t3)
+                                                   (sb-mpfr:mul t2 t4))
+                         (aref h i (1+ m)) (sb-mpfr:sub (sb-mpfr:mul t1 t4)
+                                                        (sb-mpfr:mul t2 t3)))))))
 
 
        ;; Step Loop.4
@@ -309,27 +341,35 @@ Perform up to MAX-ITERATIONS iterations, or infinitely many when null.
          :for i :from (1+ m) :below n
          :do (loop :for j :from (min (1- i) (1+ m)) :downto 0
                    :do (progn
-                         (setf tt (round (aref h i j)
-                                         (aref h j j)))
+                         (setf tt (sb-mpfr:round (sb-mpfr:div (aref h i j)
+                                                              (aref h j j))))
 
-                         (incf (aref y j) (* tt (aref y i)))
+                         (setf (aref y j)
+                               (sb-mpfr:add (aref y j)
+                                            (sb-mpfr:mul tt (aref y i))))
 
                          (dotimes (k (1+ j))
-                           (decf (aref h i k) (* tt (aref h j k))))
+                           (setf (aref h i k)
+                                 (sb-mpfr:sub (aref h i k)
+                                              (sb-mpfr:mul tt (aref h j k)))))
 
                          (dotimes (k n)
-                           (decf (aref a i k)
-                                 (* tt (aref a j k)))
+                           (setf (aref a i k)
+                                 (sb-mpfr:sub (aref a i k)
+                                              (sb-mpfr:mul tt (aref a j k))))
 
                            (incf (aref b k j)
-                                 (* tt (aref b k i)))))))
+                                 (* (sb-mpfr:coerce tt 'integer) (aref b k i)))))))
 
 
        ;; Step Loop.5
 
-       (loop :for row :below (array-dimension h 0)
-             :maximize (row-norm h row) :into max-norm
-             :finally (setf bound (/ max-norm)))
+       (loop :with max-norm := (mpfr -1)
+             :for row :below (array-dimension h 0)
+             :do (let ((rn (row-norm h row)))
+                   (when (sb-mpfr:> rn max-norm)
+                     (setf max-norm rn)))
+             :finally (setf bound (sb-mpfr:div (mpfr 1) max-norm)))
 
 
        ;; Step Loop.6
@@ -338,10 +378,11 @@ Perform up to MAX-ITERATIONS iterations, or infinitely many when null.
        ;; If Min(Y) less than threshold => relation detected!
 
        (let* ((max-a (max-entry a))
-              (min-y-idx (max-index y :key 'abs :predicate '<))
+              (min-y-idx (max-index y :key 'sb-mpfr:abs :predicate 'sb-mpfr:<))
               (min-y (aref y min-y-idx))
               (relation (column b min-y-idx))
-              (new (min-max-exponent y)))
+              (new (min-max-exponent y))
+              (R.X (dot relation x)))
          (when *pslq-verbose*
            (format t "~6,' D: ~S~%" iterations relation)
 
@@ -355,17 +396,17 @@ Perform up to MAX-ITERATIONS iterations, or infinitely many when null.
              (multiple-value-bind (mini maxi) (min-max-exponent y)
                (format t "MAX/MIN = ~A~%" (float (/ maxi mini))))
              (format t "Relation R: ~A~%" relation)
-             (format t "R.X = ~A~%" (dot relation x)))
+             (format t "R.X = ~A~%" R.X))
 
-           ;(terpri)
+                                        ;(terpri)
            (force-output))
 
 
 
          (cond
            ;; XXX: Check Max(A)
-           ((<= (abs min-y) tolerance)
-            (return relation))
+           ((sb-mpfr:<= (sb-mpfr:abs min-y) tolerance)
+            (return (values relation R.X)))
 
            #+#:ignore
            ((and old (>= (* 0.5 (abs new)) (abs old)))
@@ -388,30 +429,36 @@ Perform up to MAX-ITERATIONS iterations, or infinitely many when null.
 (defun find-poly (a degree)
   "Find a polynomial p of degree DEGREE such that A is a root."
   (loop :repeat (1+ degree)
-        :for x := 1 :then (* x a)
+        :for x := (mpfr 1) :then (sb-mpfr:mul x a)
         :collect x :into coeffs
         :finally (return (find-integer-relation (coerce coeffs 'vector)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; TESTS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defun run-tests ()
-  ;; FIXME: Fails when precision is set to 1k bits.
-  (assert (equal '(1 16 -4)
-                 (find-integer-relation (vector (- pi)
-                                                (atan (/ 5.0L0))
-                                                (atan (/ 239.0L0))))))
+(defun run-tests (&optional (prec 100 #+ignore sb-mpfr:+mpfr-precision+))
+  (check-type prec (integer 1))
+  (sb-mpfr:with-precision prec
+    ;; FIXME: Fails when precision is set to 1k bits.
+    (assert (equal '(1 16 -4)
+                   (find-integer-relation (vector (sb-mpfr:negate (sb-mpfr:const-pi))
+                                                  (sb-mpfr:atan (sb-mpfr:div (mpfr 1) (mpfr 5)))
+                                                  (sb-mpfr:atan (sb-mpfr:div (mpfr 1) (mpfr 239)))))))
 
-  (assert (equal '(1 0 -10 0 1)
-                 (find-poly (+ (sqrt 2.0L0) (sqrt 3.0L0)) 4)))
+    (assert (equal '(1 0 -10 0 1)
+                   (find-poly (sb-mpfr:add (sb-mpfr:sqrt (mpfr 2))
+                                           (sb-mpfr:sqrt (mpfr 3)))
+                              4)))
 
-  ;; This needs at least 326 iterations at 100 digits of precision
-  (assert (equal '(-576 0 960 0 -352 0 40 0 -1)
-                 (find-poly (+ (sqrt 2.0L0)
-                               (sqrt 3.0L0)
-                               (sqrt 5.0L0))
-                            8)))
+    ;; This needs at least 326 iterations at 100 digits of precision
+    (assert (equal '(-576 0 960 0 -352 0 40 0 -1)
+                   (find-poly (sb-mpfr:add
+                               (sb-mpfr:sqrt (mpfr 2))
+                               (sb-mpfr:add
+                                (sb-mpfr:sqrt (mpfr 3))
+                                (sb-mpfr:sqrt (mpfr 5))))
+                              8))))
   (format t "~&All tests passed!~%")
   t)
 
 (defun x^n-1 (n)
-  (find-poly (expt 2.0L0 (/ (float n 1.0L0))) n))
+  (find-poly (sb-mpfr:power (mpfr 2) (sb-mpfr:div (mpfr 1) (mpfr n))) n))
