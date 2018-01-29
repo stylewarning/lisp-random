@@ -1,6 +1,6 @@
 ;;;; rle.lisp
 ;;;;
-;;;; Copyright (c) 2017 Robert Smith
+;;;; Copyright (c) 2017^W2018 Robert Smith
 
 ;;; Compute the run length encoding of a list.
 
