@@ -435,6 +435,9 @@ Perform up to MAX-ITERATIONS iterations, or infinitely many when null.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; TESTS ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defun x^n-1 (x n)
+  (find-poly (sb-mpfr:power (mpfr x) (mpfr (/ n))) n))
+
 (defun run-tests (&optional (prec 100 #+ignore sb-mpfr:+mpfr-precision+))
   (check-type prec (integer 1))
   (sb-mpfr:with-precision prec
@@ -456,9 +459,11 @@ Perform up to MAX-ITERATIONS iterations, or infinitely many when null.
                                (sb-mpfr:add
                                 (sb-mpfr:sqrt (mpfr 3))
                                 (sb-mpfr:sqrt (mpfr 5))))
-                              8))))
+                              8)))
+
+    (loop :for n :from 2 :to 5
+          :for p := (x^n-1 2 n)
+          :do (assert (and (= 2 (first p))
+                           (= -1 (first (last p)))))))
   (format t "~&All tests passed!~%")
   t)
-
-(defun x^n-1 (n)
-  (find-poly (sb-mpfr:power (mpfr 2) (sb-mpfr:div (mpfr 1) (mpfr n))) n))
