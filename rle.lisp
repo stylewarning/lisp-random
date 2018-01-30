@@ -25,8 +25,8 @@
 ;;;        (Here, the products are actually function arguments,
 ;;;        whereas the tuples are cons cells.)
 ;;;
-;;;        Every operation within each function properly distnguish
-;;;        and handle the types (e.g., elements of an empty list are
+;;;        Every operation within each function properly distnguishes
+;;;        and handles the types (e.g., elements of an empty list are
 ;;;        never attempted to be accessed).
 ;;;
 ;;;     2. The COLLECTED argument always contains correct data that
@@ -70,11 +70,15 @@
 ;;; requires a binary function, we need to wrap what we are computing
 ;;; up into a structure.
 ;;;
-;;; We choose to dreate a named throwaway structure (hence the :TYPE
+;;; We choose to create a named throwaway structure (hence the :TYPE
 ;;; LIST) which has the state being collected in the reduction. We
-;;; could very well just use lists. (In general, I prefer to use
-;;; function arguments, as in Solution #1, in a language like Lisp
-;;; instead of temporary structures.)
+;;; could very well just use "raw" lists, or even overload the meaning
+;;; of the COLLECTED list and sneak extra cells to store ITEM and
+;;; COUNT. If we do the latter, we break the invariant described in
+;;; Property 2 above.
+;;;
+;;; In general, I prefer to use function arguments, as in Solution #1,
+;;; in a language like Lisp instead of temporary structures.
 (defstruct (rle-state (:type list)
                       (:constructor rle-state (item count collected)))
   item
