@@ -2,6 +2,8 @@
 ;;;;
 ;;;; Copyright (c) 2018 Robert Smith
 
+;;; Challenge http://www.watrophy.com/posts/29-Multiplying-Long-Hand.html
+
 (defun normalize (digits)
   (let ((p (position-if #'plusp digits :from-end t)))
     (cond
