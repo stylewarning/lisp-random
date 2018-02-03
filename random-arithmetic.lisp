@@ -30,6 +30,8 @@
   (check-type max float)
   (random-number min max))
 
+;;; Validity checking & expression generation
+
 (defun denominator-invalidp (expr1 expr2)
   (declare (ignore expr1))
   (zerop (eval expr2)))
@@ -41,6 +43,7 @@
 
 (defun generate-power (expr)
   `(expt ,expr ,(random-integer 2 5)))
+
 ;;; The operator table has up to three columns:
 ;;;
 ;;;    1. [Required] This is either a symbol or a function. If it is a
