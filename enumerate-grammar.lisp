@@ -169,7 +169,7 @@
                                         ((terminal _) (list sym))
                                         ((non-terminal x) (copy-list (gethash x table)))))
                                     alternate)))
-                 
+
                  (map-combinations f thing))))
 
       ;; Enqueue initial alternates.
