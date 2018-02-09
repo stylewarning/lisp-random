@@ -12,8 +12,6 @@
 
 (defun name (node) (first node))
 (defun children (node) (rest node))
-(defun left (node) (first (children node)))
-(defun right (node) (second (children node)))
 (defun leafp (node) (null (children node)))
 
 ;; The main thing is distance to leaves. For any node n, the distance
