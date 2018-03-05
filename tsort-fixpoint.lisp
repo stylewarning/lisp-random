@@ -30,15 +30,24 @@
                              (member to vertex-list))))
                      (graph-edges g))))
 
-(defun tsort-fixpoint (g list)
+(defun fixpoint (f &rest args)
+  "Compute a fixed point of F directly, starting with ARGS."
+  (let ((results (multiple-value-list (apply f args))))
+    (if (equalp results args)
+        (values-list results)
+        (apply #'fixpoint f results))))
+
+(defun tsort-driver (g list)
+  "A function such that when starting with a DAG G and an empty list, the fixed point will be an empty graph and the original graph topologically sorted."
   (if (null (graph-vertices g))
       (values g list)
       (let ((dont-have-parents (no-parents g)))
-        (tsort-fixpoint (remove-vertices g dont-have-parents)
-                        (append list dont-have-parents)))))
+        (values (remove-vertices g dont-have-parents)
+                (append list dont-have-parents)))))
 
 (defun tsort (g)
-  (nth-value 1 (tsort-fixpoint g '())))
+  "Topologically sort the graph G."
+  (nth-value 1 (fixpoint #'tsort-driver g '())))
 
 
 ;;; Tests
