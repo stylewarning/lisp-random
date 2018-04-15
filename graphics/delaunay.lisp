@@ -23,9 +23,12 @@ test TEST."
 
 ;;;; Points
 
-(defstruct (point (:constructor make-point (x y)))
+(defstruct (point (:constructor %make-point (x y)))
   (x 0.0 :type float)
   (y 0.0 :type float))
+
+(defun make-point (x y)
+  (%make-point (float x) (float y)))
 
 (defmacro with-point ((x y) p &body body)
   "Destructure a point P into its component Cartesian coordinates X

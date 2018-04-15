@@ -49,7 +49,7 @@
       (gp:with-graphics-scale (self 4 4)
         (mapc (lambda (pendulum)
                 (let ((p (pendulum-position pendulum *time*)))
-                  (gp:draw-line self 0 0 (car p) (cdr p) :foreground (color:make-gray 0.5 0.5))
+                  ;(gp:draw-line self 0 0 (car p) (cdr p) :foreground (color:make-gray 0.5 0.5))
                   (plot-point self p)))
               *pendulums*)))))
 
@@ -105,7 +105,7 @@
 (defun sq (n) (* n n))
 
 (defun lengths (index &key (duration 30) (oscillations 51))
-  (* 400
+  (* 1600
      gravity
      (sq (/ duration
             (* 2pi (+ index oscillations))))))
