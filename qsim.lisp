@@ -124,7 +124,6 @@
                (lift +swap+ i n))
              (transpositions-to-operator (trans)
                (reduce #'compose-operators trans :key #'swap)))
- 
       (let* ((U01 (lift U 0 n))
              (from-space (append (reverse qubits)
                                  (loop :for i :below n
@@ -135,7 +134,9 @@
                       from-space)))
              (to->from (transpositions-to-operator trans))
              (from->to (transpositions-to-operator (reverse trans)))
-             (Upq (compose-operators to->from (compose-operators U01 from->to))))
+             (Upq (compose-operators to->from
+                                     (compose-operators U01
+                                                        from->to))))
         (matrix-multiply Upq state)
         state))))
 
@@ -165,7 +166,7 @@
                  (format t "~&Measured: |~v,'0B>~&" n measurement))))
         :finally (return state)))
 
-;;; example
+;;; Example: A program to compute a Greenberger–Horne–Zeilinger state.
 
 (defun ghz-state (n)
   (cons `(gate ,+H+ 0)
