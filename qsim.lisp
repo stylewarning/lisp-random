@@ -97,8 +97,7 @@
 
 (defun %apply-1Q-gate (state U q)
   (matrix-multiply (lift U q (quantum-state-qubits state))
-                   state)
-  state)
+                   state))
 
 (defun permutation-to-transpositions (permutation)
   (let ((swaps nil))
