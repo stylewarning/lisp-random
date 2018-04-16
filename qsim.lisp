@@ -11,7 +11,6 @@
                                                       (list (list s s)
                                                             (list s (- s))))))
 
-
 (defglobal +SWAP+ (make-array '(4 4) :initial-contents '((1 0 0 0)
                                                          (0 0 1 0)
                                                          (0 1 0 0)
@@ -137,8 +136,7 @@
              (Upq (compose-operators to->from
                                      (compose-operators U01
                                                         from->to))))
-        (matrix-multiply Upq state)
-        state))))
+        (matrix-multiply Upq state)))))
 
 (defun collapse (state basis-element)
   (fill state 0.0d0)
