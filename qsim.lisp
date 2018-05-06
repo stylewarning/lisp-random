@@ -155,7 +155,7 @@
                                                          (0 0 0 1)
                                                          (0 0 1 0))))
 
-(defun ghz-state (n)
+(defun ghz (n)
   (cons `(gate ,+H+ 0)
         (loop :for q :below (1- n)
               :collect `(gate ,+CNOT+ ,q ,(1+ q)))))
