@@ -21,7 +21,7 @@
                                                          (0 0 0 1)
                                                          (0 0 1 0))))
 
-(defun matrix-multiply (matrix column)
+(defun apply-operator (matrix column)
   (let* ((matrix-size (array-dimension matrix 0))
          (result (make-array matrix-size :initial-element 0.0d0)))
     (dotimes (i matrix-size)
@@ -29,20 +29,18 @@
         (dotimes (j matrix-size)
           (incf element (* (aref matrix i j) (aref column j))))
         (setf (aref result i) element)))
-
     (replace column result)))
 
 (defun compose-operators (A B)
   (destructuring-bind (m n) (array-dimensions A)
     (let* ((l (array-dimension B 1))
            (result (make-array (list m l) :initial-element 0)))
-      (loop :for i :below m :do
-        (loop :for k :below l :do
-          (loop :for j :below n :do
+      (dotimes (i m result)
+        (dotimes (k l)
+          (dotimes (j n)
             (incf (aref result i k)
                   (* (aref A i j)
-                     (aref B j k))))))
-      result)))
+                     (aref B j k)))))))))
 
 (defun kronecker-multiply (A B)
   (destructuring-bind (m n) (array-dimensions A)
@@ -53,8 +51,8 @@
             (let ((Aij (aref A i j))
                   (y (* i p))
                   (x (* j q)))
-              (loop :for u :below p :do
-                (loop :for v :below q :do
+              (dotimes (u p)
+                (dotimes (v q)
                   (setf (aref result (+ y u) (+ x v))
                         (* Aij (aref B u v))))))))))))
 
@@ -72,15 +70,7 @@
     (setf (aref s 0) 1.0d0)
     s))
 
-(defun quantum-operator-p (U)
-  ;; doesn't check that U is unitary
-  (and (= 2 (array-rank U))
-       (= (array-dimension U 0) (array-dimension U 1))
-       ;; Power of 2
-       (zerop (logand (array-dimension U 0) (1- (array-dimension U 0))))))
-
 (defun operator-qubits (U)
-  (assert (quantum-operator-p U))
   (1- (integer-length (array-dimension U 0))))
 
 (defun lift (U i n)
@@ -88,15 +78,9 @@
         (right (kronecker-expt +I+ i)))
     (kronecker-multiply left (kronecker-multiply U right))))
 
-(defun apply-gate (state U qubits)
-  (assert (= (length qubits) (operator-qubits U)))
-  (if (= 1 (length qubits))
-      (%apply-1Q-gate state U (first qubits))
-      (%apply-nQ-gate state U qubits)))
-
 (defun %apply-1Q-gate (state U q)
-  (matrix-multiply (lift U q (quantum-state-qubits state))
-                   state))
+  (apply-operator (lift U q (quantum-state-qubits state))
+                  state))
 
 (defun permutation-to-transpositions (permutation)
   (let ((swaps nil))
@@ -136,21 +120,28 @@
              (Upq (compose-operators to->from
                                      (compose-operators U01
                                                         from->to))))
-        (matrix-multiply Upq state)))))
+        (apply-operator Upq state)))))
+
+(defun apply-gate (state U qubits)
+  (assert (= (length qubits) (operator-qubits U)))
+  (if (= 1 (length qubits))
+      (%apply-1Q-gate state U (first qubits))
+      (%apply-nQ-gate state U qubits)))
+
+(defun sample (state)
+  (let ((r (random 1.0d0)))
+    (dotimes (i (length state))
+      (decf r (expt (abs (aref state i)) 2)) ; P(bitstring i) = |ψᵢ|²
+      (when (minusp r) (return i)))))
 
 (defun collapse (state basis-element)
   (fill state 0.0d0)
   (setf (aref state basis-element) 1.0d0))
 
 (defun observe (state)
-  (let ((r (random 1.0d0))
-        (s 0.0d0))
-    (dotimes (i (length state))
-      (let ((prob_i (expt (abs (aref state i)) 2)))
-        (incf s prob_i)
-        (when (> s r)
-          (collapse state i)
-          (return-from observe (values state i)))))))
+  (let ((s (sample state)))
+    (collapse state s)
+    (values state s)))
 
 (defun run-quantum-program (qprog state)
   (loop :with n := (quantum-state-qubits state)
