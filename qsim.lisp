@@ -4,22 +4,10 @@
 (defglobal +I+ (make-array '(2 2) :initial-contents '((1 0)
                                                       (0 1))))
 
-(defglobal +X+ (make-array '(2 2) :initial-contents '((0 1)
-                                                      (1 0))))
-
-(defglobal +H+ (make-array '(2 2) :initial-contents (let ((s (/ (sqrt 2))))
-                                                      (list (list s s)
-                                                            (list s (- s))))))
-
 (defglobal +SWAP+ (make-array '(4 4) :initial-contents '((1 0 0 0)
                                                          (0 0 1 0)
                                                          (0 1 0 0)
                                                          (0 0 0 1))))
-
-(defglobal +CNOT+ (make-array '(4 4) :initial-contents '((1 0 0 0)
-                                                         (0 1 0 0)
-                                                         (0 0 0 1)
-                                                         (0 0 1 0))))
 
 (defun apply-operator (matrix column)
   (let* ((matrix-size (array-dimension matrix 0))
@@ -157,6 +145,15 @@
         :finally (return machine)))
 
 ;;; Example: A program to compute a Greenberger–Horne–Zeilinger state.
+
+(defglobal +H+ (make-array '(2 2) :initial-contents (let ((s (/ (sqrt 2))))
+                                                      (list (list s s)
+                                                            (list s (- s))))))
+
+(defglobal +CNOT+ (make-array '(4 4) :initial-contents '((1 0 0 0)
+                                                         (0 1 0 0)
+                                                         (0 0 0 1)
+                                                         (0 0 1 0))))
 
 (defun ghz-state (n)
   (cons `(gate ,+H+ 0)
