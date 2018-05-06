@@ -1,4 +1,4 @@
-;;;; qsim.lisp
+;;;; qsim.lisp - a fully general quantum interpreter
 ;;;; Copyright (c) 2018 Robert Smith; see LICENSE for terms.
 
 (defglobal +I+ (make-array '(2 2) :initial-contents '((1 0)
@@ -52,24 +52,22 @@
 
 (defstruct machine quantum-state measurement-register)
 
-(defun quantum-state-qubits (state)
-  (1- (integer-length (length state))))
+(defun dimension-qubits (d)
+  (1- (integer-length d)))
 
 (defun make-quantum-state (n)
   (let ((s (make-array (expt 2 n) :initial-element 0.0d0)))
     (setf (aref s 0) 1.0d0)
     s))
 
-(defun operator-qubits (U)
-  (1- (integer-length (array-dimension U 0))))
-
 (defun lift (U i n)
-  (let ((left  (kronecker-expt +I+ (- n i (operator-qubits U))))
+  (let ((left  (kronecker-expt +I+ (- n i (dimension-qubits
+                                           (array-dimension U 0)))))
         (right (kronecker-expt +I+ i)))
     (kronecker-multiply left (kronecker-multiply U right))))
 
 (defun %apply-1Q-gate (state U q)
-  (apply-operator (lift U q (quantum-state-qubits state))
+  (apply-operator (lift U q (dimension-qubits (length state)))
                   state))
 
 (defun permutation-to-transpositions (permutation)
@@ -92,7 +90,7 @@
     (mapcan #'expand-cons transpositions)))
 
 (defun %apply-nQ-gate (state U qubits)
-  (let ((n (quantum-state-qubits state)))
+  (let ((n (dimension-qubits (length state))))
     (labels ((swap (i)
                (lift +swap+ i n))
              (transpositions-to-operator (trans)
@@ -113,7 +111,7 @@
         (apply-operator Upq state)))))
 
 (defun apply-gate (state U qubits)
-  (assert (= (length qubits) (operator-qubits U)))
+  (assert (= (length qubits) (dimension-qubits (array-dimension U 0))))
   (if (= 1 (length qubits))
       (%apply-1Q-gate state U (first qubits))
       (%apply-nQ-gate state U qubits)))
