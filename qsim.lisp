@@ -62,6 +62,8 @@
     ((= n 1) U)
     (t (kronecker-multiply (kronecker-expt U (1- n)) U))))
 
+(defstruct machine quantum-state measurement-register)
+
 (defun quantum-state-qubits (state)
   (1- (integer-length (length state))))
 
@@ -138,22 +140,21 @@
   (fill state 0.0d0)
   (setf (aref state basis-element) 1.0d0))
 
-(defun observe (state)
-  (let ((s (sample state)))
-    (collapse state s)
-    (values state s)))
+(defun observe (machine)
+  (let ((b (sample (machine-quantum-state machine))))
+    (collapse (machine-quantum-state machine) b)
+    (setf (machine-measurement-register machine) b)
+    machine))
 
-(defun run-quantum-program (qprog state)
-  (loop :with n := (quantum-state-qubits state)
-        :for (instruction . payload) :in qprog
+(defun run-quantum-program (qprog machine)
+  (loop :for (instruction . payload) :in qprog
         :do (ecase instruction
               ((gate)
                (destructuring-bind (gate &rest qubits) payload
-                 (apply-gate state gate qubits)))
+                 (apply-gate (machine-quantum-state machine) gate qubits)))
               ((measure)
-               (let ((measurement (nth-value 1 (observe state))))
-                 (format t "~&Measured: |~v,'0B>~&" n measurement))))
-        :finally (return state)))
+               (observe machine)))
+        :finally (return machine)))
 
 ;;; Example: A program to compute a Greenberger–Horne–Zeilinger state.
 
