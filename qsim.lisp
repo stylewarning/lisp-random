@@ -1,5 +1,11 @@
 ;;;; qsim.lisp - a fully general quantum interpreter
 ;;;; Copyright (c) 2018 Robert Smith; see LICENSE for terms.
+;;;;
+;;;; NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE
+;;;;
+;;;; This has moved to https://github.com/tarballs-are-good/quantum-interpreter
+;;;;
+;;;; NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE NOTE
 
 (defglobal +I+ (make-array '(2 2) :initial-contents '((1 0)
                                                       (0 1))))
@@ -152,6 +158,10 @@
                                                          (0 1 0 0)
                                                          (0 0 0 1)
                                                          (0 0 1 0))))
+
+(defun bell (p q)
+  `((gate ,+H+ ,p)
+    (gate ,+CNOT+ ,p ,q)))
 
 (defun ghz (n)
   (cons `(gate ,+H+ 0)
