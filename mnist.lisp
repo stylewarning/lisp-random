@@ -70,6 +70,8 @@
 (defpackage #:mnist
   (:use #:cl)
   (:export #:*data-directory*           ; VARIABLE
+           #:+image-dimension+          ; CONSTANT
+           #:+total-pixels+             ; CONSTANT
            #:image                      ; TYPE
            #:image-id                   ; READER
            #:image-label                ; READER
@@ -89,8 +91,10 @@
 (eval-when (:compile-toplevel :load-toplevel :execute)
   (defconstant +images-magic-number+ 2051)
   (defconstant +labels-magic-number+ 2049)
-  (defconstant +image-dimension+ 28)
-  (defconstant +total-pixels+ (* +image-dimension+ +image-dimension+)))
+  (defconstant +image-dimension+ 28
+    "The width and height of the MNIST images.")
+  (defconstant +total-pixels+ (* +image-dimension+ +image-dimension+)
+    "The number of pixels in an MNIST image."))
 
 (defstruct image
   "A structure containing MNIST image data. The ID is the one-based
