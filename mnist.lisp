@@ -27,23 +27,25 @@
 ;;;;
 ;;;; Example usage:
 ;;;;
+;;;; CL-USER> (load "mnist.lisp")
+;;;; T
+;;;;
+;;;; CL-USER> (setf mnist:*DATA-DIRECTORY* "~/Scratch/mnist/")
+;;;; "/Users/robert/Scratch/mnist/"
+;;;;
 ;;;; CL-USER> (setf *print-length* 5)
 ;;;; 5
 ;;;;
-;;;; CL-USER> (setf mnist:*DATA-DIRECTORY* "/Users/robert/Scratch/mnist/")
-;;;; "/Users/robert/Scratch/mnist/"
-;;;;
 ;;;; CL-USER> (time (mnist:load-training-images))
 ;;;; Evaluation took:
-;;;;   0.040 seconds of real time
-;;;;   0.040860 seconds of total run time (0.023280 user, 0.017580 system)
-;;;;   102.50% CPU
-;;;;   114,062,734 processor cycles
-;;;;   50,860,704 bytes consed
+;;;;   0.069 seconds of real time
+;;;;   0.068827 seconds of total run time (0.033523 user, 0.035304 system)
+;;;;   100.00% CPU
+;;;;   193,344,726 processor cycles
+;;;;   50,893,728 bytes consed
 ;;;;
-;;;; #(#<MNIST:IMAGE id:1/5 {1004BD28C3}> #<MNIST:IMAGE id:2/0 {1004BD28E3}>
-;;;;   #<MNIST:IMAGE id:3/4 {1004BD2903}> #<MNIST:IMAGE id:4/1 {1004BD2923}>
-;;;;   #<MNIST:IMAGE id:5/9 {1004BD2943}> ...)
+;;;; #(#<MNIST:IMAGE id:1/5> #<MNIST:IMAGE id:2/0> #<MNIST:IMAGE id:3/4>
+;;;;   #<MNIST:IMAGE id:4/1> #<MNIST:IMAGE id:5/9> ...)
 ;;;;
 ;;;; CL-USER> (defun partition (images)
 ;;;;            (let ((categorized (make-array 10 :initial-element nil)))
@@ -52,32 +54,17 @@
 ;;;;              categorized))
 ;;;; PARTITION
 ;;;;
-;;;; CL-USER> (partition (mnist:load-training-images))
-;;;; #((#<MNIST:IMAGE id:59988/0 {100808F323}>
-;;;;    #<MNIST:IMAGE id:59973/0 {100808F143}>
-;;;;    #<MNIST:IMAGE id:59953/0 {100808EEC3}>
-;;;;    #<MNIST:IMAGE id:59945/0 {100808EDC3}>
-;;;;    #<MNIST:IMAGE id:59941/0 {100808ED43}> ...)
-;;;;   (#<MNIST:IMAGE id:59995/1 {100808F403}>
-;;;;    #<MNIST:IMAGE id:59985/1 {100808F2C3}>
-;;;;    #<MNIST:IMAGE id:59980/1 {100808F223}>
-;;;;    #<MNIST:IMAGE id:59966/1 {100808F063}>
-;;;;    #<MNIST:IMAGE id:59959/1 {100808EF83}> ...)
-;;;;   (#<MNIST:IMAGE id:59992/2 {100808F3A3}>
-;;;;    #<MNIST:IMAGE id:59986/2 {100808F2E3}>
-;;;;    #<MNIST:IMAGE id:59984/2 {100808F2A3}>
-;;;;    #<MNIST:IMAGE id:59975/2 {100808F183}>
-;;;;    #<MNIST:IMAGE id:59972/2 {100808F123}> ...)
-;;;;   (#<MNIST:IMAGE id:59997/3 {100808F443}>
-;;;;    #<MNIST:IMAGE id:59981/3 {100808F243}>
-;;;;    #<MNIST:IMAGE id:59979/3 {100808F203}>
-;;;;    #<MNIST:IMAGE id:59965/3 {100808F043}>
-;;;;    #<MNIST:IMAGE id:59962/3 {100808EFE3}> ...)
-;;;;   (#<MNIST:IMAGE id:59976/4 {100808F1A3}>
-;;;;    #<MNIST:IMAGE id:59952/4 {100808EEA3}>
-;;;;    #<MNIST:IMAGE id:59944/4 {100808EDA3}>
-;;;;    #<MNIST:IMAGE id:59942/4 {100808ED63}>
-;;;;    #<MNIST:IMAGE id:59934/4 {100808EC63}> ...)
+;;;; CL-USER> (partition (mnist:load-test-images))
+;;;; #((#<MNIST:IMAGE id:9994/0> #<MNIST:IMAGE id:9984/0> #<MNIST:IMAGE id:9965/0>
+;;;;    #<MNIST:IMAGE id:9963/0> #<MNIST:IMAGE id:9953/0> ...)
+;;;;   (#<MNIST:IMAGE id:9995/1> #<MNIST:IMAGE id:9985/1> #<MNIST:IMAGE id:9979/1>
+;;;;    #<MNIST:IMAGE id:9970/1> #<MNIST:IMAGE id:9957/1> ...)
+;;;;   (#<MNIST:IMAGE id:9996/2> #<MNIST:IMAGE id:9986/2> #<MNIST:IMAGE id:9981/2>
+;;;;    #<MNIST:IMAGE id:9972/2> #<MNIST:IMAGE id:9955/2> ...)
+;;;;   (#<MNIST:IMAGE id:9997/3> #<MNIST:IMAGE id:9987/3> #<MNIST:IMAGE id:9976/3>
+;;;;    #<MNIST:IMAGE id:9966/3> #<MNIST:IMAGE id:9945/3> ...)
+;;;;   (#<MNIST:IMAGE id:9998/4> #<MNIST:IMAGE id:9988/4> #<MNIST:IMAGE id:9978/4>
+;;;;    #<MNIST:IMAGE id:9975/4> #<MNIST:IMAGE id:9973/4> ...)
 ;;;;   ...)
 
 (defpackage #:mnist
@@ -116,7 +103,7 @@ order."
   (vector nil :read-only t :type (simple-array (unsigned-byte 8) (#.+total-pixels+))))
 
 (defmethod print-object ((obj image) stream)
-  (print-unreadable-object (obj stream :type t :identity t)
+  (print-unreadable-object (obj stream :type t :identity nil)
     (format stream "id:~D/~D" (image-id obj) (image-label obj))))
 
 (defun read-big-endian-ub32 (stream)
@@ -189,7 +176,8 @@ vector of IMAGE objects."
               image-vectors)))
 
 (defun load-training-images ()
-  "Load the training images into a vector of IMAGE objects. The directory *DATA-DIRECTORY* will be searched for the MNIST files
+  "Load the training images into a vector of IMAGE objects. The
+directory *DATA-DIRECTORY* will be searched for the MNIST files
 
     training-images-idx3-ubyte
     training-labels-idx1-ubyte.
@@ -200,7 +188,8 @@ vector of IMAGE objects."
                                 *data-directory*)))
 
 (defun load-test-images ()
-  "Load the test images into a vector of IMAGE objects. The directory *DATA-DIRECTORY* will be searched for the MNIST files
+  "Load the test images into a vector of IMAGE objects. The directory
+*DATA-DIRECTORY* will be searched for the MNIST files
 
     t10k-images-idx3-ubyte
     t10k-labels-idx1-ubyte.
