@@ -56,4 +56,5 @@ something useful or interesting, do drop me a line.
 Have fun,
 
 Robert Smith
-quad@symbo1ics.com
+robert@stylewarning.com
+
