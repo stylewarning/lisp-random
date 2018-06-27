@@ -2,16 +2,26 @@
 ;;;;
 ;;;; Copyright (c) 2018 Robert Smith
 
-;;; Idea is that the water above a building is going to be
+;;; Problem:
 ;;;
-;;;     (- (MIN TALLEST-LEFT TALLEST-RIGHT) HEIGHT)
+;;; You have an array of non-negative integer building heights. The
+;;; building widths are 1. Water can settle between the buildings, but
+;;; will drain off the top to the sides. After a long enough rain,
+;;; what's the volume of water that is trapped between the buildings?
+
+;;; Solution:
+;;;
+;;; The idea is that the water above a building I is going to be
+;;;
+;;;     (W I) := (- (MIN TALLEST-LEFT TALLEST-RIGHT) HEIGHT)
 ;;;
 ;;; where TALLEST-LEFT is the tallest building to the left of the
 ;;; current building, TALLEST-RIGHT is the tallest building to the
 ;;; right of the current building, and HEIGHT is the height of the
-;;; current building.
+;;; current building. Each of these variables are dependent on I.
 ;;;
-;;; Calculating this formula naively for each element will be O(n^2)
+;;; The solution can then be expressed as the sum of W over all
+;;; I. Calculating this naively for each element will be O(n^2)
 ;;; space. We can reduce that by just remembering the heights in a
 ;;; secondary set of arrays, but that will still be O(n) space.
 ;;;
