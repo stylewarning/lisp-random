@@ -21,7 +21,7 @@
   "Check the string STRING for misspelled words. Warn, at compile time, about possibly misspellt words."
   (check-type string string)
   (when (stringp ignore) (setf ignore (list ignore)))
-  (dolist (word (misspelled-words string))
-    (unless (member word ignore :test #'string=)
-      (warn "You may have misspelled the word ~S." word)))
+  (let ((words (set-difference (misspelled-words string) ignore :test #'string=)))
+    (unless (endp words)
+      (warn "You may have misspelled the following word~P: ~{~S~^, ~}." (length words) words)))
   string)
