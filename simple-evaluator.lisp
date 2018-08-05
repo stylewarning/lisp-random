@@ -18,17 +18,15 @@
   (adt:match expr e
     ((val n) (adl:just n))
     ((app o e1 e2)
-     (adl:>>= (ev e1)
-              (lambda (v1)
-                (adl:>>= (ev e2)
-                         (lambda (v2)
-                           (adt:match op o
-                             (add (adl:just (+ v1 v2)))
-                             (sub (adl:just (- v1 v2)))
-                             (mul (adl:just (* v1 v2)))
-                             (div (if (zerop v2)
-                                      adl:nothing
-                                      (adl:just (floor v1 v2))))))))))))
+     (adl:mlet ((v1 (ev e1))
+                (v2 (ev e2)))
+       (adt:match op o
+         (add (adl:just (+ v1 v2)))
+         (sub (adl:just (- v1 v2)))
+         (mul (adl:just (* v1 v2)))
+         (div (if (zerop v2)
+                  adl:nothing
+                  (adl:just (floor v1 v2)))))))))
 
 (defvar *e1* (app add (val 2) (app mul (val 3) (val 6))))
 (defvar *e2* (app mul (app add (val 1) (val 3)) (app div (val 10) (val 0))))
