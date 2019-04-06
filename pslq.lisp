@@ -188,8 +188,10 @@ and metric function KEY."
   "Switch to control the printing of extra information during lattice
   reduction.")
 
+(defvar *max-iterations* nil)
+
 (defun find-integer-relation (x &key tolerance
-                                     (max-iterations nil))
+                                     (max-iterations *max-iterations*))
   "Given a vector X of floating point values, attempt to find an
   integer relation vector Y such that
 
@@ -200,7 +202,7 @@ Perform up to MAX-ITERATIONS iterations, or infinitely many when null.
   (setf tolerance
         (etypecase tolerance
           (null
-           (sb-mpfr:mul-2-raised (mpfr 1) (- (max 1 (1- sb-mpfr:+mpfr-precision+)))))
+           (sb-mpfr:div 1 (sb-mpfr:mul-2-raised (mpfr 1) (max 1 (1- sb-mpfr:+mpfr-precision+)))))
           (real
            (sb-mpfr:coerce tolerance 'sb-mpfr:mpfr-float))
           (sb-mpfr:mpfr-float
