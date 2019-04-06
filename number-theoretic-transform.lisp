@@ -45,10 +45,10 @@ Ideally BITS is greater than the size of X0."
 Return two values S0 and S1 such that
 
     A+B = S0 + S1 << WIDTH."
-  (multiple-value-bind (a0 a1) (split-byte a width/2) 
-    (multiple-value-bind (b0 b1) (split-byte b width/2) 
-      (multiple-value-bind (low carry) (split-byte (+ a0 b0) width/2) 
-        (multiple-value-bind (high carry) (split-byte (+ carry a1 b1) width/2) 
+  (multiple-value-bind (a0 a1) (split-byte a width/2)
+    (multiple-value-bind (b0 b1) (split-byte b width/2)
+      (multiple-value-bind (low carry) (split-byte (+ a0 b0) width/2)
+        (multiple-value-bind (high carry) (split-byte (+ carry a1 b1) width/2)
           (values (join-bytes low high width/2) carry))))))
 
 (defun fixed-width-multiply (a b width &aux (width/2 (ash width -1)))
@@ -139,32 +139,47 @@ Assumes 0 <= A < M."
       0
       (- m a)))
 
-
-;;; FIXME: The computation of (* a b) is very inefficient here when
-;;;
-;;;     0 <= a,b < $WORD_LENGTH.
-;;;
 (defun m* (a b m)
-  "Compute A*B (mod M)."
-  (mod (* a b) m)
-  #+#:possibly-unsafe
-  (let* ((y (floor
-             (+ 0.5d0
-                (/ (* (coerce a 'double-float)
-                      (coerce b 'double-float))
-                   (coerce m 'double-float)))))
-         (y (ldb (byte 64 0) (* y m)))
-         (x (ldb (byte 64 0) (* a b)))
-         (r (ldb (byte 64 0) (- x y))))
-    (declare (type (unsigned-byte 64) y x r))
-    r
-    ;; Normalization is necessary for m >= 2^62
-    ;;
-    ;; We can also easily get the quotient here if we want: y -= 1.
-    #+#:normalization
-    (if (logbitp r 63)
-        (progn (print "YES") (+ r m))
-        r)))
+  "Compute A*B (mod M).
+
+Assumes 0 <= A, B < M."
+  ;; We limit this to 63 bits because we need one extra bit for
+  ;; doubling.
+  (declare (type (unsigned-byte 63) a b m)
+           ;(optimize (speed 0) safety debug)
+           (optimize speed (safety 0) (debug 0) (space 0) (compilation-speed 0)))
+  ;; invariants:  0 <= a, b < m <= 2^63 - 1
+  (loop :with p :of-type (unsigned-byte 64) := 0
+        :for i :from 63 :downto 0 :do
+          ;; invariant: 0 <= p < m
+          ;;
+          ;; p := 2*p  (mod m)
+          (setf p (ash p 1))
+          ;; Normalize.
+          (when (>= p m)
+            (decf p m))
+          ;; d := d + next_bit(a) * b   (mod m)
+          (when (logbitp i a)
+            (incf p b)
+            ;; Normalize.
+            (when (>= p m)
+              (decf p m)))
+
+        :finally (return p)))
+
+(defun test-m* (n low)
+  (declare (notinline m*))
+  (flet ((r (&optional (high (expt 2 63)))
+           (+ low (random (- high low)))))
+    (loop :repeat n
+          :for m := (r)
+          :for a := (r m)
+          :for b := (r m)
+          :for x := (m* a b m)
+          :for y := (mod (* a b) m)
+          :when (/= x y)
+            :do (format t "fail: ~A*~A (mod ~A). Got ~A expected ~A~%" a b m x y))))
+
 
 (defun inv-mod (x m)
   "Compute X^-1 (mod M)."
@@ -191,7 +206,7 @@ Assumes 0 <= A < M."
   (m* a (inv-mod b m) m))
 
 (defmacro with-modular-arithmetic (m &body body)
-  (check-type m (and (integer 2) (unsigned-byte 64)))
+  (check-type m (and (integer 2) (unsigned-byte 63)))
   `(labels ((cm+ (a b)
               (declare (type (unsigned-byte 64) a b)
                        (optimize speed (safety 0) (debug 0) (space 0))
@@ -220,7 +235,7 @@ Assumes 0 <= A < M."
   (when (minusp n)
     (setf a (inv-mod a m)
           n (- n)))
-  
+
   (let ((result 1))
     (loop
       (when (oddp n)
@@ -277,6 +292,14 @@ This test uses the Miller-Rabin primality procedure. The positive integer K dete
     (loop :for i :from (+ n 2) :by 2
           :until (primep i)
           :finally (return i))))
+
+(defun proth-primep (q n)
+  "Test whether a number
+
+    p = q * 2^n + 1
+
+is a prime number."
+  (error "not implemented"))
 
 (defun factorize (number)
   "Compute the prime factorization of NUMBER. Return a list of conses (Pi . Ni) such that Pi are prime, Ni are positive integers, and the product of all Pi^Ni equals NUMBER."
@@ -443,7 +466,7 @@ The method to test is derived from the definition of a primitive root, and as su
   "Compute the NTT matrix of size N x N over Z/mZ using the primitive Mth root of unity W of order N."
   (let ((matrix (make-array (list N N) :initial-element 1)))
     (loop :for row :from 0 :below N :do
-      (loop :for col :from 0 :below N 
+      (loop :for col :from 0 :below N
             :for exponent := (* col row)
             :do (setf (aref matrix row col)
                       (expt-mod w exponent m)))
@@ -540,7 +563,7 @@ This is just the conjugate-transpose of the NTT matrix, scaled by N."
     (format t "  matrix: ~A~%"   (matmul (ntt-forward-matrix N m w) v m))
     (format t "  direct: ~A~%"   (ntt-forward-direct v m w))
     (format t "  fast  : ~A~%~%" (ntt-forward (copy-seq v) :modulus m :primitive-root w))
-    
+
     (format t "Reverse:~%")
     (format t "  matrix: ~A~%" (matmul (ntt-reverse-matrix N m w) v m))
     (format t "  direct: ~A~%" (ntt-reverse-direct v m w))
@@ -576,11 +599,11 @@ The resulting array (a mutation of the input) will be in bit-reversed order."
                     (aref a r+j+subn/2) (m* w^j (m- u v m) m))))
           (setf w^j (m* w w^j m)))
         (setf w (m* w w m))))
-    
+
     (loop :for r :below N :by 2 :do
       (psetf (aref a r)      (m+ (aref a r) (aref a (1+ r)) m)
              (aref a (1+ r)) (m- (aref a r) (aref a (1+ r)) m))))
-  
+
   a)
 
 ;;; Decimation-in-time algorithm.
@@ -615,7 +638,7 @@ The input must be in bit-reversed order."
               (setf (aref a r+j)        (m+ u v m)
                     (aref a r+j+subn/2) (m- u v m))))
           (setf w^j (m* dw w^j m))))))
-    
+
   a)
 
 #+#:ignore-DIF
@@ -645,14 +668,14 @@ The array must have a power-of-two length."
                     (aref a r+j+subn/2) (m* w^j (m- u v m) m))))
           (setf w^j (m* w w^j m)))
         (setf w (m* w w m))))
-    
+
     ;; This includes normalization.
     (loop :for r :below N :by 2 :do
       (psetf (aref a r)      (m/ (m+ (aref a r) (aref a (1+ r)) m) N m)
              (aref a (1+ r)) (m/ (m- (aref a r) (aref a (1+ r)) m) N m))))
-  
+
   (bit-reversed-permute! a)
-  
+
   a)
 
 (defun test-ntt (v m w)
@@ -685,13 +708,13 @@ The vector must have a power-of-two length."
                          (v (aref a r+j+m/2)))
                     (setf (aref a r+j)     (+ u v)
                           (aref a r+j+m/2) (* w^j (- u v))))))))
-    
+
     (loop :for r :below N :by 2 :do
       (psetf (aref a r)      (+ (aref a r) (aref a (1+ r)))
              (aref a (1+ r)) (- (aref a r) (aref a (1+ r))))))
-  
+
   (bit-reversed-permute! a)
-  
+
   a)
 
 (defun dif-reverse (a)
@@ -712,13 +735,13 @@ The vector must have a power-of-two length."
                          (v (aref a r+j+m/2)))
                     (setf (aref a r+j)     (+ u v)
                           (aref a r+j+m/2) (* w^j (- u v))))))))
-    
+
     (loop :for r :below N :by 2 :do
       (psetf (aref a r)      (/ (+ (aref a r) (aref a (1+ r))) N)
              (aref a (1+ r)) (/ (- (aref a r) (aref a (1+ r))) N))))
-  
+
   (bit-reversed-permute! a)
-  
+
   a)
 
 (defun dit-forward (a)
@@ -743,7 +766,7 @@ The vector must have a power-of-two length."
                          (v (* w^j (aref a r+j+m/2))))
                     (setf (aref a r+j)     (+ u v)
                           (aref a r+j+m/2) (- u v))))))))
-    
+
   a)
 
 (defun dit-reverse (a)
@@ -770,7 +793,7 @@ The vector must have a power-of-two length."
                          (v (* w^j (aref a r+j+m/2))))
                     (setf (aref a r+j)     (+ u v)
                           (aref a r+j+m/2) (- u v))))))))
-    
+
   a)
 
 
@@ -792,7 +815,7 @@ The vector must have a power-of-two length."
                                     (- f_e+k f_o+k))
                        :do (setf (aref f e+k) e
                                  (aref f o+k) o))
-                 
+
                  (dif start-e N/2)
                  (dif start-o N/2)))))
     ;; Perform the FTT via in-pace Decimation in Frequency.
@@ -800,7 +823,7 @@ The vector must have a power-of-two length."
 
     ;; Bit reverse
     (bit-reversed-permute! f)
-    
+
     ;; Return the modified array.
     f))
 
@@ -821,13 +844,13 @@ The vector must have a power-of-two length."
                        :for bot := (* (aref f b+k) (twiddle k))
                        :do (setf (aref f t+k) (+ top bot)
                                  (aref f b+k) (- top bot)))))))
-    
+
     ;; Bit reverse
     (bit-reversed-permute! f)
-    
+
     ;; Perform the FTT via in-pace Decimation in Frequency.
     (dit 0 (length f))
-    
+
     ;; Return the modified array.
     f))
 
@@ -900,10 +923,10 @@ The vector must have a power-of-two length."
          (runtime 0))
     (when verbose
       (format t "Multiplying ~D * ~D = ~D~%" a b (* a b))
-      
+
       (format t "A's digits: ~A~%" a-digits)
       (format t "B's digits: ~A~%" b-digits))
-    
+
     (with-timed-region (runtime)
       (setf a-digits (ntt-forward a-digits :modulus m :primitive-root w))
       (setf b-digits (ntt-forward b-digits :modulus m :primitive-root w)))
@@ -911,19 +934,19 @@ The vector must have a power-of-two length."
     (when verbose
       (format t "NTT(A): ~A~%" a-digits)
       (format t "NTT(B): ~A~%" b-digits))
-    
+
     (with-timed-region (runtime)
       (setf a-digits (map-into a-digits (lambda (a b) (m* a b m)) a-digits b-digits)))
-    
+
     (when verbose
       (format t "C = NTT(A)*NTT(B) mod ~D = ~A~%" m a-digits))
-    
+
     (with-timed-region (runtime)
       (setf a-digits (ntt-reverse a-digits :modulus m :primitive-root w)))
-    
+
     (when verbose
       (format t "NTT^-1(C): ~A~%" a-digits))
-    
+
     (values
      (undigits a-digits)
      runtime)))
@@ -936,24 +959,24 @@ The vector must have a power-of-two length."
          (a-digits (digits a :size length))
          (b-digits (digits b :size length)))
     (format t "Multiplying ~D * ~D = ~D~%" a b (* a b))
-    
+
     (format t "A's digits: ~A~%" a-digits)
     (format t "B's digits: ~A~%" b-digits)
-    
+
     (setf a-digits (dif-forward a-digits))
     (setf b-digits (dif-forward b-digits))
-    
+
     (format t "FFT(A): ~A~%" a-digits)
     (format t "FFT(B): ~A~%" b-digits)
-    
+
     (setf a-digits (map-into a-digits (lambda (a b) (* a b)) a-digits b-digits))
 
     (format t "C = FFT(A)*FFT(B) = ~A~%" a-digits)
-    
+
     (setf a-digits (dif-reverse a-digits))
 
     (format t "FFT^-1(C): ~A~%" a-digits)
-    
+
     (undigits (map 'vector (lambda (z)
                              (round (realpart z)))
                    a-digits))))
