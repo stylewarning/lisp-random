@@ -18,6 +18,9 @@
 ;;;
 ;;; "Given a set of points and a distance d, find the largest subset
 ;;; of points which are all >= d apart."
+;;;
+;;; This won't find the largest, but it finds the largest for which no
+;;; additional point can be added.
 
 (defun distance (p q)
   (sqrt (loop :for p_i :in p
