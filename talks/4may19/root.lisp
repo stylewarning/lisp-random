@@ -177,7 +177,7 @@ This function provides many restarts in the event of an error. The restarts are:
 ;;; Lots of zero derivatives, and Newton is easily fooled.
 (defun f3 (x) (+ (* 20 x) (cos (* 20 x)) -7.8))
 
-;;; Outrangeous function with a lot going on. Root finding will
+;;; Outrageous function with a lot going on. Root finding will
 ;;; probably fail unless you start your Newton step close enough. Try
 ;;; USE-NEWTON with X0 = 0.8.
 (defun f4 (x) (sin (/ 10.0 (sin (/ x 10.0)))))
