@@ -69,7 +69,8 @@ Signals DIVERGENCE-ERROR with the method BISECT if it could not find a root."
         :and  x-pos := (randomly-search f #'plusp)
         :for iteration :from 1
         :for x-mid := (/ (+ x-neg x-pos) 2.0)
-        :when (> iteration *max-iterations*)
+        :when (or (> iteration *max-iterations*)
+                  (= (signum x-neg) (signum x-pos)))
           :do (error 'divergence-error :iterations (1- iteration)
                                        :method 'bisect)
         :do (let ((fx (funcall f x-mid)))
@@ -159,6 +160,35 @@ This function provides many restarts in the event of an error. The restarts are:
 ;;; The user of this library is interested in computing roots of functions.
 (in-package #:cl-user)
 
+
+;;;;;;;;;;;;;;;;;;;;;;; SOME SAMPLE FUNCTIONS ;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; Well behaved.
+(defun f1 (x) (- (* x x) 0.25))
+
+
+;;; Domain error.
+(defun f2 (x)
+  (unless (plusp x)
+    (error 'floating-point-invalid-operation :operation 'f2
+                                             :operands (list x)))
+  (- (expt x 1/3) 0.25))
+
+;;; Lots of zero derivatives, and Newton is easily fooled.
+(defun f3 (x) (+ (* 20 x) (cos (* 20 x)) -7.8))
+
+;;; Outrangeous function with a lot going on. Root finding will
+;;; probably fail unless you start your Newton step close enough. Try
+;;; USE-NEWTON with X0 = 0.8.
+(defun f4 (x) (sin (/ 10.0 (sin (/ x 10.0)))))
+
+;;; A functionw with no roots!
+(defun f5 (x) (1+ (exp (* x x))))
+
+
+;;; I, the application programmer, want to not only decide *which*
+;;; errors I service, but also *where* recovery should occur.
+
 (defun increase-iterations-or-bust (c)
   ;; If we've exceeded 10k iterations, we might as well just go home.
   (if (< 10000 (root:divergence-error-iterations c))
@@ -180,19 +210,3 @@ This function provides many restarts in the event of an error. The restarts are:
                        ((bisection) (increase-iterations-or-bust c))
                        (otherwise   (increase-iterations-or-bust c))))))
     (root:find-root f)))
-
-
-;;;;;;;;;;;;;;;;;;;;;;; SOME SAMPLE FUNCTIONS ;;;;;;;;;;;;;;;;;;;;;;;;
-
-(defun f1 (x) (- (* x x) 0.25))
-(defun f2 (x)
-  (unless (plusp x)
-    (error 'floating-point-invalid-operation :operation 'f2
-                                             :operands (list x)))
-  (- (expt x 1/3) 0.25))
-(defun f3 (x) (+ (* 20 x) (cos (* 20 x)) -7.8))
-
-;; This will likely fail. Try USE-NEWTON with X0 = 0.8.
-(defun f4 (x) (sin (/ 10.0 (sin (/ x 10.0)))))
-
-(defun f5 (x) (1+ (exp (* x x))))
