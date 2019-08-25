@@ -9,21 +9,25 @@
 
 (in-package #:hypergeometric)
 
+;;; Representation of a hypergeometric series
+
 (defun one (n)
   (declare (type integer n)
            (ignore n))
   1)
 
 (defstruct (series (:predicate series?))
-  ;;; The representation of the series
-  ;;;
-  ;;;      
-  ;;;     ===
-  ;;;     \    a(k)   p(0) p(1) ... p(k)
-  ;;;      >  ------ --------------------
-  ;;;     /    b(k)   q(0) q(1) ... q(k)
-  ;;;     ===
-  ;;      k>=0
+  "A representation of the series
+
+       ===
+       \    a(k)   p(0) p(1) ... p(k)
+        >  ------ --------------------
+       /    b(k)   q(0) q(1) ... q(k)
+       ===
+       k>=0
+
+Each of the function a, b, p, and q are integer-valued.
+"
   (a #'one :type function :read-only t)
   (b #'one :type function :read-only t)
   (p #'one :type function :read-only t)
@@ -31,14 +35,6 @@
 
 (defmethod print-object ((obj series) stream)
   (print-unreadable-object (obj stream :type t :identity t)))
-
-(defstruct (partial (:predicate partial?))
-  (lower nil :read-only t)
-  (upper nil :read-only t)
-  (p nil :type integer :read-only t)
-  (q nil :type integer :read-only t)
-  (b nil :type integer :read-only t)
-  (r nil :type integer :read-only t))
 
 (defun product (f lower upper)
   "Compute the product
@@ -63,6 +59,45 @@
         :for n :from lower :below upper
         :sum (/ (* (funcall a n) (product p lower n))
                 (* (funcall b n) (product q lower n)))))
+
+
+;;; Partial sums
+
+(defstruct (partial (:predicate partial?))
+  "A partial sum of a series for LOWER <= k < UPPER."
+  (lower nil :read-only t)
+  (upper nil :read-only t)
+  (p nil :type integer :read-only t)
+  (q nil :type integer :read-only t)
+  (b nil :type integer :read-only t)
+  (r nil :type integer :read-only t))
+
+(defmethod print-object ((obj partial) stream)
+  (print-unreadable-object (obj stream :type t :identity nil)
+    (format stream "[~D, ~D)"
+            (partial-lower obj)
+            (partial-upper obj))))
+
+(defun partial-numerator (x)
+  (declare (type partial x))
+  (partial-r x))
+
+(defun partial-denominator (x)
+  (declare (type partial x))
+  (* (partial-b x) (partial-q x)))
+
+(defun partial-as-rational (x)
+  (declare (type partial x))
+  (/ (partial-numerator x)
+     (partial-denominator x)))
+
+(defun partial-digits (x digits)
+  (declare (type partial x))
+  (values (round (* (expt 10 digits) (partial-numerator x))
+                 (partial-denominator x))))
+
+
+;;; Binary splitting
 
 (defun binary-split-base-case=1 (series lower upper)
   (declare (type series series)
@@ -99,23 +134,6 @@
                 (right (binary-split series m upper)))
            (combine left right))))))
 
-(defun partial-numerator (x)
-  (declare (type partial x))
-  (partial-r x))
-
-(defun partial-denominator (x)
-  (declare (type partial x))
-  (* (partial-b x) (partial-q x)))
-
-(defun partial-as-rational (x)
-  (declare (type partial x))
-  (/ (partial-numerator x)
-     (partial-denominator x)))
-
-(defun partial-digits (x digits)
-  (declare (type partial x))
-  (values (round (* (expt 10 digits) (partial-numerator x))
-                 (partial-denominator x))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;; Examples ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -131,7 +149,10 @@
                  :q (lambda (n) (if (zerop n) 1 (* n den))))))
 
 (defun make-e-series ()
-  (make-exp-series 1))
+  (make-series :a #'one
+               :b #'one
+               :p #'one
+               :q (lambda (n) (if (zerop n) 1 n))))
 
 ;;; Ramanujan's Series for pi
 
