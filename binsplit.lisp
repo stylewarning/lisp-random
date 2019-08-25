@@ -1,4 +1,5 @@
-;;;; binsplit.pdf
+;;;; binsplit.lisp
+;;;;
 ;;;; Copyright (c) 2012-2014 Robert Smith
 
 (declaim (optimize speed))
