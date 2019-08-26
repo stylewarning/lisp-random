@@ -40,7 +40,7 @@ Each of the function a, b, p, and q are integer-valued.
   "Compute the product
  
   F(LOWER) * F(LOWER + 1) * ... * F(UPPER - 1)."
-  (declare (type integer lower upper))
+  (declare (type fixnum lower upper))
   (labels ((rec (current accum)
              (if (>= current upper)
                  accum
@@ -50,7 +50,7 @@ Each of the function a, b, p, and q are integer-valued.
 
 (defun sum-series-direct (series lower upper)
   (declare (type series series)
-           (type integer lower upper))
+           (type fixnum lower upper))
   (assert (> upper lower))
   (loop :with a := (series-a series)
         :with b := (series-b series)
@@ -65,8 +65,8 @@ Each of the function a, b, p, and q are integer-valued.
 
 (defstruct (partial (:predicate partial?))
   "A partial sum of a series for LOWER <= k < UPPER."
-  (lower nil :read-only t)
-  (upper nil :read-only t)
+  (lower nil :type fixnum :read-only t)
+  (upper nil :type fixnum :read-only t)
   (p nil :type integer :read-only t)
   (q nil :type integer :read-only t)
   (b nil :type integer :read-only t)
@@ -99,9 +99,9 @@ Each of the function a, b, p, and q are integer-valued.
 
 ;;; Binary splitting
 
-(defun binary-split-base-case=1 (series lower upper)
+(defun binary-split-base-case=1 (series lower &optional (upper (1+ lower)))
   (declare (type series series)
-           (type integer lower upper))
+           (type fixnum lower upper))
   (assert (= 1 (- upper lower)))
   (let ((p (funcall (series-p series) lower)))
     (make-partial :lower lower
@@ -124,7 +124,7 @@ Each of the function a, b, p, and q are integer-valued.
 
 (defun binary-split (series lower upper)
   (declare (type series series)
-           (type integer lower upper))
+           (type fixnum lower upper))
   (assert (> upper lower))
   (let ((delta (- upper lower)))
     (cond
