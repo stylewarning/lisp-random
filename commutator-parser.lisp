@@ -1,5 +1,7 @@
 ;;;; copyright (c) 2019 robert smith
 
+(defvar *allow-empty-commutators* t "Allow [;x] or [x;] or [;].")
+
 (defun parse (str)
   (with-input-from-string (s str)
     (read-seq s t)))
@@ -26,15 +28,25 @@
                 ((#\;) :conj)))
         (right (read-seq s nil)))
     (assert (eql #\] (read-char s)))
+    (unless *allow-empty-commutators*
+      (assert (and (endp (rest left))
+                   (endp (rest right)))))
     (list kind left right)))
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;; test cases ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(defparameter *good* '("R" "RUR" "[R;U]" "[[R;U];R]" "R[R;U]" "R[RR;U]" "R[RR[U;U];U]" "[R;UUR]" "[;U]" "[RU;]" "[U;]"))
+(defparameter *good* '("R" "RUR" "[R;U]" "[[R;U];R]" "R[R;U]" "R[RR;U]" "R[RR[U;U];U]" "[R;UUR]"))
 (defparameter *bad* '("RR;U]" "R[RU]" "[" "[R;R;"))
+(defparameter *maybe* '("[;U]" "[RU;]" "[U;]"))
 
 (defun test ()
-  (flet ((safe-parse (x) (ignore-errors (parse x))))
-    (assert (notany #'null (mapcar #'safe-parse *good*)))
-    (assert (every #'null (mapcar #'safe-parse *bad*)))))
+  (labels ((safe-parse (x) (ignore-errors (parse x)))
+           (all-good (x) (notany #'null (mapcar #'safe-parse x)))
+           (all-bad (x) (every #'null (mapcar #'safe-parse x))))
+    (assert (all-good *good*))
+    (assert (all-bad *bad*))
+    (let ((*allow-empty-commutators* t))
+      (assert (all-good *maybe*)))
+    (let ((*allow-empty-commutators* nil))
+      (assert (all-bad *maybe*)))))
