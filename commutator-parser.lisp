@@ -11,14 +11,13 @@
   (values))
 
 (defun read-seq (s toplevel)
-  (let ((seq (list ':seq)))
-    (loop
-      (case (peek-char nil s (not toplevel) ':eof)
-        ((#\R #\U) (push (read-char s) seq))
-        ((#\[) (push (read-comm s) seq))
-        ((#\Space) (ignore-char s))
-        ((:eof) (return (nreverse seq)))
-        (otherwise (if toplevel (error "bad shrimp") (return (nreverse seq))))))))
+  (loop :with seq := (list ':seq) :do
+    (case (peek-char nil s (not toplevel) ':eof)
+      ((#\R #\U) (push (read-char s) seq))
+      ((#\[) (push (read-comm s) seq))
+      ((#\Space) (ignore-char s))
+      ((:eof) (return (nreverse seq)))
+      (otherwise (if toplevel (error "bad shrimp") (return (nreverse seq)))))))
 
 (defun read-comm (s)
   (assert (eql #\[ (read-char s)))
