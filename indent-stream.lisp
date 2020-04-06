@@ -67,3 +67,4 @@
     (format s "~&S : 123~%456")
     (format si "~&SI: 123~%456")
     (format sii "~&SII: 123~%456")))
+
