@@ -1,4 +1,4 @@
-;;;; A QUANTUM CONDITIONAL READER
+;;;; A HEISENBERG READER
 ;;;;
 ;;;; BY STYLEWARNING
 
@@ -116,7 +116,7 @@
 ;;; can determine, by way of analyzing our feature expression, whether
 ;;; we include the form or not.
 
-(defun quantum-feature-reader (stream char subchar)
+(defun heisenberg-reader (stream char subchar)
   (declare (ignore char subchar))       ; get out of here CHAR we
                                         ; don't need you
 
@@ -135,6 +135,6 @@
         form
         (values))))
 
-(set-dispatch-macro-character #\# #\± 'quantum-feature-reader)
+(set-dispatch-macro-character #\# #\± 'heisenberg-reader)
 
 ;;; Try (SETF QVM:*TRANSITION-VERBOSE* T) to see quantum states evolve.
