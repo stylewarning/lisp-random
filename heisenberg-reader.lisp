@@ -35,12 +35,12 @@
 
 ;;; Now we got a quantum state, and a basis in which that state is
 ;;; expressed (which also consequently defines the Hilbert subspace of
-;;; the countably infinite dimensional Hilbert featture space). Now,
+;;; the countably infinite dimensional Hilbert feature space). Now,
 ;;; assuming that we measured a quantum state, which gives us a
 ;;; bitstring, we need to evaluate that bitstring against our feature
 ;;; expression. What we do is interpret FEATURE-EXPR as a Boolean
 ;;; expression on feature eigenstates in the computational basis. In
-;;; the case a feature isn't a part of our Hilbert substace, we
+;;; the case a feature isn't a part of our Hilbert subspace, we
 ;;; interpret as a Boolean value deduced from *FEATURES* itself, as is
 ;;; standard in Common Lisp.
 
@@ -121,6 +121,7 @@
                                         ; don't need you
 
   (qvm:set-to-zero-state *wavefunction*) ; start fresh
+
   (let* ((feature-expr (read stream))
          (form (read stream))
          (action (consing-unitary-action form))
