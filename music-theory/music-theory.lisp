@@ -11,7 +11,10 @@
                 #:= #:> #:>= #:< #:<=
                 #:minusp #:plusp
                 #:evenp #:oddp
-                #:error))
+                #:error
+                #:map
+                #:range
+                #:Liszt))
 
 ;;; This file primarily deals with reconstructing the circle of fifths
 ;;; from first principles. We take an "algebraic" approach, in the
@@ -23,7 +26,7 @@
 
 ;;; Utilities
 (coalton-toplevel
-  (declare mod (-> (Integer Integer) Integer))
+  (declare mod (fn Integer Integer -> Integer))
   (define (mod n k)
     (lisp Integer
       (cl:mod n k)))
@@ -43,7 +46,7 @@
          (else
           (error "unreachable"))))))
   
-  (declare strcat (-> (String String) String))
+  (declare strcat (fn String String -> String))
   (define (strcat a b)
     (lisp String
       (cl:concatenate 'cl:string a b))))
@@ -65,7 +68,7 @@
     A. B. C. D. E. F. G.
     (sharp note)
     (flat note))
-  
+
   (define (note-string n)
     (match n
       (A. "A")
@@ -94,6 +97,10 @@
       ((= k 10) (sharp A.))
       ((= k 11) B.)
       (else (chromatic-degree->note (mod k 12)))))
+
+  (define diatonic-notes (Liszt C. D. E. F. G. A. B.))
+
+  (define chromatic-notes (map chromatic-degree->note (range 0 12)))
   
   (define (note->chromatic-degree n)
     (match n
