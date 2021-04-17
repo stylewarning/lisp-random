@@ -42,7 +42,8 @@
                       (error 'generator-exhausted))
                     value)))))
       (sb-ext:finalize #'generator-function (lambda ()
-                                              (when (bt:thread-alive-p thread)
+                                              (when (and (not (null thread))
+                                                         (bt:thread-alive-p thread))
                                                 (bt:destroy-thread thread))))
       #'generator-function)))
 
@@ -128,3 +129,11 @@
               (return t))
             (unless (funcall test next-a next-b)
               (return nil))))
+
+
+;;; Stress test
+
+(defun stress (&optional (n 10000))
+  (let ((generators (loop :repeat n
+                          :collect (naturals))))
+    (loop :repeat n :do (map nil #'funcall generators))))
