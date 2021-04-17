@@ -1,7 +1,7 @@
-;;;; generators.lisp
+;;;; poor-mans-generators.lisp
 ;;;; Copyright (c) 2012 Robert Smith
 
-;;;; OBSOLETE: See POOR-MANS-GENERATORS
+;;;; OBSOLETE: See the system POOR-MANS-GENERATORS
 ;;;;
 ;;;;    https://bitbucket.org/tarballs_are_good/poor-mans-generators
 
