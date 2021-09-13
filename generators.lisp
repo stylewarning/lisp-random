@@ -24,23 +24,23 @@
                (ecase (chanl:recv request-chan)
                  (next nil)))
 
-             (thread-function ()
-               (unwind-protect (funcall function #'yield)
-                 (yield finished-sentinel)))
-
              (generator-function ()
                (cond
                  (done
                   (error 'generator-exhausted))
                  (t
                   (when (null thread)
-                    (setf thread (bt:make-thread #'thread-function)))
+                    (setf thread (bt:make-thread
+                                  (lambda ()
+                                    (unwind-protect (funcall function #'yield)
+                                      (yield finished-sentinel))))))
                   (chanl:send request-chan 'next)
                   (let ((value (chanl:recv return-chan)))
                     (when (eq finished-sentinel value)
                       (setf done t)
                       (error 'generator-exhausted))
                     value)))))
+      #+sbcl
       (sb-ext:finalize #'generator-function (lambda ()
                                               (when (and (not (null thread))
                                                          (bt:thread-alive-p thread))
@@ -133,7 +133,16 @@
 
 ;;; Stress test
 
-(defun stress (&optional (n 10000))
-  (let ((generators (loop :repeat n
-                          :collect (naturals))))
-    (loop :repeat n :do (map nil #'funcall generators))))
+(defun stress (&optional (n 5000))
+  ;; first test
+  (format t "first test:~%")
+  (time (loop :repeat n
+              :do (funcall (naturals))))
+  (sb-ext:gc :full t)
+  ;; second test
+  (format t "~2%second test:~%")
+  (time (let ((generators (loop :repeat n
+                                :collect (naturals))))
+          (loop :repeat n :do (map nil #'funcall generators))))
+  (sb-ext:gc :full t)
+  (finish-output))
