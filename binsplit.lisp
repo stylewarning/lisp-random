@@ -1,6 +1,6 @@
 ;;;; binsplit.lisp
 ;;;;
-;;;; Copyright (c) 2012-2014 Robert Smith
+;;;; Copyright (c) 2012-2014, 2022 Robert Smith
 
 (declaim (optimize speed))
 
@@ -55,17 +55,17 @@
                       (* accum (funcall f current))))))
     (rec lower 1)))
 
-;;; naive, slow direct summation
-;;; also buggy
 (defun sum-series-direct (series lower upper)
+  ;; naive, slow direct summation
   (with-accessors ((a series.a)
                    (b series.b)
                    (p series.p)
                    (q series.q)) series
     (loop :for n :from lower :below upper
+          ;; recall that PRODUCT does not include the right endpoint.
           :sum (* (/ (funcall a n) (funcall b n))
-                  (/ (product p lower n)
-                     (product q lower n))))))
+                  (/ (product p lower (1+ n))
+                     (product q lower (1+ n)))))))
 
 (defun binary-split-base-case=1 (series lower upper)
   (declare (ignore upper)
@@ -110,7 +110,6 @@
     (cond
       ((zerop delta) (error "UPPER must be greater than LOWER."))
       ((= 1 delta) (binary-split-base-case=1 series lower upper))
-      #+#:bug
       ((< delta 5) (binary-split-base-case=n series lower upper))
       (t (let* ((m     (floor (+ lower upper) 2))
                 (left  (binary-split series lower m))
