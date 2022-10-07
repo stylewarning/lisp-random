@@ -36,12 +36,13 @@
 ;;; #("000" "010")
 ;;;
 ;;; CL-USER> (slice *a '* '* 0)
-;;; #2A(("000" "100") ("200" "300") ("010" "110") ("210" "310"))
+;;; #2A(("000" "010") ("100" "110") ("200" "210") ("300" "310"))
 ;;;
 ;;; CL-USER> (slice *a '(1 . *) '* '(1 . *))
-;;; #3A((("101" "201") ("301" "111"))
-;;;     (("211" "311") ("102" "202"))
-;;;     (("302" "112") ("212" "312")))
+;;; #3A((("101" "102") ("111" "112"))
+;;;     (("201" "202") ("211" "212"))
+;;;     (("301" "302") ("311" "312")))
+
 
 
 (defun slice (array &rest components)
@@ -141,18 +142,19 @@ The return value is either
                            (unless (<= 0 sel (1- rank))
                              (error "invalid component: ~A" sel))
                            (cons sel (1+ sel)))))
-                      selectors)
-          :finally (setf selectors (nreverse selectors)))
+                      selectors))
+
+    ;; NOTE! SELECTORs will be in reverse order (from row-major).
 
     ;; Figure out the target array.
-    (let* ((target-dims (loop :for sel :in selectors
-                              :collect (- (cdr sel) (car sel))))
-           (target-dims-reduced (remove 1 target-dims))
+    (let* ((target-dims-reversed (loop :for sel :in selectors
+                                       :collect (- (cdr sel) (car sel))))
+           (target-dims-reduced (nreverse (remove 1 target-dims-reversed)))
            (num-target-elements (reduce #'* target-dims-reduced :initial-value 1))
            (target (make-array target-dims-reduced :element-type (array-element-type array))))
       (labels ((index->accessor (i radices selectors accessors)
                  (if (null radices)
-                     (nreverse accessors)
+                     accessors
                      (multiple-value-bind (quo rem) (floor i (car radices))
                        (index->accessor quo
                                         (cdr radices)
@@ -162,7 +164,7 @@ The return value is either
         ;; Fill the elements.
         (dotimes (i num-target-elements)
           (setf (row-major-aref target i)
-                (apply #'aref array (index->accessor i target-dims selectors nil))))
+                (apply #'aref array (index->accessor i target-dims-reversed selectors nil))))
 
         ;; Return the array.
         (if (zerop (array-rank target))
