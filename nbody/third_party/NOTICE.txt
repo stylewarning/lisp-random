@@ -1,0 +1,5 @@
+The code in this directory was taken from
+
+https://github.com/korulang/koru/tree/main/tests/regression/900_EXAMPLES_SHOWCASE/910_LANGUAGE_SHOOTOUT/nbody
+
+and is governed by the licenses thereof.
